@@ -46,6 +46,30 @@ docker run -p 3000:3000 studio-lokal
 Das Image nutzt den schlanken **standalone**-Output von Next.js (Multi-Stage-Build,
 läuft als nicht-root-User).
 
+## Plug-and-play auf einem anderen Server (vorgebautes Image)
+
+Bei jedem Push auf `main` baut GitHub Actions automatisch ein Docker-Image und
+legt es in die GitHub Container Registry: `ghcr.io/twil1ghtzone/test-website:latest`
+(inkl. aller Bilder/Assets — alles ist im Image enthalten).
+
+**Einmalig:** Paket öffentlich schalten, damit der Server ohne Login ziehen kann:
+GitHub → Repo → rechts „Packages" → `test-website` → *Package settings* →
+*Change visibility* → **Public**.
+(Alternativ am Server: `echo <TOKEN> | docker login ghcr.io -u twil1ghtzone --password-stdin`.)
+
+**Auf dem Server** nur diese eine Datei brauchen — [`docker-compose.prod.yml`](docker-compose.prod.yml):
+
+```bash
+# Datei auf den Server kopieren, dann:
+docker compose -f docker-compose.prod.yml up -d
+```
+
+Erreichbar unter `http://<server-ip>:3000`. Update später einfach mit:
+
+```bash
+docker compose -f docker-compose.prod.yml pull && docker compose -f docker-compose.prod.yml up -d
+```
+
 ## Öffentlich testen (Deployment)
 
 **Variante A — Vercel (am einfachsten, kein Docker nötig):**

@@ -1,0 +1,14 @@
+# Plug-and-play: nur DIESE Datei auf den Server kopieren und starten:
+#   docker compose -f docker-compose.prod.yml up -d
+# Voraussetzung: Das GHCR-Paket ist öffentlich (oder vorher `docker login ghcr.io`).
+services:
+  web:
+    image: ghcr.io/twil1ghtzone/test-website:latest
+    container_name: studio-lokal-web
+    restart: unless-stopped
+    pull_policy: always
+    ports:
+      - "3000:3000"
+    environment:
+      - NODE_ENV=production
+      - NEXT_TELEMETRY_DISABLED=1
