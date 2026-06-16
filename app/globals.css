@@ -1,0 +1,224 @@
+@import "tailwindcss";
+
+@theme {
+  /* Warm editorial canvas (bone / cream) */
+  --color-canvas: #f6f2ea;
+  --color-surface: #fbf8f2;
+  --color-surface-2: #efe9dd;
+
+  /* Warm ink */
+  --color-ink: #211c17;
+  --color-ink-soft: #4d453c;
+  --color-muted: #8a8076;
+
+  /* Lines */
+  --color-line: #e4dccd;
+  --color-line-strong: #d3c8b5;
+
+  /* Clay / terracotta accent + shades */
+  --color-accent: #b0543a;
+  --color-accent-ink: #8d4129;
+  --color-accent-soft: #ecd9cf;
+  --color-clay-deep: #6f3b2a;
+
+  /* Dark editorial section */
+  --color-night: #211c17;
+
+  /* Fonts */
+  --font-display: var(--font-fraunces), Georgia, "Times New Roman", serif;
+  --font-body: var(--font-inter), ui-sans-serif, system-ui, sans-serif;
+}
+
+@layer base {
+  :root { color-scheme: light; }
+
+  html {
+    scroll-behavior: smooth;
+    -webkit-text-size-adjust: 100%;
+  }
+
+  body {
+    background-color: var(--color-canvas);
+    color: var(--color-ink);
+    font-family: var(--font-body);
+    font-size: 17px; /* etwas größer — gut lesbar für jedes Alter */
+    line-height: 1.6;
+    -webkit-font-smoothing: antialiased;
+    text-rendering: optimizeLegibility;
+  }
+
+  ::selection { background: var(--color-accent); color: #fff; }
+
+  *:focus-visible {
+    outline: 2px solid var(--color-accent);
+    outline-offset: 3px;
+    border-radius: 4px;
+  }
+}
+
+@layer utilities {
+  .font-display { font-family: var(--font-display); }
+
+  /* Editorial italic emphasis (wie „style meets science") */
+  .emph {
+    font-family: var(--font-display);
+    font-style: italic;
+    font-weight: 400;
+    color: var(--color-accent);
+  }
+
+  /* Eyebrow label — getrackte Großbuchstaben */
+  .eyebrow {
+    font-size: 0.72rem;
+    letter-spacing: 0.22em;
+    text-transform: uppercase;
+    font-weight: 600;
+  }
+
+  /* Fein gekörnte Premium-Textur */
+  .grain {
+    background-image: radial-gradient(var(--color-line-strong) 0.5px, transparent 0.5px);
+    background-size: 22px 22px;
+  }
+
+  /* Foto-Platzhalter Diagonal-Muster */
+  .ph-pattern {
+    background-color: var(--color-surface-2);
+    background-image: repeating-linear-gradient(
+      45deg,
+      transparent,
+      transparent 11px,
+      rgba(33, 28, 23, 0.04) 11px,
+      rgba(33, 28, 23, 0.04) 12px
+    );
+  }
+
+  /* Bogen oben (arched card) */
+  .arch { border-radius: 999px 999px 14px 14px; }
+
+  /* Scroll reveal */
+  .reveal {
+    opacity: 0;
+    transform: translateY(24px);
+    transition: opacity 0.8s cubic-bezier(0.22, 1, 0.36, 1),
+                transform 0.8s cubic-bezier(0.22, 1, 0.36, 1);
+    will-change: opacity, transform;
+  }
+  .reveal.is-in { opacity: 1; transform: none; }
+
+  /* Akzent-Unterstrich */
+  .link-underline {
+    background-image: linear-gradient(var(--color-accent), var(--color-accent));
+    background-size: 0% 1.5px;
+    background-position: 0 100%;
+    background-repeat: no-repeat;
+    transition: background-size 0.3s ease;
+  }
+  .link-underline:hover { background-size: 100% 1.5px; }
+
+  /* Laufschrift-Band */
+  .marquee-track {
+    display: inline-flex;
+    white-space: nowrap;
+    animation: marquee 32s linear infinite;
+  }
+  @keyframes marquee {
+    from { transform: translateX(0); }
+    to { transform: translateX(-50%); }
+  }
+
+  /* ── Spotlight-/Glow-Karten (data-glow) — leuchtender Rahmen folgt dem Cursor ──
+     Lokale Koordinaten (--x/--y relativ zur Karte), kein background-attachment: fixed,
+     damit es auch in transformierten Containern exakt sitzt. --active 0/1 = aus/an. */
+  [data-glow] {
+    --border-size: calc(var(--border, 2) * 1px);
+    --spotlight-size: calc(var(--size, 220) * 1px);
+    --hue: calc(var(--base, 14) + (var(--xp, 0) * var(--spread, 0)));
+    background-color: var(--backdrop, transparent);
+    background-image: radial-gradient(
+      var(--spotlight-size) var(--spotlight-size) at
+      calc(var(--x, 0) * 1px) calc(var(--y, 0) * 1px),
+      hsl(var(--hue) calc(var(--saturation, 72) * 1%) calc(var(--lightness, 52) * 1%) / calc(var(--bg-spot-opacity, 0.12) * var(--active, 0))),
+      transparent
+    );
+    background-repeat: no-repeat;
+    background-position: 50% 50%;
+    border: var(--border-size) solid var(--backup-border, var(--color-line));
+    transition: --active 0.3s ease, border-color 0.3s ease;
+  }
+  [data-glow]::before,
+  [data-glow]::after {
+    pointer-events: none;
+    content: "";
+    position: absolute;
+    inset: calc(var(--border-size) * -1);
+    border: var(--border-size) solid transparent;
+    border-radius: calc(var(--radius, 14) * 1px);
+    background-size: 100% 100%;
+    background-repeat: no-repeat;
+    background-position: 50% 50%;
+    -webkit-mask: linear-gradient(transparent, transparent), linear-gradient(white, white);
+    mask: linear-gradient(transparent, transparent), linear-gradient(white, white);
+    -webkit-mask-clip: padding-box, border-box;
+    mask-clip: padding-box, border-box;
+    -webkit-mask-composite: source-in;
+    mask-composite: intersect;
+  }
+  [data-glow]::before {
+    background-image: radial-gradient(
+      calc(var(--spotlight-size) * 0.75) calc(var(--spotlight-size) * 0.75) at
+      calc(var(--x, 0) * 1px) calc(var(--y, 0) * 1px),
+      hsl(var(--hue) calc(var(--saturation, 72) * 1%) calc(var(--lightness, 50) * 1%) / calc(var(--border-spot-opacity, 1) * var(--active, 0))),
+      transparent 100%
+    );
+    filter: brightness(1.5);
+  }
+  [data-glow]::after {
+    background-image: radial-gradient(
+      calc(var(--spotlight-size) * 0.5) calc(var(--spotlight-size) * 0.5) at
+      calc(var(--x, 0) * 1px) calc(var(--y, 0) * 1px),
+      hsl(36 100% 92% / calc(var(--border-light-opacity, 0.45) * var(--active, 0))),
+      transparent 100%
+    );
+  }
+}
+
+/* Ermöglicht weiches Ein-/Ausblenden des Glows (--active wird animierbar) */
+@property --active {
+  syntax: "<number>";
+  inherits: false;
+  initial-value: 0;
+}
+
+/* Dialog (Konfigurator-Vorschau) — sanftes Ein-/Ausblenden ohne Extra-Plugin */
+@keyframes dlg-overlay-in { from { opacity: 0; } to { opacity: 1; } }
+@keyframes dlg-content-in {
+  from { opacity: 0; transform: scale(0.96); }
+  to { opacity: 1; transform: scale(1); }
+}
+.dlg-overlay[data-state="open"] { animation: dlg-overlay-in 0.2s ease both; }
+.dlg-content[data-state="open"] { animation: dlg-content-in 0.24s cubic-bezier(0.22, 1, 0.36, 1) both; }
+
+/* Popover/Dropdown (Combobox) — kurzes Einblenden */
+@keyframes pop-in {
+  from { opacity: 0; transform: translateY(-4px) scale(0.98); }
+  to { opacity: 1; transform: none; }
+}
+.pop-in { animation: pop-in 0.16s ease-out both; transform-origin: top; }
+
+/* Sprechblase im Registrierungs-Login */
+@keyframes bubble-pop {
+  from { opacity: 0; transform: translate(-50%, -8px) scale(0.96); }
+  to { opacity: 1; transform: translate(-50%, 0) scale(1); }
+}
+.bubble-pop { animation: bubble-pop 0.28s cubic-bezier(0.22, 1, 0.36, 1) both; }
+
+@media (prefers-reduced-motion: reduce) {
+  html { scroll-behavior: auto; }
+  .reveal { opacity: 1 !important; transform: none !important; transition: none !important; }
+  .marquee-track { animation: none !important; }
+  *, *::before, *::after {
+    animation-duration: 0.001ms !important;
+    transition-duration: 0.001ms !important;
+  }
+}
