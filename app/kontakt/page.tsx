@@ -24,7 +24,7 @@ const goodToKnow = [
 
 export default function KontaktPage() {
   return (
-    <main className="px-5 pt-32 pb-24 sm:pt-40">
+    <main className="px-5 pt-28 pb-20 sm:pt-40 sm:pb-24">
       <div className="mx-auto max-w-6xl">
         {/* Breadcrumb */}
         <nav className="flex items-center gap-2 text-sm text-muted">

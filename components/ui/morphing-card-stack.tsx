@@ -77,7 +77,7 @@ export function Component({ cards = [], className, defaultLayout = "stack" }: Mo
   };
 
   const containerStyles = {
-    stack: "relative h-56 w-72",
+    stack: "relative h-56 w-[17rem] sm:w-72",
     grid: "grid grid-cols-1 sm:grid-cols-2 gap-3 w-full max-w-2xl",
     list: "flex flex-col gap-3 w-full max-w-2xl",
   };
@@ -138,7 +138,7 @@ export function Component({ cards = [], className, defaultLayout = "stack" }: Mo
                   className={cn(
                     "cursor-pointer rounded-2xl border border-line bg-surface p-5 transition-colors",
                     "hover:border-accent/50 shadow-[0_10px_30px_-12px_rgba(33,28,23,0.12)]",
-                    layout === "stack" && "absolute w-72 h-56",
+                    layout === "stack" && "absolute w-[17rem] h-56 sm:w-72",
                     layout === "stack" && isTopCard && "cursor-grab active:cursor-grabbing",
                     layout === "grid" && "w-full",
                     layout === "list" && "w-full",

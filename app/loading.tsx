@@ -4,7 +4,7 @@ import AnimatedLoadingSkeleton from "@/components/ui/animated-loading-skeleton";
 // die kein eigenes loading.tsx haben.
 export default function Loading() {
   return (
-    <main className="px-5 pt-32 pb-24 sm:pt-40">
+    <main className="px-5 pt-28 pb-20 sm:pt-40 sm:pb-24">
       <div className="mx-auto max-w-4xl">
         <div className="mb-8 space-y-3 text-center">
           <div className="mx-auto h-3 w-28 animate-pulse rounded-full bg-surface-2" />

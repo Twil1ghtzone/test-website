@@ -101,7 +101,7 @@ export default function Testimonials() {
     "w-full rounded-xl border border-line bg-canvas px-4 py-3 text-ink placeholder:text-muted transition-colors focus:border-accent focus:bg-surface";
 
   return (
-    <section id="bewertungen" className="px-5 py-24">
+    <section id="bewertungen" className="px-5 py-16 sm:py-24">
       <div className="mx-auto max-w-6xl">
         <div className="mx-auto max-w-2xl text-center">
           <span className="eyebrow text-accent">Kundenstimmen</span>

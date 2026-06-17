@@ -42,7 +42,7 @@ export default function Home() {
         </div>
 
         {/* ───────────────────────── ÜBER UNS / DUO ───────────────────────── */}
-        <section id="ueber-uns" className="px-5 py-24">
+        <section id="ueber-uns" className="px-5 py-16 sm:py-24">
           <div className="mx-auto max-w-6xl">
             <div className="grid items-center gap-12 lg:grid-cols-2">
               <Reveal>
@@ -76,7 +76,7 @@ export default function Home() {
         </section>
 
         {/* ───────────────── DREI WEGE (Choose your path) ───────────────── */}
-        <section className="px-5 py-24">
+        <section className="px-5 py-16 sm:py-24">
           <div className="mx-auto max-w-6xl">
             <SectionHead
               eyebrow="Was wir tun"
@@ -153,7 +153,7 @@ export default function Home() {
         </section>
 
         {/* ───────────────────────── LEISTUNGEN (Detail) ───────────────────────── */}
-        <section id="leistungen" className="px-5 py-24">
+        <section id="leistungen" className="px-5 py-16 sm:py-24">
           <div className="mx-auto max-w-6xl">
             <SectionHead
               eyebrow="Leistungen im Detail"
@@ -205,7 +205,7 @@ export default function Home() {
         </section>
 
         {/* ───────────────────────── ABLAUF ───────────────────────── */}
-        <section id="ablauf" className="bg-surface-2 px-5 py-24">
+        <section id="ablauf" className="bg-surface-2 px-5 py-16 sm:py-24">
           <div className="mx-auto max-w-6xl">
             <SectionHead
               eyebrow="So arbeiten wir"
@@ -235,7 +235,7 @@ export default function Home() {
         </section>
 
         {/* ───────────────── VERSPRECHEN ───────────────── */}
-        <section className="px-5 py-24">
+        <section className="px-5 py-16 sm:py-24">
           <div className="mx-auto max-w-6xl">
             <Reveal>
               <div className="mb-10 text-center">

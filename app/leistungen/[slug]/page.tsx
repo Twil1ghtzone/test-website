@@ -30,7 +30,7 @@ export default async function ServicePage({ params }: { params: Promise<{ slug: 
   const others = services.filter((s) => s.slug !== service.slug).slice(0, 3);
 
   return (
-    <main className="px-5 pt-32 pb-24 sm:pt-40">
+    <main className="px-5 pt-28 pb-20 sm:pt-40 sm:pb-24">
       <div className="mx-auto max-w-5xl">
         {/* Breadcrumb */}
         <nav className="flex items-center gap-2 text-sm text-muted">
@@ -129,7 +129,7 @@ export default async function ServicePage({ params }: { params: Promise<{ slug: 
             <h2 className="font-display text-2xl font-semibold tracking-tight">Eindrücke</h2>
             <span className="text-sm text-muted">Platzhalter — später mit eigenen Fotos füllen</span>
           </div>
-          <div className="mt-6 grid gap-4 sm:grid-cols-3">
+          <div className="mt-6 grid grid-cols-2 gap-4 sm:grid-cols-3">
             {service.gallery.map((caption, i) => (
               <Placeholder
                 key={i}

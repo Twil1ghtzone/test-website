@@ -25,7 +25,7 @@ export default function AdminPage() {
   }
 
   return (
-    <main className="px-5 pt-32 pb-24 sm:pt-40">
+    <main className="px-5 pt-28 pb-20 sm:pt-40 sm:pb-24">
       <div className="mx-auto max-w-6xl">
         <span className="inline-flex items-center gap-2 eyebrow text-accent">
           <span className="grid h-9 w-9 place-items-center rounded-xl bg-accent text-white"><ShieldCheck className="h-5 w-5" /></span>

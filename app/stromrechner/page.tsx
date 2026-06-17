@@ -57,7 +57,7 @@ export default function StromrechnerPage() {
   const cardHover = "transition-all duration-300 hover:-translate-y-0.5 hover:shadow-[0_16px_40px_-18px_rgba(33,28,23,0.18)]";
 
   return (
-    <main className="px-5 pt-32 pb-24 sm:pt-40">
+    <main className="px-5 pt-28 pb-20 sm:pt-40 sm:pb-24">
       <div className="mx-auto max-w-6xl">
         <nav className="flex items-center gap-2 text-sm text-muted">
           <Link href="/" className="transition-colors hover:text-ink cursor-pointer">Start</Link>
