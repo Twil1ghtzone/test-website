@@ -99,8 +99,8 @@ export default function Nav() {
               </button>
 
               <div className={`absolute right-0 top-full pt-3 transition-all duration-200 ${servicesOpen ? "visible translate-y-0 opacity-100" : "pointer-events-none invisible translate-y-1 opacity-0"}`}>
-                <div className="w-[52rem] max-w-[92vw] rounded-2xl border border-line bg-surface p-5 shadow-[0_22px_60px_-16px_rgba(33,28,23,0.22)]">
-                  <div className="grid grid-cols-2 gap-x-6 gap-y-5 md:grid-cols-4">
+                <div className="w-[40rem] max-w-[92vw] rounded-2xl border border-line bg-surface p-5 shadow-[0_22px_60px_-16px_rgba(33,28,23,0.22)]">
+                  <div className="grid grid-cols-2 gap-x-8 gap-y-6">
                     {serviceGroups.map((group) => (
                       <div key={group.category.key}>
                         <span className="block eyebrow text-accent">{group.category.label}</span>
@@ -118,7 +118,7 @@ export default function Nav() {
                                   <Icon className="h-4 w-4" />
                                 </span>
                                 <span className="min-w-0">
-                                  <span className="block text-sm font-medium leading-tight text-ink">{s.title}</span>
+                                  <span className="block truncate text-sm font-medium leading-tight text-ink">{s.title}</span>
                                   <span className="block truncate text-xs text-muted">{s.tagline}</span>
                                 </span>
                               </Link>

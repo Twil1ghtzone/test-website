@@ -11,6 +11,7 @@ import {
 } from "framer-motion";
 import { hero } from "@/lib/data";
 import { ArrowIcon } from "./icons";
+import { HoverBorderGradient } from "@/components/ui/hover-border-gradient";
 
 export default function Hero() {
   const reduced = useReducedMotion();
@@ -168,13 +169,15 @@ function HeroText({ onScrollClick }: { onScrollClick?: () => void }) {
         {hero.body}
       </p>
       <div className="mt-8 flex flex-col items-stretch justify-center gap-3 sm:mt-9 sm:flex-row sm:items-center">
-        <a
+        <HoverBorderGradient
+          as="a"
           href="/kontakt"
-          className="group flex items-center justify-center gap-2 rounded-full bg-accent px-7 py-4 font-medium text-white transition-colors hover:bg-accent-ink cursor-pointer"
+          containerClassName="w-full sm:w-auto"
+          className="group flex w-full items-center justify-center gap-2 px-7 py-4"
         >
           {hero.ctaPrimary}
           <ArrowIcon className="h-5 w-5 transition-transform group-hover:translate-x-1" />
-        </a>
+        </HoverBorderGradient>
         <a
           href="#ablauf"
           className="rounded-full border border-line-strong bg-surface/90 px-7 py-4 text-center font-medium text-ink transition-colors hover:border-ink cursor-pointer"
