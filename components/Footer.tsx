@@ -24,6 +24,7 @@ export default function Footer() {
               { label: "Warum lokal", href: "/#warum" },
               { label: "Bewertungen", href: "/#bewertungen" },
               { label: "Ablauf", href: "/#ablauf" },
+              { label: "Blog", href: "/blog" },
             ]}
           />
           <FooterCol

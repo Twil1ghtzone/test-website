@@ -5,6 +5,7 @@ import Placeholder from "@/components/Placeholder";
 import Hero from "@/components/Hero";
 import { GlowCard } from "@/components/ui/spotlight-card";
 import Bucket from "@/components/ui/bucket";
+import { HoverBorderGradient } from "@/components/ui/hover-border-gradient";
 import PathCards from "@/components/PathCards";
 import Testimonials from "@/components/Testimonials";
 import { ArrowIcon, CheckIcon } from "@/components/icons";
@@ -279,13 +280,14 @@ export default function Home() {
                 Erzählen Sie uns kurz Ihr Vorhaben — wir melden uns persönlich mit einem
                 unverbindlichen Angebot.
               </p>
-              <Link
-                href="/kontakt"
-                className="group mt-8 inline-flex items-center gap-2 rounded-full bg-accent px-7 py-4 font-medium text-white transition-colors hover:bg-accent-ink cursor-pointer"
-              >
-                Zum Kontakt
-                <ArrowIcon className="h-5 w-5 transition-transform group-hover:translate-x-1" />
-              </Link>
+              <div className="mt-8 flex justify-center">
+                <Link href="/kontakt" className="group cursor-pointer">
+                  <HoverBorderGradient as="span" tone="dark" className="flex items-center gap-2">
+                    Zum Kontakt
+                    <ArrowIcon className="h-5 w-5 transition-transform group-hover:translate-x-1" />
+                  </HoverBorderGradient>
+                </Link>
+              </div>
             </div>
           </Reveal>
         </section>
