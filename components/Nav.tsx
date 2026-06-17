@@ -77,9 +77,9 @@ export default function Nav() {
           </Link>
 
           {/* Desktop-Links */}
-          <div className="hidden items-center gap-8 lg:flex">
+          <div className="hidden items-center gap-6 lg:flex xl:gap-8">
             {sectionLinks.map((l) => (
-              <Link key={l.id} href={`/#${l.id}`} className="relative py-1 eyebrow text-ink-soft transition-colors hover:text-ink">
+              <Link key={l.id} href={`/#${l.id}`} className="relative whitespace-nowrap py-1 eyebrow text-ink-soft transition-colors hover:text-ink">
                 {l.label}
                 <span className="absolute -bottom-0.5 left-0 h-0.5 rounded-full bg-accent transition-all duration-300" style={{ width: active === l.id ? "100%" : "0%" }} />
               </Link>
@@ -91,7 +91,7 @@ export default function Nav() {
                 type="button"
                 onClick={() => setServicesOpen((v) => !v)}
                 aria-expanded={servicesOpen}
-                className={`relative flex items-center gap-1 py-1 eyebrow transition-colors hover:text-ink cursor-pointer ${servicesActive ? "text-accent" : "text-ink-soft"}`}
+                className={`relative flex items-center gap-1 whitespace-nowrap py-1 eyebrow transition-colors hover:text-ink cursor-pointer ${servicesActive ? "text-accent" : "text-ink-soft"}`}
               >
                 Dienstleistungen
                 <ChevronDown className={`h-3.5 w-3.5 transition-transform ${servicesOpen ? "rotate-180" : ""}`} />

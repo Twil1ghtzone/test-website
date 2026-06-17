@@ -34,7 +34,7 @@ export default function SupportButton() {
   }
 
   return (
-    <div className="fixed bottom-5 right-4 z-[90] flex flex-col items-end gap-3 sm:right-5">
+    <div className="pointer-events-none fixed bottom-5 right-4 z-[90] flex flex-col items-end gap-3 sm:right-5">
       {/* Panel */}
       <div
         className={`flex w-[min(21rem,calc(100vw-2rem))] origin-bottom-right flex-col overflow-hidden rounded-2xl border border-line bg-surface shadow-[0_24px_60px_-20px_rgba(33,28,23,0.4)] transition-all duration-300 ${
