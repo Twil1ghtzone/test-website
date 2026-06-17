@@ -126,7 +126,7 @@ export default function SupportButton() {
         onClick={() => setOpen((v) => !v)}
         aria-label={open ? "Support schließen" : "Support öffnen"}
         aria-expanded={open}
-        className="grid h-14 w-14 place-items-center rounded-full bg-accent text-white shadow-[0_12px_30px_-8px_rgba(176,84,58,0.6)] transition-all duration-300 hover:scale-105 hover:bg-accent-ink cursor-pointer"
+        className="pointer-events-auto grid h-14 w-14 place-items-center rounded-full bg-accent text-white shadow-[0_12px_30px_-8px_rgba(176,84,58,0.6)] transition-all duration-300 hover:scale-105 hover:bg-accent-ink cursor-pointer"
       >
         <span className="relative block h-6 w-6">
           <MessageCircle className={`absolute inset-0 h-6 w-6 transition-all duration-300 ${open ? "rotate-90 scale-0 opacity-0" : "rotate-0 scale-100 opacity-100"}`} />
