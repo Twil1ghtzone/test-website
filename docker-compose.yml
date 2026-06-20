@@ -8,3 +8,13 @@ services:
     environment:
       - NODE_ENV=production
       - NEXT_TELEMETRY_DISABLED=1
+      - DATA_DIR=/app/data
+      # WICHTIG: Eigenes, langes Geheimnis setzen (z. B. via .env-Datei).
+      # Signiert die Login-Sessions. Ohne Änderung wird ein Dev-Fallback genutzt.
+      - SESSION_SECRET=${SESSION_SECRET:-bitte-aendern-langes-zufaelliges-geheimnis}
+    volumes:
+      # Persistente Datenbank (Benutzer-Hashes + Anfragen) bleibt über Updates erhalten.
+      - studio-lokal-data:/app/data
+
+volumes:
+  studio-lokal-data:

@@ -29,6 +29,11 @@ COPY --from=builder /app/public ./public
 COPY --from=builder --chown=nextjs:nodejs /app/.next/standalone ./
 COPY --from=builder --chown=nextjs:nodejs /app/.next/static ./.next/static
 
+# Beschreibbares Datenverzeichnis für die JSON-Datenbank (Benutzer, Anfragen)
+ENV DATA_DIR=/app/data
+RUN mkdir -p /app/data && chown -R nextjs:nodejs /app/data
+VOLUME ["/app/data"]
+
 USER nextjs
 EXPOSE 3000
 CMD ["node", "server.js"]

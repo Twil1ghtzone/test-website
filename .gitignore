@@ -24,3 +24,9 @@ yarn-error.log*
 
 # Lokale Tool-/Scratch-Dateien
 Test1.png
+
+# Laufzeit-Datenbank (Benutzer-Hashes, Anfragen) — niemals committen
+/data
+
+# Referenz-Projekt (nur Beispiel, eigenes Repo)
+/novum-systems-main

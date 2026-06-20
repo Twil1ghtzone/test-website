@@ -35,6 +35,16 @@
   html {
     scroll-behavior: smooth;
     -webkit-text-size-adjust: 100%;
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  /* Tap-Feedback auf Touch-Geräten: kurzes Eindrücken bei Buttons/Links */
+  @media (hover: none) and (pointer: coarse) {
+    a:active,
+    button:active {
+      transform: scale(0.97);
+      transition: transform 0.08s ease;
+    }
   }
 
   body {

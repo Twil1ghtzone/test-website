@@ -101,7 +101,7 @@ export default function Hero() {
       style={{ height: `calc(${SCROLL_HEIGHT}px + 100vh)` }}
       className="relative w-full"
     >
-      <div className="sticky top-0 flex h-screen w-full items-center justify-center overflow-hidden">
+      <div className="sticky top-0 flex h-screen w-full items-start justify-center overflow-hidden pt-28 sm:items-center sm:pt-0">
 
         {/* ── LAYER 1: expandierendes Bild (ganz hinten) ── */}
         <motion.div

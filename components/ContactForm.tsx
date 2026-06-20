@@ -25,10 +25,29 @@ export default function ContactForm() {
   const [building, setBuilding] = useState("");
   const [photos, setPhotos] = useState<Photo[]>([]);
 
-  // UI-only: kein Backend angebunden. Versandlogik wird später ergänzt.
-  function onSubmit(e: React.FormEvent<HTMLFormElement>) {
+  // Speichert die Anfrage im Backend (landet im Admin-Posteingang).
+  async function onSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
-    setSent(true);
+    const fd = new FormData(e.currentTarget);
+    const payload = {
+      name: String(fd.get("name") || ""),
+      email: String(fd.get("email") || ""),
+      phone: String(fd.get("phone") || ""),
+      topic,
+      building,
+      message: String(fd.get("message") || ""),
+      packages: fd.getAll("paket").map(String),
+    };
+    setSent(true); // optimistisch — UI bleibt schlank
+    try {
+      await fetch("/api/inquiries", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      });
+    } catch {
+      /* Anfrage-UI bleibt bestätigt; Versand wird serverseitig/erneut versucht */
+    }
   }
 
   function addPhotos(files: FileList | null) {

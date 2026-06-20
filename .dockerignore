@@ -11,3 +11,7 @@ npm-debug.log*
 .vscode
 .DS_Store
 Test1.png
+novum-systems-main
+data
+.env
+.env*.local

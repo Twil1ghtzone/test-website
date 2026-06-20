@@ -98,3 +98,12 @@ git branch -M main
 git push -u origin main
 ```
 Erst auf github.com ein leeres Repository anlegen, dann obige URL einsetzen.
+
+## Admin-Bereich (`/admin`)
+
+Sicheres Admin-Panel mit JSON-Datenbank (Volume `studio-lokal-data`).
+
+- **Erststart-Login:** `admin` / `test1234` (wird beim allerersten Start automatisch angelegt). **Bitte sofort ändern.**
+- **Sicherheit:** Passwörter nur als **bcrypt-Hash** (Cost 12), HMAC-signierte httpOnly-Session-Cookies, Login-Rate-Limit, serverseitige Autorisierung aller Admin-APIs.
+- **Funktionen:** Benutzer anlegen/bearbeiten/löschen (Rollen admin/editor, aktiv/inaktiv, Passwort ändern) · Anfragen-Posteingang (Kontaktformular landet hier, Status & Löschen).
+- **Wichtig in Produktion:** `SESSION_SECRET` setzen (siehe `.env.example` / `docker-compose.yml`).
