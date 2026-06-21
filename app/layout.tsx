@@ -4,6 +4,7 @@ import { brand } from "@/lib/data";
 import Nav from "@/components/Nav";
 import Footer from "@/components/Footer";
 import SupportButton from "@/components/SupportButton";
+import SiteChrome from "@/components/SiteChrome";
 import "./globals.css";
 
 const inter = Inter({
@@ -40,10 +41,14 @@ export default function RootLayout({
   return (
     <html lang="de" data-scroll-behavior="smooth" className={`${inter.variable} ${fraunces.variable}`}>
       <body>
-        <Nav />
+        <SiteChrome>
+          <Nav />
+        </SiteChrome>
         {children}
-        <Footer />
-        <SupportButton />
+        <SiteChrome>
+          <Footer />
+          <SupportButton />
+        </SiteChrome>
       </body>
     </html>
   );

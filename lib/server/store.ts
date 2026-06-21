@@ -56,3 +56,43 @@ export const readUsers = () => readJson<User[]>("users.json", []);
 export const writeUsers = (u: User[]) => writeJson("users.json", u);
 export const readInquiries = () => readJson<Inquiry[]>("inquiries.json", []);
 export const writeInquiries = (i: Inquiry[]) => writeJson("inquiries.json", i);
+
+// ── Einstellungen (inkl. KI-Konfiguration) ──
+export interface AISettings {
+  enabled: boolean;
+  endpoint: string; // OpenAI-kompatibler Chat-Endpunkt (…/v1/chat/completions)
+  apiKey: string; // nur serverseitig, nie an den Client
+  model: string;
+  systemPrompt: string; // Core-Prompt / Persönlichkeit
+  temperature: number;
+  maxTokens: number;
+  greeting: string; // erste Bot-Nachricht im Chat
+  fallback: string; // Antwort, wenn KI aus/nicht erreichbar
+}
+
+export interface Settings {
+  siteName: string;
+  ai: AISettings;
+}
+
+export const DEFAULT_SETTINGS: Settings = {
+  siteName: "STUDIO//LOKAL",
+  ai: {
+    enabled: false,
+    endpoint: "https://api.openai.com/v1/chat/completions",
+    apiKey: "",
+    model: "gpt-4o-mini",
+    systemPrompt:
+      "Du bist der freundliche Support-Assistent von STUDIO//LOKAL, einem Betrieb für Elektrohandwerk + lokale IT (cloud-frei, abofrei, Daten bleiben im Haus). Antworte kurz, hilfsbereit und auf Deutsch. Verweise bei konkreten Anfragen auf das Kontaktformular. Erfinde keine Preise — Preise gibt es nur auf Anfrage.",
+    temperature: 0.6,
+    maxTokens: 500,
+    greeting: "Hallo! 👋 Wie kann ich dir rund um Smart-Home, Server & Energie sparen helfen?",
+    fallback: "Danke für deine Nachricht! Wir melden uns persönlich — am schnellsten über das Kontaktformular, per E-Mail oder telefonisch.",
+  },
+};
+
+export function readSettings(): Settings {
+  const s = readJson<Partial<Settings>>("settings.json", {});
+  return { ...DEFAULT_SETTINGS, ...s, ai: { ...DEFAULT_SETTINGS.ai, ...(s.ai || {}) } };
+}
+export const writeSettings = (s: Settings) => writeJson("settings.json", s);

@@ -3,13 +3,15 @@
 import { useEffect, useState, useCallback } from "react";
 import {
   ShieldCheck, LogIn, LogOut, Users, Inbox, LayoutDashboard, Plus, Trash2, Pencil, X,
-  Eye, EyeOff, Loader2, Check, Mail, Phone,
+  Eye, EyeOff, Loader2, Check, Mail, Phone, Sparkles, Database,
 } from "lucide-react";
+import SettingsPanel from "@/components/admin/SettingsPanel";
+import BackupPanel from "@/components/admin/BackupPanel";
 
 type Role = "admin" | "editor";
 type User = { id: string; username: string; name: string; email: string; role: Role; active: boolean; createdAt: string };
 type Inquiry = { id: string; name: string; email: string; phone?: string; topic?: string; building?: string; message: string; packages?: string[]; status: "neu" | "gelesen" | "erledigt"; createdAt: string };
-type Tab = "overview" | "users" | "inquiries";
+type Tab = "overview" | "users" | "inquiries" | "settings" | "backup";
 
 export default function AdminPage() {
   const [loading, setLoading] = useState(true);
@@ -123,6 +125,12 @@ function Dashboard({ me, onLogout }: { me: User; onLogout: () => void }) {
     { id: "overview" as Tab, label: "Übersicht", icon: LayoutDashboard },
     { id: "users" as Tab, label: "Benutzer", icon: Users },
     { id: "inquiries" as Tab, label: "Anfragen", icon: Inbox },
+    ...(me.role === "admin"
+      ? [
+          { id: "settings" as Tab, label: "KI & Einstellungen", icon: Sparkles },
+          { id: "backup" as Tab, label: "Backup", icon: Database },
+        ]
+      : []),
   ];
   const neu = inquiries.filter((i) => i.status === "neu").length;
 
@@ -162,6 +170,8 @@ function Dashboard({ me, onLogout }: { me: User; onLogout: () => void }) {
           {tab === "overview" && <Overview users={users} inquiries={inquiries} onGo={setTab} />}
           {tab === "users" && <UsersPanel me={me} users={users} reload={loadUsers} />}
           {tab === "inquiries" && <InquiriesPanel inquiries={inquiries} reload={loadInquiries} />}
+          {tab === "settings" && me.role === "admin" && <SettingsPanel />}
+          {tab === "backup" && me.role === "admin" && <BackupPanel />}
         </div>
       </div>
     </main>

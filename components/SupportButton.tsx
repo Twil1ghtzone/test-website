@@ -7,30 +7,51 @@ import { brand } from "@/lib/data";
 
 type Msg = { from: "bot" | "user"; text: string };
 
-// PLATZHALTER-Chatbot: feste Antworten. Später durch echte KI ersetzen.
-const BOT_REPLY =
-  "Danke für deine Nachricht! 🤖 Hier kommt bald ein KI-Assistent hin. Bis dahin erreichst du uns direkt per Anfrage, E-Mail oder Telefon — unten im Menü.";
+const DEFAULT_GREETING = "Hallo! 👋 Wie kann ich dir rund um Smart-Home, Server & Energie sparen helfen?";
 
 export default function SupportButton() {
   const [open, setOpen] = useState(false);
   const [view, setView] = useState<"menu" | "chat">("menu");
-  const [messages, setMessages] = useState<Msg[]>([
-    { from: "bot", text: "Hallo! 👋 Ich bin der STUDIO//LOKAL-Assistent (Platzhalter). Wie kann ich helfen?" },
-  ]);
+  const [messages, setMessages] = useState<Msg[]>([{ from: "bot", text: DEFAULT_GREETING }]);
   const [input, setInput] = useState("");
+  const [busy, setBusy] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
+
+  // Begrüßung aus den KI-Einstellungen laden.
+  useEffect(() => {
+    fetch("/api/chat")
+      .then((r) => r.json())
+      .then((d) => {
+        if (d?.greeting) setMessages((m) => (m.length === 1 && m[0].from === "bot" ? [{ from: "bot", text: d.greeting }] : m));
+      })
+      .catch(() => {});
+  }, []);
 
   useEffect(() => {
     if (view === "chat") scrollRef.current?.scrollTo({ top: 9e9, behavior: "smooth" });
-  }, [messages, view]);
+  }, [messages, view, busy]);
 
-  function send(e: React.FormEvent) {
+  async function send(e: React.FormEvent) {
     e.preventDefault();
     const t = input.trim();
-    if (!t) return;
-    setMessages((m) => [...m, { from: "user", text: t }]);
+    if (!t || busy) return;
+    const next: Msg[] = [...messages, { from: "user", text: t }];
+    setMessages(next);
     setInput("");
-    setTimeout(() => setMessages((m) => [...m, { from: "bot", text: BOT_REPLY }]), 500);
+    setBusy(true);
+    try {
+      const r = await fetch("/api/chat", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ messages: next.map((m) => ({ role: m.from === "user" ? "user" : "assistant", text: m.text })) }),
+      });
+      const d = await r.json();
+      setMessages((m) => [...m, { from: "bot", text: d.reply || "Entschuldige, das hat nicht geklappt." }]);
+    } catch {
+      setMessages((m) => [...m, { from: "bot", text: "Verbindungsfehler. Bitte später erneut versuchen." }]);
+    } finally {
+      setBusy(false);
+    }
   }
 
   return (
@@ -89,7 +110,7 @@ export default function SupportButton() {
           </div>
         ) : (
           <>
-            <div ref={scrollRef} className="flex max-h-[19rem] min-h-[12rem] flex-col gap-2.5 overflow-y-auto bg-canvas/60 p-4">
+            <div ref={scrollRef} className="flex max-h-[15rem] min-h-[9rem] flex-col gap-2 overflow-y-auto bg-canvas/60 p-3">
               {messages.map((m, i) => (
                 <div key={i} className={`flex ${m.from === "user" ? "justify-end" : "justify-start"}`}>
                   <span
@@ -101,6 +122,15 @@ export default function SupportButton() {
                   </span>
                 </div>
               ))}
+              {busy && (
+                <div className="flex justify-start">
+                  <span className="flex items-center gap-1 rounded-2xl border border-line bg-surface px-3.5 py-2.5">
+                    <span className="h-1.5 w-1.5 animate-bounce rounded-full bg-muted [animation-delay:-0.2s]" />
+                    <span className="h-1.5 w-1.5 animate-bounce rounded-full bg-muted [animation-delay:-0.1s]" />
+                    <span className="h-1.5 w-1.5 animate-bounce rounded-full bg-muted" />
+                  </span>
+                </div>
+              )}
             </div>
             <form onSubmit={send} className="flex items-center gap-2 border-t border-line p-2.5">
               <input
@@ -114,7 +144,7 @@ export default function SupportButton() {
               </button>
             </form>
             <p className="flex items-center justify-center gap-1 pb-2.5 text-center text-[11px] text-muted">
-              <Sparkles className="h-3 w-3" /> Platzhalter — wird mit KI ersetzt
+              <Sparkles className="h-3 w-3" /> KI-Assistent · im Admin konfigurierbar
             </p>
           </>
         )}

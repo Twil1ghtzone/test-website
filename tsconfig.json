@@ -37,6 +37,7 @@
   ],
   "exclude": [
     "node_modules",
-    "novum-systems-main"
+    "novum-systems-main",
+    "erklärung-und-funktionen"
   ]
 }

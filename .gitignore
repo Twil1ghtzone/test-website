@@ -28,5 +28,6 @@ Test1.png
 # Laufzeit-Datenbank (Benutzer-Hashes, Anfragen) — niemals committen
 /data
 
-# Referenz-Projekt (nur Beispiel, eigenes Repo)
+# Referenz-Projekte (nur Beispiele)
 /novum-systems-main
+/erklärung-und-funktionen

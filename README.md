@@ -107,3 +107,9 @@ Sicheres Admin-Panel mit JSON-Datenbank (Volume `studio-lokal-data`).
 - **Sicherheit:** Passwörter nur als **bcrypt-Hash** (Cost 12), HMAC-signierte httpOnly-Session-Cookies, Login-Rate-Limit, serverseitige Autorisierung aller Admin-APIs.
 - **Funktionen:** Benutzer anlegen/bearbeiten/löschen (Rollen admin/editor, aktiv/inaktiv, Passwort ändern) · Anfragen-Posteingang (Kontaktformular landet hier, Status & Löschen).
 - **Wichtig in Produktion:** `SESSION_SECRET` setzen (siehe `.env.example` / `docker-compose.yml`).
+
+### KI-Assistent & weitere Admin-Funktionen
+- **KI-Support (echt):** Im Admin unter „KI & Einstellungen" einen **OpenAI-kompatiblen Endpunkt**, Modell, **Core-Prompt**, Temperatur, Max-Tokens, Begrüßung & Fallback einstellen. Der API-Key bleibt **serverseitig** (wird nie an den Browser gesendet). Der Support-Chat unten rechts nutzt diese KI live; ist sie aus/leer, kommt der Fallback-Text.
+- **Verschlüsseltes Backup:** Tab „Backup" → Passphrase wählen → komplette Daten (Benutzer, Anfragen, Einstellungen) als **AES-256-GCM**-Datei (`.slbak`) herunterladen und jederzeit wieder importieren.
+- **Rechte:** „KI & Einstellungen" und „Backup" sind nur für Rolle **admin** sichtbar/erlaubt (serverseitig erzwungen).
+- Die öffentliche Navigation/Fußzeile/Support-Bubble erscheinen **nicht** im Admin-Bereich.
