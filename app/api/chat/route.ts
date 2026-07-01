@@ -12,8 +12,9 @@ export async function POST(req: NextRequest) {
   const messages: Msg[] = Array.isArray(body?.messages) ? body.messages.slice(-20) : [];
   const userText = messages.filter((m) => m.role === "user").slice(-1)[0]?.text || "";
 
-  // KI aus oder nicht konfiguriert → Fallback (kein Fehler).
-  if (!ai.enabled || !ai.endpoint || !ai.apiKey) {
+  // KI aus oder kein Endpunkt → Fallback (kein Fehler). API-Key ist OPTIONAL
+  // (Ollama / LM Studio brauchen keinen Key).
+  if (!ai.enabled || !ai.endpoint) {
     return NextResponse.json({ reply: ai.fallback, source: "fallback" });
   }
   if (!userText.trim()) {
@@ -22,10 +23,12 @@ export async function POST(req: NextRequest) {
 
   try {
     const controller = new AbortController();
-    const t = setTimeout(() => controller.abort(), 25000);
+    const t = setTimeout(() => controller.abort(), 60000);
+    const headers: Record<string, string> = { "Content-Type": "application/json" };
+    if (ai.apiKey) headers.Authorization = `Bearer ${ai.apiKey}`;
     const res = await fetch(ai.endpoint, {
       method: "POST",
-      headers: { "Content-Type": "application/json", Authorization: `Bearer ${ai.apiKey}` },
+      headers,
       signal: controller.signal,
       body: JSON.stringify({
         model: ai.model,
@@ -39,18 +42,20 @@ export async function POST(req: NextRequest) {
     });
     clearTimeout(t);
     if (!res.ok) {
-      return NextResponse.json({ reply: ai.fallback, source: "error" });
+      const detail = (await res.text().catch(() => "")).slice(0, 200);
+      return NextResponse.json({ reply: ai.fallback, source: "error", detail: `HTTP ${res.status} ${detail}` });
     }
     const data = await res.json();
     const reply = data?.choices?.[0]?.message?.content?.trim();
     return NextResponse.json({ reply: reply || ai.fallback, source: reply ? "ai" : "fallback" });
-  } catch {
-    return NextResponse.json({ reply: ai.fallback, source: "error" });
+  } catch (e) {
+    const detail = e instanceof Error ? e.message : "Verbindung fehlgeschlagen";
+    return NextResponse.json({ reply: ai.fallback, source: "error", detail });
   }
 }
 
 // Status für den Chat (zeigt ob KI aktiv ist) — verrät keinen Key.
 export async function GET() {
   const { ai } = readSettings();
-  return NextResponse.json({ enabled: ai.enabled && !!ai.apiKey && !!ai.endpoint, greeting: ai.greeting });
+  return NextResponse.json({ enabled: ai.enabled && !!ai.endpoint, greeting: ai.greeting });
 }

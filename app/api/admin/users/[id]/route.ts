@@ -1,12 +1,20 @@
 import { NextRequest, NextResponse } from "next/server";
-import { readUsers, writeUsers, type Role } from "@/lib/server/store";
-import { requireAdmin, hashPassword, publicUser } from "@/lib/server/auth";
+import { readUsers, writeUsers, fullPermissions, ALL_PERMISSIONS, emptyPermissions, type Role, type Permissions } from "@/lib/server/store";
+import { requirePermission, hashPassword, publicUser } from "@/lib/server/auth";
+
+function sanitizePerms(input: unknown): Permissions {
+  const out = emptyPermissions();
+  if (input && typeof input === "object") {
+    for (const p of ALL_PERMISSIONS) out[p] = !!(input as Record<string, unknown>)[p];
+  }
+  return out;
+}
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
 export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
-  const admin = await requireAdmin();
+  const admin = await requirePermission("users");
   if (!admin) return NextResponse.json({ error: "Nicht autorisiert" }, { status: 401 });
   const { id } = await params;
   const body = await req.json().catch(() => null);
@@ -22,8 +30,12 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
 
   if (typeof body.name === "string") u.name = body.name.trim();
   if (typeof body.email === "string") u.email = body.email.trim();
-  if ((body.role === "admin" || body.role === "editor") && !isSelf) u.role = body.role as Role;
+  // Nur echte Admins dürfen die Admin-Rolle vergeben/entziehen.
+  if ((body.role === "admin" || body.role === "editor") && !isSelf && admin.role === "admin") u.role = body.role as Role;
   if (typeof body.active === "boolean" && !isSelf) u.active = body.active;
+  if (body.permissions && typeof body.permissions === "object") u.permissions = sanitizePerms(body.permissions);
+  // Admins haben stets alle Rechte.
+  if (u.role === "admin") u.permissions = fullPermissions();
   if (typeof body.password === "string" && body.password.length >= 6) {
     u.passwordHash = await hashPassword(body.password);
   }
@@ -38,7 +50,7 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
 }
 
 export async function DELETE(_req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
-  const admin = await requireAdmin();
+  const admin = await requirePermission("users");
   if (!admin) return NextResponse.json({ error: "Nicht autorisiert" }, { status: 401 });
   const { id } = await params;
   if (id === admin.id) return NextResponse.json({ error: "Sie können sich nicht selbst löschen." }, { status: 409 });

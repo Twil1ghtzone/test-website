@@ -49,8 +49,15 @@ export default function SettingsPanel() {
       body: JSON.stringify({ messages: [{ role: "user", text: "Kurzer Verbindungstest." }] }),
     });
     const d = await r.json();
-    setTest(d.source === "ai" ? `KI antwortet ✓ — „${(d.reply || "").slice(0, 80)}…"` : `Keine KI-Antwort (Quelle: ${d.source}). Endpunkt/Key/Modell prüfen.`);
+    if (d.source === "ai") setTest(`KI antwortet ✓ — „${(d.reply || "").slice(0, 80)}…"`);
+    else setTest(`Keine KI-Antwort (${d.source}).${d.detail ? " " + d.detail : " Endpunkt/Modell prüfen, vorher speichern."}`);
   }
+
+  const presets = [
+    { name: "Ollama", endpoint: "http://localhost:11434/v1/chat/completions", model: "llama3.1" },
+    { name: "LM Studio", endpoint: "http://localhost:1234/v1/chat/completions", model: "local-model" },
+    { name: "OpenAI", endpoint: "https://api.openai.com/v1/chat/completions", model: "gpt-4o-mini" },
+  ];
 
   if (!ai) {
     return <div className="rounded-3xl border border-line bg-surface p-10 text-center"><Loader2 className="mx-auto h-6 w-6 animate-spin text-accent" /></div>;
@@ -75,8 +82,21 @@ export default function SettingsPanel() {
         </div>
         <p className="mt-1 text-sm text-muted">OpenAI-kompatibler Endpunkt. Der API-Key bleibt serverseitig und wird nie angezeigt.</p>
 
-        <div className="mt-5 grid gap-4 sm:grid-cols-2">
-          <div className="sm:col-span-2"><label className={lbl}>Endpunkt (Chat-Completions-URL)</label><input value={ai.endpoint} onChange={(e) => setAi({ ...ai, endpoint: e.target.value })} className={field} placeholder="https://api.openai.com/v1/chat/completions" /></div>
+        <div className="mt-4 flex flex-wrap gap-2">
+          {presets.map((p) => (
+            <button key={p.name} type="button" onClick={() => setAi({ ...ai, endpoint: p.endpoint, model: p.model })}
+              className="rounded-full border border-line-strong bg-canvas px-3.5 py-1.5 text-xs font-medium text-ink transition-colors hover:border-accent hover:text-accent-ink cursor-pointer">
+              {p.name}
+            </button>
+          ))}
+        </div>
+
+        <div className="mt-4 grid gap-4 sm:grid-cols-2">
+          <div className="sm:col-span-2">
+            <label className={lbl}>Endpunkt (Chat-Completions-URL)</label>
+            <input value={ai.endpoint} onChange={(e) => setAi({ ...ai, endpoint: e.target.value })} className={field} placeholder="http://localhost:11434/v1/chat/completions" />
+            <p className="mt-1 text-xs text-muted">Ollama: Port 11434 · LM Studio: Port 1234. Im Docker statt <span className="font-mono">localhost</span> ggf. <span className="font-mono">host.docker.internal</span>. Bei lokalen LLMs API-Key leer lassen.</p>
+          </div>
           <div><label className={lbl}>Modell</label><input value={ai.model} onChange={(e) => setAi({ ...ai, model: e.target.value })} className={field} placeholder="gpt-4o-mini" /></div>
           <div>
             <label className={lbl}>API-Key {ai.apiKeySet && <span className="normal-case text-emerald-600">· gesetzt</span>}</label>

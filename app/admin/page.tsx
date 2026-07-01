@@ -3,15 +3,30 @@
 import { useEffect, useState, useCallback } from "react";
 import {
   ShieldCheck, LogIn, LogOut, Users, Inbox, LayoutDashboard, Plus, Trash2, Pencil, X,
-  Eye, EyeOff, Loader2, Check, Mail, Phone, Sparkles, Database,
+  Eye, EyeOff, Loader2, Check, Mail, Phone, Sparkles, Database, FileText, Cookie,
 } from "lucide-react";
 import SettingsPanel from "@/components/admin/SettingsPanel";
 import BackupPanel from "@/components/admin/BackupPanel";
+import BlogPanel from "@/components/admin/BlogPanel";
+import CookiesPanel from "@/components/admin/CookiesPanel";
 
 type Role = "admin" | "editor";
-type User = { id: string; username: string; name: string; email: string; role: Role; active: boolean; createdAt: string };
+type Permission = "inquiries" | "users" | "settings" | "blog" | "backup" | "cookies";
+type Permissions = Record<Permission, boolean>;
+type User = { id: string; username: string; name: string; email: string; role: Role; permissions: Permissions; active: boolean; createdAt: string };
 type Inquiry = { id: string; name: string; email: string; phone?: string; topic?: string; building?: string; message: string; packages?: string[]; status: "neu" | "gelesen" | "erledigt"; createdAt: string };
-type Tab = "overview" | "users" | "inquiries" | "settings" | "backup";
+type Tab = "overview" | "users" | "inquiries" | "blog" | "settings" | "backup" | "cookies";
+
+const PERMISSION_LABELS: Record<Permission, string> = {
+  inquiries: "Anfragen", users: "Benutzer", settings: "KI & Einstellungen",
+  blog: "Blog", backup: "Backup", cookies: "Cookies",
+};
+const ALL_PERMISSIONS: Permission[] = ["inquiries", "users", "blog", "settings", "backup", "cookies"];
+
+// Admin hat immer alle Rechte.
+function can(u: User, p: Permission): boolean {
+  return u.role === "admin" || !!u.permissions?.[p];
+}
 
 export default function AdminPage() {
   const [loading, setLoading] = useState(true);
@@ -122,16 +137,14 @@ function Dashboard({ me, onLogout }: { me: User; onLogout: () => void }) {
   }
 
   const nav = [
-    { id: "overview" as Tab, label: "Übersicht", icon: LayoutDashboard },
-    { id: "users" as Tab, label: "Benutzer", icon: Users },
-    { id: "inquiries" as Tab, label: "Anfragen", icon: Inbox },
-    ...(me.role === "admin"
-      ? [
-          { id: "settings" as Tab, label: "KI & Einstellungen", icon: Sparkles },
-          { id: "backup" as Tab, label: "Backup", icon: Database },
-        ]
-      : []),
-  ];
+    { id: "overview" as Tab, label: "Übersicht", icon: LayoutDashboard, show: true },
+    { id: "users" as Tab, label: "Benutzer", icon: Users, show: can(me, "users") },
+    { id: "inquiries" as Tab, label: "Anfragen", icon: Inbox, show: can(me, "inquiries") },
+    { id: "blog" as Tab, label: "Blog", icon: FileText, show: can(me, "blog") },
+    { id: "settings" as Tab, label: "KI & Einstellungen", icon: Sparkles, show: can(me, "settings") },
+    { id: "backup" as Tab, label: "Backup", icon: Database, show: can(me, "backup") },
+    { id: "cookies" as Tab, label: "Cookies", icon: Cookie, show: can(me, "cookies") },
+  ].filter((n) => n.show);
   const neu = inquiries.filter((i) => i.status === "neu").length;
 
   return (
@@ -168,10 +181,12 @@ function Dashboard({ me, onLogout }: { me: User; onLogout: () => void }) {
 
         <div className="mt-6">
           {tab === "overview" && <Overview users={users} inquiries={inquiries} onGo={setTab} />}
-          {tab === "users" && <UsersPanel me={me} users={users} reload={loadUsers} />}
-          {tab === "inquiries" && <InquiriesPanel inquiries={inquiries} reload={loadInquiries} />}
-          {tab === "settings" && me.role === "admin" && <SettingsPanel />}
-          {tab === "backup" && me.role === "admin" && <BackupPanel />}
+          {tab === "users" && can(me, "users") && <UsersPanel me={me} users={users} reload={loadUsers} />}
+          {tab === "inquiries" && can(me, "inquiries") && <InquiriesPanel inquiries={inquiries} reload={loadInquiries} />}
+          {tab === "blog" && can(me, "blog") && <BlogPanel />}
+          {tab === "settings" && can(me, "settings") && <SettingsPanel />}
+          {tab === "backup" && can(me, "backup") && <BackupPanel />}
+          {tab === "cookies" && can(me, "cookies") && <CookiesPanel />}
         </div>
       </div>
     </main>
@@ -267,15 +282,20 @@ function UserModal({ me, user, onClose, onSaved }: { me: User; user: User | null
   const [role, setRole] = useState<Role>(user?.role ?? "editor");
   const [active, setActive] = useState(user?.active ?? true);
   const [password, setPassword] = useState("");
+  const [perms, setPerms] = useState<Permissions>(
+    user?.permissions ?? { inquiries: false, users: false, settings: false, blog: false, backup: false, cookies: false }
+  );
   const [err, setErr] = useState("");
   const [busy, setBusy] = useState(false);
+  // Nur echte Admins dürfen die Admin-Rolle vergeben.
+  const canGrantAdmin = me.role === "admin";
 
   async function save(e: React.FormEvent) {
     e.preventDefault();
     setBusy(true); setErr("");
     const r = isNew
-      ? await fetch("/api/admin/users", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ name, username, email, role, password }) })
-      : await fetch(`/api/admin/users/${user!.id}`, { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ name, email, role, active, ...(password ? { password } : {}) }) });
+      ? await fetch("/api/admin/users", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ name, username, email, role, password, permissions: perms }) })
+      : await fetch(`/api/admin/users/${user!.id}`, { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ name, email, role, active, permissions: perms, ...(password ? { password } : {}) }) });
     const d = await r.json().catch(() => ({}));
     if (!r.ok) { setErr(d.error || "Speichern fehlgeschlagen."); setBusy(false); return; }
     onSaved();
@@ -302,7 +322,7 @@ function UserModal({ me, user, onClose, onSaved }: { me: User; user: User | null
           <div className="grid grid-cols-2 gap-3">
             <div>
               <label className={lbl}>Rolle</label>
-              <select value={role} onChange={(e) => setRole(e.target.value as Role)} disabled={isSelf} className={`${field} cursor-pointer disabled:opacity-60`}>
+              <select value={role} onChange={(e) => setRole(e.target.value as Role)} disabled={isSelf || !canGrantAdmin} className={`${field} cursor-pointer disabled:opacity-60`}>
                 <option value="editor">Editor</option>
                 <option value="admin">Admin</option>
               </select>
@@ -320,6 +340,23 @@ function UserModal({ me, user, onClose, onSaved }: { me: User; user: User | null
           <div>
             <label className={lbl}>{isNew ? "Passwort" : "Neues Passwort (optional)"}</label>
             <input type="password" value={password} onChange={(e) => setPassword(e.target.value)} className={field} placeholder={isNew ? "min. 6 Zeichen" : "leer = unverändert"} {...(isNew ? { required: true } : {})} />
+          </div>
+
+          {/* Einzelne Berechtigungen — bei Admins immer alle aktiv. */}
+          <div>
+            <label className={lbl}>Berechtigungen</label>
+            {role === "admin" ? (
+              <p className="rounded-xl border border-line bg-canvas px-4 py-3 text-sm text-ink-soft">Administratoren haben automatisch Zugriff auf alle Bereiche.</p>
+            ) : (
+              <div className="grid grid-cols-2 gap-2">
+                {ALL_PERMISSIONS.map((p) => (
+                  <label key={p} className="inline-flex cursor-pointer items-center gap-2 rounded-xl border border-line bg-canvas px-3 py-2.5 text-sm text-ink hover:border-accent">
+                    <input type="checkbox" checked={!!perms[p]} onChange={(e) => setPerms({ ...perms, [p]: e.target.checked })} className="h-4 w-4 accent-[var(--color-accent)]" />
+                    {PERMISSION_LABELS[p]}
+                  </label>
+                ))}
+              </div>
+            )}
           </div>
           {err && <p className="rounded-lg border border-red-300 bg-red-50 px-3 py-2 text-sm text-red-700">{err}</p>}
           <button type="submit" disabled={busy} className="flex w-full items-center justify-center gap-2 rounded-xl bg-accent px-6 py-3.5 font-medium text-white transition-colors hover:bg-accent-ink disabled:opacity-60 cursor-pointer">

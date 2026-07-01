@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { readInquiries, writeInquiries, type Inquiry } from "@/lib/server/store";
-import { requireAdmin } from "@/lib/server/auth";
+import { requirePermission } from "@/lib/server/auth";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -31,13 +31,13 @@ export async function POST(req: NextRequest) {
 
 // Admin: alle Anfragen lesen.
 export async function GET() {
-  if (!(await requireAdmin())) return NextResponse.json({ error: "Nicht autorisiert" }, { status: 401 });
+  if (!(await requirePermission("inquiries"))) return NextResponse.json({ error: "Nicht autorisiert" }, { status: 401 });
   return NextResponse.json({ inquiries: readInquiries() });
 }
 
 // Admin: Status ändern oder löschen.
 export async function PATCH(req: NextRequest) {
-  if (!(await requireAdmin())) return NextResponse.json({ error: "Nicht autorisiert" }, { status: 401 });
+  if (!(await requirePermission("inquiries"))) return NextResponse.json({ error: "Nicht autorisiert" }, { status: 401 });
   const body = await req.json().catch(() => null);
   if (!body?.id) return NextResponse.json({ error: "id fehlt" }, { status: 400 });
   const inquiries = readInquiries();
@@ -49,7 +49,7 @@ export async function PATCH(req: NextRequest) {
 }
 
 export async function DELETE(req: NextRequest) {
-  if (!(await requireAdmin())) return NextResponse.json({ error: "Nicht autorisiert" }, { status: 401 });
+  if (!(await requirePermission("inquiries"))) return NextResponse.json({ error: "Nicht autorisiert" }, { status: 401 });
   const { searchParams } = new URL(req.url);
   const id = searchParams.get("id");
   if (!id) return NextResponse.json({ error: "id fehlt" }, { status: 400 });

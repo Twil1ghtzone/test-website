@@ -27,14 +27,44 @@ export function writeJson(file: string, data: unknown): void {
 
 export type Role = "admin" | "editor";
 
+export type Permission = "inquiries" | "users" | "settings" | "blog" | "backup" | "cookies";
+export const ALL_PERMISSIONS: Permission[] = ["inquiries", "users", "settings", "blog", "backup", "cookies"];
+export const PERMISSION_LABELS: Record<Permission, string> = {
+  inquiries: "Anfragen",
+  users: "Benutzer",
+  settings: "KI & Einstellungen",
+  blog: "Blog",
+  backup: "Backup",
+  cookies: "Cookies",
+};
+export type Permissions = Record<Permission, boolean>;
+export const emptyPermissions = (): Permissions =>
+  ALL_PERMISSIONS.reduce((a, p) => ({ ...a, [p]: false }), {} as Permissions);
+export const fullPermissions = (): Permissions =>
+  ALL_PERMISSIONS.reduce((a, p) => ({ ...a, [p]: true }), {} as Permissions);
+
 export interface User {
   id: string;
   username: string;
   name: string;
   email: string;
   role: Role;
+  permissions: Permissions;
   passwordHash: string;
   active: boolean;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface BlogPost {
+  id: string;
+  slug: string;
+  title: string;
+  excerpt: string;
+  content: string; // Markdown
+  coverImage?: string;
+  status: "draft" | "published";
+  author: string;
   createdAt: string;
   updatedAt: string;
 }
@@ -52,10 +82,17 @@ export interface Inquiry {
   createdAt: string;
 }
 
-export const readUsers = () => readJson<User[]>("users.json", []);
+// Alt-Datensätze ohne `permissions` nachrüsten (Admins bekommen alle Rechte).
+export const readUsers = (): User[] =>
+  readJson<User[]>("users.json", []).map((u) => ({
+    ...u,
+    permissions: u.permissions ? { ...emptyPermissions(), ...u.permissions } : (u.role === "admin" ? fullPermissions() : emptyPermissions()),
+  }));
 export const writeUsers = (u: User[]) => writeJson("users.json", u);
 export const readInquiries = () => readJson<Inquiry[]>("inquiries.json", []);
 export const writeInquiries = (i: Inquiry[]) => writeJson("inquiries.json", i);
+export const readPosts = () => readJson<BlogPost[]>("blog.json", []);
+export const writePosts = (p: BlogPost[]) => writeJson("blog.json", p);
 
 // ── Einstellungen (inkl. KI-Konfiguration) ──
 export interface AISettings {

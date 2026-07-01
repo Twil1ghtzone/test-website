@@ -1,7 +1,7 @@
 import crypto from "crypto";
 import bcrypt from "bcryptjs";
 import { cookies } from "next/headers";
-import { readUsers, writeUsers, type User, type Role } from "./store";
+import { readUsers, writeUsers, fullPermissions, type User, type Role, type Permission } from "./store";
 
 export const SESSION_COOKIE = "sl_session";
 const SESSION_TTL_MS = 1000 * 60 * 60 * 8; // 8 Stunden
@@ -53,12 +53,24 @@ export async function seedAdminIfEmpty(): Promise<void> {
     name: "Administrator",
     email: "admin@studio-lokal.de",
     role: "admin",
+    permissions: fullPermissions(),
     passwordHash: await hashPassword("test1234"),
     active: true,
     createdAt: now,
     updatedAt: now,
   });
   writeUsers(users);
+}
+
+// Admin hat immer alle Rechte; sonst die einzeln gesetzte Berechtigung.
+export function userHasPermission(u: { role: Role; permissions?: Partial<Record<Permission, boolean>> } | null, perm: Permission): boolean {
+  if (!u) return false;
+  return u.role === "admin" || !!u.permissions?.[perm];
+}
+
+export async function requirePermission(perm: Permission): Promise<Omit<User, "passwordHash"> | null> {
+  const u = await getCurrentUser();
+  return userHasPermission(u, perm) ? u : null;
 }
 
 // Aktuellen, eingeloggten Benutzer aus dem Cookie holen (server-seitig).

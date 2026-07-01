@@ -3,15 +3,38 @@ import Link from "next/link";
 import Image from "next/image";
 import Placeholder from "@/components/Placeholder";
 import { ArrowIcon } from "@/components/icons";
-import { posts, formatDate } from "@/lib/blog";
+import { posts as staticPosts, formatDate, type Post } from "@/lib/blog";
 import { brand } from "@/lib/data";
+import { readPosts } from "@/lib/server/store";
 
 export const metadata: Metadata = {
   title: `Blog — ${brand.name}`,
   description: "Einblicke, Tipps und Neuigkeiten rund um cloud-freie Technik, Energie sparen und Datenschutz im eigenen Zuhause.",
 };
 
+export const dynamic = "force-dynamic";
+
+function readingMinutes(text: string): number {
+  return Math.max(1, Math.round(text.split(/\s+/).filter(Boolean).length / 200));
+}
+
 export default function BlogPage() {
+  // Im Admin geschriebene, veröffentlichte Beiträge mit den statischen zusammenführen.
+  const dynamicPosts: Post[] = readPosts()
+    .filter((p) => p.status === "published")
+    .map((p) => ({
+      slug: p.slug,
+      title: p.title,
+      excerpt: p.excerpt,
+      date: p.createdAt.slice(0, 10),
+      category: "Journal",
+      readingMinutes: readingMinutes(p.content),
+      imageCaption: p.title,
+      image: p.coverImage,
+      body: [],
+    }));
+
+  const posts = [...dynamicPosts, ...staticPosts].sort((a, b) => (a.date < b.date ? 1 : -1));
   const [lead, ...rest] = posts;
 
   return (

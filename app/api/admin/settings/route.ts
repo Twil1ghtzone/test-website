@@ -1,20 +1,20 @@
 import { NextRequest, NextResponse } from "next/server";
 import { readSettings, writeSettings, type Settings } from "@/lib/server/store";
-import { requireAdmin } from "@/lib/server/auth";
+import { requirePermission } from "@/lib/server/auth";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
 // Liefert Einstellungen — API-Key wird NICHT zurückgegeben (nur ob gesetzt).
 export async function GET() {
-  if (!(await requireAdmin())) return NextResponse.json({ error: "Nicht autorisiert" }, { status: 401 });
+  if (!(await requirePermission("settings"))) return NextResponse.json({ error: "Nicht autorisiert" }, { status: 401 });
   const s = readSettings();
   const { apiKey, ...aiSafe } = s.ai;
   return NextResponse.json({ settings: { ...s, ai: { ...aiSafe, apiKeySet: !!apiKey } } });
 }
 
 export async function POST(req: NextRequest) {
-  if (!(await requireAdmin())) return NextResponse.json({ error: "Nicht autorisiert" }, { status: 401 });
+  if (!(await requirePermission("settings"))) return NextResponse.json({ error: "Nicht autorisiert" }, { status: 401 });
   const body = await req.json().catch(() => null);
   if (!body) return NextResponse.json({ error: "Ungültige Anfrage" }, { status: 400 });
 

@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import crypto from "crypto";
 import { readUsers, writeUsers, readInquiries, writeInquiries, readSettings, writeSettings } from "@/lib/server/store";
-import { requireAdmin } from "@/lib/server/auth";
+import { requirePermission } from "@/lib/server/auth";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -35,7 +35,7 @@ function decrypt(blob: { salt: string; iv: string; tag: string; data: string }, 
 
 // Export: verschlüsseltes Backup herunterladen.
 export async function POST(req: NextRequest) {
-  if (!(await requireAdmin())) return NextResponse.json({ error: "Nicht autorisiert" }, { status: 401 });
+  if (!(await requirePermission("backup"))) return NextResponse.json({ error: "Nicht autorisiert" }, { status: 401 });
   const body = await req.json().catch(() => null);
   const action = body?.action;
   const passphrase: string = body?.passphrase || "";
