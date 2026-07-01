@@ -15,13 +15,15 @@ export default function SupportButton() {
   const [messages, setMessages] = useState<Msg[]>([{ from: "bot", text: DEFAULT_GREETING }]);
   const [input, setInput] = useState("");
   const [busy, setBusy] = useState(false);
+  const [aiOn, setAiOn] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
 
-  // Begrüßung aus den KI-Einstellungen laden.
+  // Begrüßung + KI-Status aus den Einstellungen laden.
   useEffect(() => {
     fetch("/api/chat")
       .then((r) => r.json())
       .then((d) => {
+        setAiOn(!!d?.enabled);
         if (d?.greeting) setMessages((m) => (m.length === 1 && m[0].from === "bot" ? [{ from: "bot", text: d.greeting }] : m));
       })
       .catch(() => {});
@@ -76,8 +78,15 @@ export default function SupportButton() {
             <p className="font-display text-base font-semibold leading-tight">
               {view === "chat" ? "Assistent" : "Wie können wir helfen?"}
             </p>
-            <p className="truncate text-xs text-white/60">
-              {view === "chat" ? "Platzhalter — bald mit KI" : "Persönlich, ohne Warteschleife."}
+            <p className="flex items-center gap-1.5 truncate text-xs text-white/60">
+              {view === "chat" ? (
+                <>
+                  <span className={`h-1.5 w-1.5 rounded-full ${aiOn ? "bg-emerald-400" : "bg-white/40"}`} />
+                  {aiOn ? "KI online — direkt antworten" : "Antwort per Nachricht"}
+                </>
+              ) : (
+                "Persönlich, ohne Warteschleife."
+              )}
             </p>
           </div>
         </div>
@@ -144,7 +153,7 @@ export default function SupportButton() {
               </button>
             </form>
             <p className="flex items-center justify-center gap-1 pb-2.5 text-center text-[11px] text-muted">
-              <Sparkles className="h-3 w-3" /> KI-Assistent · im Admin konfigurierbar
+              <Sparkles className="h-3 w-3" /> {aiOn ? "KI-Assistent aktiv" : "Assistent · KI im Admin aktivierbar"}
             </p>
           </>
         )}
