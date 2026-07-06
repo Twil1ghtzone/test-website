@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { cookies } from "next/headers";
 import { readUsers, readJson, writeJson } from "@/lib/server/store";
 import { seedAdminIfEmpty, verifyPassword, createSessionValue, SESSION_COOKIE, publicUser } from "@/lib/server/auth";
+import { logAudit } from "@/lib/server/audit";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -68,10 +69,12 @@ export async function POST(req: NextRequest) {
 
   if (!user || !(await verifyPassword(password, user.passwordHash))) {
     fail(ip);
+    logAudit(username, "Login fehlgeschlagen");
     return NextResponse.json({ ok: false, error: "Benutzername oder Passwort ist falsch." }, { status: 401 });
   }
 
   clear(ip);
+  logAudit(user.name, "Login erfolgreich");
   const store = await cookies();
   store.set(SESSION_COOKIE, createSessionValue(user), {
     httpOnly: true,

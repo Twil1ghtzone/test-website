@@ -7,7 +7,7 @@ import { GlowCard } from "@/components/ui/spotlight-card";
 import Bucket from "@/components/ui/bucket";
 import { HoverBorderGradient } from "@/components/ui/hover-border-gradient";
 import PathCards from "@/components/PathCards";
-import Testimonials from "@/components/Testimonials";
+import Testimonials from "@/components/TestimonialsLazy";
 import { ArrowIcon, CheckIcon } from "@/components/icons";
 import { pillarIcons } from "@/components/icons";
 import { Leaf, PiggyBank, Lock, Home as HomeIcon } from "lucide-react";

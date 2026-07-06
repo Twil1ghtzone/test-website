@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { readPosts, writePosts, type BlogPost } from "@/lib/server/store";
 import { requirePermission } from "@/lib/server/auth";
+import { logAudit } from "@/lib/server/audit";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -51,6 +52,7 @@ export async function POST(req: NextRequest) {
   };
   posts.unshift(post);
   writePosts(posts);
+  logAudit(me.name, "Blog-Beitrag erstellt", post.title);
   return NextResponse.json({ post }, { status: 201 });
 }
 

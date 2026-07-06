@@ -5,7 +5,8 @@ import { Sparkles, Save, Loader2, Wifi, Eye, EyeOff, Check, AlertTriangle, X } f
 
 type AISettings = {
   enabled: boolean; endpoint: string; model: string; systemPrompt: string;
-  temperature: number; maxTokens: number; greeting: string; fallback: string; apiKeySet?: boolean;
+  temperature: number; maxTokens: number; greeting: string; fallback: string;
+  requireApiKey: boolean; apiKeySet?: boolean;
 };
 
 type TestResult = { ok: boolean; ms?: number; status?: number; reply?: string; detail?: string; model?: string };
@@ -139,6 +140,10 @@ export default function SettingsPanel() {
                 gespeicherten Key entfernen (für lokale LLMs)
               </label>
             )}
+            <label className="mt-1.5 flex cursor-pointer items-center gap-2 text-xs text-muted">
+              <input type="checkbox" checked={ai.requireApiKey} onChange={(e) => setAi({ ...ai, requireApiKey: e.target.checked })} className="h-3.5 w-3.5 accent-[var(--color-accent)]" />
+              API-Key erforderlich (an: Cloud-APIs wie OpenAI · aus: Ollama/LM Studio ohne Key)
+            </label>
           </div>
           <div><label className={lbl}>Temperatur ({ai.temperature.toFixed(1)})</label><input type="range" min={0} max={2} step={0.1} value={ai.temperature} onChange={(e) => setAi({ ...ai, temperature: +e.target.value })} className="mt-3 w-full accent-[var(--color-accent)]" /></div>
           <div><label className={lbl}>Max. Tokens</label><input type="number" min={50} max={4000} value={ai.maxTokens} onChange={(e) => setAi({ ...ai, maxTokens: +e.target.value })} className={field} /></div>

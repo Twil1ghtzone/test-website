@@ -4,24 +4,42 @@ import { useEffect, useState, useCallback } from "react";
 import {
   ShieldCheck, LogIn, LogOut, Users, Inbox, LayoutDashboard, Plus, Trash2, Pencil, X,
   Eye, EyeOff, Loader2, Check, Mail, Phone, Sparkles, Database, FileText, Cookie,
+  Star, Ticket, Hammer, Wallet, MessageCircle, History, HardDrive, UserRound, Menu,
 } from "lucide-react";
 import SettingsPanel from "@/components/admin/SettingsPanel";
 import BackupPanel from "@/components/admin/BackupPanel";
 import BlogPanel from "@/components/admin/BlogPanel";
 import CookiesPanel from "@/components/admin/CookiesPanel";
+import ReviewsPanel from "@/components/admin/ReviewsPanel";
+import TicketsPanel from "@/components/admin/TicketsPanel";
+import OrdersPanel from "@/components/admin/OrdersPanel";
+import FinancePanel from "@/components/admin/FinancePanel";
+import ChatPanel from "@/components/admin/ChatPanel";
+import ActivityPanel from "@/components/admin/ActivityPanel";
+import DatabasePanel from "@/components/admin/DatabasePanel";
+import AccountPanel from "@/components/admin/AccountPanel";
 
 type Role = "admin" | "editor";
-type Permission = "inquiries" | "users" | "settings" | "blog" | "backup" | "cookies";
+type Permission =
+  | "inquiries" | "users" | "settings" | "blog" | "backup" | "cookies"
+  | "reviews" | "tickets" | "chat" | "orders" | "finance" | "activity" | "database";
 type Permissions = Record<Permission, boolean>;
 type User = { id: string; username: string; name: string; email: string; role: Role; permissions: Permissions; active: boolean; createdAt: string };
 type Inquiry = { id: string; name: string; email: string; phone?: string; topic?: string; building?: string; message: string; packages?: string[]; status: "neu" | "gelesen" | "erledigt"; createdAt: string };
-type Tab = "overview" | "users" | "inquiries" | "blog" | "settings" | "backup" | "cookies";
+type Tab =
+  | "overview" | "users" | "inquiries" | "blog" | "settings" | "backup" | "cookies"
+  | "reviews" | "tickets" | "chat" | "orders" | "finance" | "activity" | "database" | "account";
 
 const PERMISSION_LABELS: Record<Permission, string> = {
   inquiries: "Anfragen", users: "Benutzer", settings: "KI & Einstellungen",
   blog: "Blog", backup: "Backup", cookies: "Cookies",
+  reviews: "Bewertungen", tickets: "Tickets", chat: "Team-Chat",
+  orders: "Aufträge", finance: "Finanzen", activity: "Aktivität", database: "Datenbank",
 };
-const ALL_PERMISSIONS: Permission[] = ["inquiries", "users", "blog", "settings", "backup", "cookies"];
+const ALL_PERMISSIONS: Permission[] = [
+  "inquiries", "users", "blog", "reviews", "tickets", "chat",
+  "orders", "finance", "activity", "settings", "backup", "cookies", "database",
+];
 
 // Admin hat immer alle Rechte.
 function can(u: User, p: Permission): boolean {
@@ -120,15 +138,18 @@ function Dashboard({ me, onLogout }: { me: User; onLogout: () => void }) {
   const [tab, setTab] = useState<Tab>("overview");
   const [users, setUsers] = useState<User[]>([]);
   const [inquiries, setInquiries] = useState<Inquiry[]>([]);
+  const [menuOpen, setMenuOpen] = useState(false);
 
   const loadUsers = useCallback(async () => {
+    if (!can(me, "users")) return;
     const r = await fetch("/api/admin/users", { cache: "no-store" });
     if (r.ok) setUsers((await r.json()).users);
-  }, []);
+  }, [me]);
   const loadInquiries = useCallback(async () => {
+    if (!can(me, "inquiries")) return;
     const r = await fetch("/api/inquiries", { cache: "no-store" });
     if (r.ok) setInquiries((await r.json()).inquiries);
-  }, []);
+  }, [me]);
   useEffect(() => { loadUsers(); loadInquiries(); }, [loadUsers, loadInquiries]);
 
   async function logout() {
@@ -136,59 +157,154 @@ function Dashboard({ me, onLogout }: { me: User; onLogout: () => void }) {
     onLogout();
   }
 
-  const nav = [
-    { id: "overview" as Tab, label: "Übersicht", icon: LayoutDashboard, show: true },
-    { id: "users" as Tab, label: "Benutzer", icon: Users, show: can(me, "users") },
-    { id: "inquiries" as Tab, label: "Anfragen", icon: Inbox, show: can(me, "inquiries") },
-    { id: "blog" as Tab, label: "Blog", icon: FileText, show: can(me, "blog") },
-    { id: "settings" as Tab, label: "KI & Einstellungen", icon: Sparkles, show: can(me, "settings") },
-    { id: "backup" as Tab, label: "Backup", icon: Database, show: can(me, "backup") },
-    { id: "cookies" as Tab, label: "Cookies", icon: Cookie, show: can(me, "cookies") },
-  ].filter((n) => n.show);
+  // Gruppierte Navigation (wie novum) — nur sichtbare Bereiche je Berechtigung.
+  type NavGroup = { label: string; items: { id: Tab; label: string; icon: React.ElementType; show: boolean }[] };
+  const baseGroups: NavGroup[] = [
+    {
+      label: "",
+      items: [{ id: "overview", label: "Übersicht", icon: LayoutDashboard, show: true }],
+    },
+    {
+      label: "Betrieb",
+      items: [
+        { id: "tickets", label: "Tickets", icon: Ticket, show: can(me, "tickets") },
+        { id: "orders", label: "Aufträge", icon: Hammer, show: can(me, "orders") },
+        { id: "finance", label: "Finanzen", icon: Wallet, show: can(me, "finance") },
+      ],
+    },
+    {
+      label: "Kommunikation",
+      items: [
+        { id: "chat", label: "Team-Chat", icon: MessageCircle, show: can(me, "chat") },
+        { id: "inquiries", label: "Anfragen", icon: Inbox, show: can(me, "inquiries") },
+        { id: "reviews", label: "Bewertungen", icon: Star, show: can(me, "reviews") },
+      ],
+    },
+    {
+      label: "Inhalte",
+      items: [
+        { id: "blog", label: "Blog", icon: FileText, show: can(me, "blog") },
+        { id: "cookies", label: "Cookies", icon: Cookie, show: can(me, "cookies") },
+      ],
+    },
+    {
+      label: "Verwaltung",
+      items: [
+        { id: "users", label: "Benutzer", icon: Users, show: can(me, "users") },
+        { id: "activity", label: "Aktivität", icon: History, show: can(me, "activity") },
+        { id: "settings", label: "KI & Einstellungen", icon: Sparkles, show: can(me, "settings") },
+        { id: "backup", label: "Backup", icon: Database, show: can(me, "backup") },
+        { id: "database", label: "Datenbank", icon: HardDrive, show: can(me, "database") },
+      ],
+    },
+    {
+      label: "Persönlich",
+      items: [{ id: "account", label: "Mein Konto", icon: UserRound, show: true }],
+    },
+  ];
+  const groups = baseGroups.map((g) => ({ ...g, items: g.items.filter((i) => i.show) })).filter((g) => g.items.length > 0);
+
   const neu = inquiries.filter((i) => i.status === "neu").length;
+  const activeLabel = groups.flatMap((g) => g.items).find((i) => i.id === tab)?.label ?? "";
+
+  const NavList = (
+    <nav className="space-y-5">
+      {groups.map((g, gi) => (
+        <div key={gi}>
+          {g.label && <p className="mb-1.5 px-3 eyebrow text-muted">{g.label}</p>}
+          <div className="space-y-1">
+            {g.items.map((n) => {
+              const I = n.icon;
+              const on = tab === n.id;
+              return (
+                <button
+                  key={n.id}
+                  onClick={() => { setTab(n.id); setMenuOpen(false); }}
+                  className={`flex w-full items-center gap-2.5 rounded-xl px-3 py-2.5 text-left text-sm font-medium transition-colors cursor-pointer ${on ? "bg-accent text-white" : "text-ink-soft hover:bg-canvas hover:text-ink"}`}
+                >
+                  <I className="h-4 w-4 shrink-0" />
+                  <span className="truncate">{n.label}</span>
+                  {n.id === "inquiries" && neu > 0 && <span className={`ml-auto rounded-full px-1.5 text-xs ${on ? "bg-white/25" : "bg-accent text-white"}`}>{neu}</span>}
+                </button>
+              );
+            })}
+          </div>
+        </div>
+      ))}
+    </nav>
+  );
+
+  const panel = (
+    <>
+      {tab === "overview" && <Overview users={users} inquiries={inquiries} onGo={setTab} />}
+      {tab === "users" && can(me, "users") && <UsersPanel me={me} users={users} reload={loadUsers} />}
+      {tab === "inquiries" && can(me, "inquiries") && <InquiriesPanel inquiries={inquiries} reload={loadInquiries} />}
+      {tab === "blog" && can(me, "blog") && <BlogPanel />}
+      {tab === "reviews" && can(me, "reviews") && <ReviewsPanel canSettings={can(me, "settings")} />}
+      {tab === "tickets" && can(me, "tickets") && <TicketsPanel />}
+      {tab === "orders" && can(me, "orders") && <OrdersPanel />}
+      {tab === "finance" && can(me, "finance") && <FinancePanel />}
+      {tab === "chat" && can(me, "chat") && <ChatPanel meId={me.id} isAdmin={me.role === "admin"} />}
+      {tab === "activity" && can(me, "activity") && <ActivityPanel isAdmin={me.role === "admin"} />}
+      {tab === "settings" && can(me, "settings") && <SettingsPanel />}
+      {tab === "backup" && can(me, "backup") && <BackupPanel />}
+      {tab === "database" && can(me, "database") && <DatabasePanel isAdmin={me.role === "admin"} />}
+      {tab === "cookies" && can(me, "cookies") && <CookiesPanel />}
+      {tab === "account" && <AccountPanel me={me} onChanged={loadUsers} />}
+    </>
+  );
 
   return (
     <main className="min-h-screen bg-canvas">
-      <div className="mx-auto max-w-6xl px-4 py-6 sm:px-6 sm:py-10">
-        {/* Kopf */}
-        <div className="flex flex-wrap items-center justify-between gap-4">
-          <div className="flex items-center gap-3">
+      <div className="mx-auto flex max-w-7xl">
+        {/* Sidebar (Desktop) */}
+        <aside className="sticky top-0 hidden h-screen w-64 shrink-0 flex-col border-r border-line bg-surface px-4 py-6 lg:flex">
+          <div className="flex items-center gap-3 px-2">
             <span className="grid h-10 w-10 place-items-center rounded-xl bg-accent text-white"><ShieldCheck className="h-5 w-5" /></span>
-            <div>
-              <h1 className="font-display text-xl font-semibold tracking-tight">Admin-Bereich</h1>
-              <p className="text-sm text-muted">Angemeldet als <span className="font-medium text-ink">{me.name}</span> · {me.role}</p>
+            <div className="min-w-0">
+              <p className="truncate font-display font-semibold tracking-tight">Admin</p>
+              <p className="truncate text-xs text-muted">{me.name} · {me.role}</p>
             </div>
           </div>
-          <button onClick={logout} className="inline-flex items-center gap-2 rounded-full border border-line-strong bg-surface px-5 py-2.5 text-sm font-medium text-ink transition-colors hover:border-ink cursor-pointer">
+          <div className="mt-6 flex-1 overflow-y-auto pr-1">{NavList}</div>
+          <button onClick={logout} className="mt-4 inline-flex items-center justify-center gap-2 rounded-full border border-line-strong bg-surface px-5 py-2.5 text-sm font-medium text-ink transition-colors hover:border-ink cursor-pointer">
             <LogOut className="h-4 w-4" /> Abmelden
           </button>
-        </div>
+        </aside>
 
-        {/* Tabs */}
-        <div className="mt-6 flex gap-2 overflow-x-auto rounded-2xl border border-line bg-surface p-1.5">
-          {nav.map((n) => {
-            const I = n.icon;
-            const on = tab === n.id;
-            return (
-              <button key={n.id} onClick={() => setTab(n.id)}
-                className={`inline-flex shrink-0 items-center gap-2 rounded-xl px-4 py-2.5 text-sm font-medium transition-colors cursor-pointer ${on ? "bg-accent text-white" : "text-ink-soft hover:bg-canvas"}`}>
-                <I className="h-4 w-4" /> {n.label}
-                {n.id === "inquiries" && neu > 0 && <span className={`ml-0.5 rounded-full px-1.5 text-xs ${on ? "bg-white/25" : "bg-accent text-white"}`}>{neu}</span>}
-              </button>
-            );
-          })}
-        </div>
+        {/* Inhalt */}
+        <div className="min-w-0 flex-1 px-4 py-6 sm:px-6 sm:py-8">
+          {/* Mobile Kopf */}
+          <div className="mb-6 flex items-center justify-between gap-3 lg:hidden">
+            <div className="flex items-center gap-3">
+              <button onClick={() => setMenuOpen(true)} aria-label="Menü öffnen" className="grid h-10 w-10 place-items-center rounded-xl border border-line bg-surface text-ink cursor-pointer"><Menu className="h-5 w-5" /></button>
+              <div>
+                <h1 className="font-display text-lg font-semibold tracking-tight">{activeLabel}</h1>
+                <p className="text-xs text-muted">{me.name}</p>
+              </div>
+            </div>
+            <button onClick={logout} aria-label="Abmelden" className="grid h-10 w-10 place-items-center rounded-xl border border-line bg-surface text-ink cursor-pointer"><LogOut className="h-4 w-4" /></button>
+          </div>
 
-        <div className="mt-6">
-          {tab === "overview" && <Overview users={users} inquiries={inquiries} onGo={setTab} />}
-          {tab === "users" && can(me, "users") && <UsersPanel me={me} users={users} reload={loadUsers} />}
-          {tab === "inquiries" && can(me, "inquiries") && <InquiriesPanel inquiries={inquiries} reload={loadInquiries} />}
-          {tab === "blog" && can(me, "blog") && <BlogPanel />}
-          {tab === "settings" && can(me, "settings") && <SettingsPanel />}
-          {tab === "backup" && can(me, "backup") && <BackupPanel />}
-          {tab === "cookies" && can(me, "cookies") && <CookiesPanel />}
+          {panel}
         </div>
       </div>
+
+      {/* Mobile Drawer */}
+      {menuOpen && (
+        <div className="fixed inset-0 z-[110] bg-ink/50 backdrop-blur-sm lg:hidden" onClick={() => setMenuOpen(false)}>
+          <aside className="h-full w-72 max-w-[85vw] overflow-y-auto border-r border-line bg-surface px-4 py-6" onClick={(e) => e.stopPropagation()}>
+            <div className="mb-6 flex items-center justify-between px-2">
+              <div className="flex items-center gap-3">
+                <span className="grid h-10 w-10 place-items-center rounded-xl bg-accent text-white"><ShieldCheck className="h-5 w-5" /></span>
+                <p className="font-display font-semibold tracking-tight">Admin</p>
+              </div>
+              <button onClick={() => setMenuOpen(false)} aria-label="Menü schließen" className="grid h-9 w-9 place-items-center rounded-full text-muted hover:bg-canvas hover:text-ink cursor-pointer"><X className="h-5 w-5" /></button>
+            </div>
+            {NavList}
+          </aside>
+        </div>
+      )}
     </main>
   );
 }
@@ -282,9 +398,10 @@ function UserModal({ me, user, onClose, onSaved }: { me: User; user: User | null
   const [role, setRole] = useState<Role>(user?.role ?? "editor");
   const [active, setActive] = useState(user?.active ?? true);
   const [password, setPassword] = useState("");
-  const [perms, setPerms] = useState<Permissions>(
-    user?.permissions ?? { inquiries: false, users: false, settings: false, blog: false, backup: false, cookies: false }
-  );
+  const [perms, setPerms] = useState<Permissions>(() => {
+    const empty = Object.fromEntries(ALL_PERMISSIONS.map((p) => [p, false])) as Permissions;
+    return user?.permissions ? { ...empty, ...user.permissions } : empty;
+  });
   const [err, setErr] = useState("");
   const [busy, setBusy] = useState(false);
   // Nur echte Admins dürfen die Admin-Rolle vergeben.

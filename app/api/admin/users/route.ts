@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { readUsers, writeUsers, emptyPermissions, fullPermissions, ALL_PERMISSIONS, type User, type Role, type Permissions } from "@/lib/server/store";
 import { requirePermission, hashPassword, publicUser } from "@/lib/server/auth";
+import { logAudit } from "@/lib/server/audit";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -53,6 +54,7 @@ export async function POST(req: NextRequest) {
   };
   users.push(newUser);
   writeUsers(users);
+  logAudit(me.name, "Benutzer angelegt", `@${username} (${role})`);
   return NextResponse.json({ user: publicUser(newUser) }, { status: 201 });
 }
 

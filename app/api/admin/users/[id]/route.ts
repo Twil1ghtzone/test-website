@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { readUsers, writeUsers, fullPermissions, ALL_PERMISSIONS, emptyPermissions, type Role, type Permissions } from "@/lib/server/store";
 import { requirePermission, hashPassword, publicUser } from "@/lib/server/auth";
+import { logAudit } from "@/lib/server/audit";
 
 function sanitizePerms(input: unknown): Permissions {
   const out = emptyPermissions();
@@ -46,6 +47,7 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
   u.updatedAt = new Date().toISOString();
   users[idx] = u;
   writeUsers(users);
+  logAudit(admin.name, "Benutzer aktualisiert", `@${u.username}`);
   return NextResponse.json({ user: publicUser(u) });
 }
 
@@ -62,5 +64,6 @@ export async function DELETE(_req: NextRequest, { params }: { params: Promise<{ 
     return NextResponse.json({ error: "Der letzte Admin kann nicht gelöscht werden." }, { status: 409 });
   }
   writeUsers(users.filter((u) => u.id !== id));
+  logAudit(admin.name, "Benutzer gelöscht", `@${target.username}`);
   return NextResponse.json({ ok: true });
 }

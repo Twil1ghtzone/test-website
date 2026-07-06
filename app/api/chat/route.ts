@@ -12,9 +12,9 @@ export async function POST(req: NextRequest) {
   const messages: Msg[] = Array.isArray(body?.messages) ? body.messages.slice(-20) : [];
   const userText = messages.filter((m) => m.role === "user").slice(-1)[0]?.text || "";
 
-  // KI aus oder kein Endpunkt → Fallback (kein Fehler). API-Key ist OPTIONAL
-  // (Ollama / LM Studio brauchen keinen Key).
-  if (!ai.enabled || !ai.endpoint) {
+  // KI aus oder kein Endpunkt → Fallback (kein Fehler). API-Key ist optional
+  // (Ollama / LM Studio) — außer die Key-Pflicht ist in den Einstellungen aktiv.
+  if (!ai.enabled || !ai.endpoint || (ai.requireApiKey && !ai.apiKey)) {
     return NextResponse.json({ reply: ai.fallback, source: "fallback" });
   }
   if (!userText.trim()) {

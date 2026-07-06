@@ -1,101 +1,81 @@
 "use client";
 
-import { useState } from "react";
-import { Star, ShieldCheck, X } from "lucide-react";
+import { useEffect, useState } from "react";
+import { Star, ShieldCheck, X, Loader2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Component as ReviewStack, type CardData } from "@/components/ui/morphing-card-stack";
 
-// Beispiel-Bewertungen (Platzhalter — später durch echte ersetzen).
-const SEED_REVIEWS: CardData[] = [
-  {
-    id: "s1",
-    author: "Familie M.",
-    rating: 5,
-    text: "Endlich keine monatlichen Cloud-Gebühren mehr. Die Kameras laufen komplett im Haus, alles sauber verkabelt und ordentlich montiert.",
-    meta: "Einfamilienhaus · Verifizierte Bewertung",
-  },
-  {
-    id: "s2",
-    author: "Herr K.",
-    rating: 5,
-    text: "Sehr verständlich erklärt, auch für uns als Laien. Der Server läuft seit Monaten ohne Probleme, unsere Fotos sichern sich automatisch.",
-    meta: "Reihenhaus · Verifizierte Bewertung",
-  },
-  {
-    id: "s3",
-    author: "Frau B.",
-    rating: 5,
-    text: "Die 3D-gedruckten Halterungen sitzen perfekt. Handwerklich top und technisch durchdacht — man merkt, dass beide Welten zusammenkommen.",
-    meta: "Altbau · Verifizierte Bewertung",
-  },
-  {
-    id: "s4",
-    author: "Familie S.",
-    rating: 4,
-    text: "Tolle Beratung rund ums Energiesparen. Heizung und Licht lassen sich jetzt clever steuern, das macht sich bemerkbar.",
-    meta: "Neubau · Verifizierte Bewertung",
-  },
-];
-
-/**
- * PROTOTYP: Eine Bewertung ist nur mit gültiger Rechnungsnummer möglich.
- * Diese Prüfung später durch echtes Backend ersetzen (Abgleich mit erstellten Rechnungen).
- * Testcode für die Demo: DEMO-1234  (oder Muster RG-2026-001).
- */
-function verifyInvoice(code: string): boolean {
-  const c = code.trim().toUpperCase();
-  if (!c) return false;
-  if (c === "DEMO-1234") return true;
-  return /^RG-\d{4}-\d{3,}$/.test(c);
-}
-
-type Phase = "invoice" | "form" | "done";
+type ApiReview = { id: string; name: string; rating: number; text: string; createdAt: string };
 
 export default function Testimonials() {
-  const [reviews, setReviews] = useState<CardData[]>(SEED_REVIEWS);
-  const [open, setOpen] = useState(false);
-  const [phase, setPhase] = useState<Phase>("invoice");
+  const [enabled, setEnabled] = useState(true);
+  const [reviews, setReviews] = useState<CardData[]>([]);
+  const [average, setAverage] = useState(0);
+  const [count, setCount] = useState(0);
+  const [loaded, setLoaded] = useState(false);
 
-  const [invoice, setInvoice] = useState("");
-  const [error, setError] = useState("");
+  const [open, setOpen] = useState(false);
+  const [done, setDone] = useState<"" | "pending" | "live">("");
   const [rating, setRating] = useState(0);
   const [hover, setHover] = useState(0);
   const [name, setName] = useState("");
   const [text, setText] = useState("");
+  const [website, setWebsite] = useState(""); // Honeypot — bleibt für Menschen leer
+  const [error, setError] = useState("");
+  const [busy, setBusy] = useState(false);
+
+  // Echte, freigegebene Bewertungen vom Server laden.
+  async function load() {
+    try {
+      const r = await fetch("/api/reviews", { cache: "no-store" });
+      const d = await r.json();
+      setEnabled(!!d.enabled);
+      setAverage(d.average || 0);
+      setCount(d.count || 0);
+      setReviews(
+        (d.reviews as ApiReview[]).map((r) => ({
+          id: r.id,
+          author: r.name,
+          rating: r.rating,
+          text: r.text,
+          meta: `${new Date(r.createdAt).toLocaleDateString("de-DE", { month: "long", year: "numeric" })} · Verifizierte Bewertung`,
+        }))
+      );
+    } catch {
+      setEnabled(false);
+    }
+    setLoaded(true);
+  }
+  useEffect(() => { load(); }, []);
 
   function reset() {
-    setPhase("invoice");
-    setInvoice("");
-    setError("");
-    setRating(0);
-    setHover(0);
-    setName("");
-    setText("");
+    setDone(""); setError(""); setRating(0); setHover(0); setName(""); setText("");
   }
 
-  function checkInvoice(e: React.FormEvent) {
+  async function submitReview(e: React.FormEvent) {
     e.preventDefault();
-    if (verifyInvoice(invoice)) {
-      setError("");
-      setPhase("form");
-    } else {
-      setError("Diese Rechnungsnummer konnten wir nicht bestätigen. Eine Bewertung ist nur mit gültiger Rechnung möglich.");
+    if (!rating || !name.trim() || text.trim().length < 10) {
+      setError("Bitte Sterne, Name und mindestens 10 Zeichen Text angeben.");
+      return;
     }
+    setBusy(true); setError("");
+    try {
+      const r = await fetch("/api/reviews", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ name: name.trim(), rating, text: text.trim(), website }),
+      });
+      const d = await r.json();
+      if (!r.ok) { setError(d.error || "Senden fehlgeschlagen."); setBusy(false); return; }
+      setDone(d.pending ? "pending" : "live");
+      if (!d.pending) load();
+    } catch {
+      setError("Verbindungsfehler — bitte später erneut versuchen.");
+    }
+    setBusy(false);
   }
 
-  function submitReview(e: React.FormEvent) {
-    e.preventDefault();
-    if (!rating || !name.trim() || !text.trim()) return;
-    const newReview: CardData = {
-      id: `u-${Date.now()}`,
-      author: name.trim(),
-      rating,
-      text: text.trim(),
-      meta: "Verifizierte Bewertung",
-    };
-    setReviews((prev) => [newReview, ...prev]);
-    setPhase("done");
-  }
+  if (loaded && !enabled) return null; // System im Admin deaktiviert → Sektion ausblenden
 
   const field =
     "w-full rounded-xl border border-line bg-canvas px-4 py-3 text-ink placeholder:text-muted transition-colors focus:border-accent focus:bg-surface";
@@ -108,16 +88,26 @@ export default function Testimonials() {
           <h2 className="mt-4 font-display text-4xl font-semibold leading-[1.1] tracking-tight sm:text-[3rem]">
             Das sagen unsere <span className="emph">Kunden.</span>
           </h2>
-          <p className="mt-4 text-lg leading-relaxed text-ink-soft">
-            Echte Rückmeldungen aus echten Projekten. Tippen Sie eine Karte an oder wechseln Sie die Ansicht.
-          </p>
+          {count > 0 ? (
+            <p className="mt-4 inline-flex items-center gap-2 text-lg leading-relaxed text-ink-soft">
+              <span className="inline-flex items-center gap-1 font-semibold text-ink">
+                {average.toFixed(1)} <Star className="h-5 w-5 fill-accent text-accent" />
+              </span>
+              aus {count} {count === 1 ? "Bewertung" : "Bewertungen"} — jede serverseitig versiegelt und geprüft.
+            </p>
+          ) : (
+            <p className="mt-4 text-lg leading-relaxed text-ink-soft">
+              Seien Sie die Ersten: Bewertungen erscheinen hier nach kurzer Prüfung.
+            </p>
+          )}
         </div>
 
-        <div className="mt-14">
-          <ReviewStack cards={reviews} />
-        </div>
+        {reviews.length > 0 && (
+          <div className="mt-14">
+            <ReviewStack cards={reviews} />
+          </div>
+        )}
 
-        {/* Bewerten — nur mit Rechnung */}
         <div className="mx-auto mt-16 max-w-md text-center">
           {!open && (
             <>
@@ -131,7 +121,7 @@ export default function Testimonials() {
               </button>
               <p className="mt-3 inline-flex items-center justify-center gap-1.5 text-sm text-muted">
                 <ShieldCheck className="h-4 w-4" />
-                Nur mit Rechnungsnummer möglich — für echte Bewertungen.
+                Jede Bewertung wird geprüft und fälschungssicher versiegelt.
               </p>
             </>
           )}
@@ -147,37 +137,10 @@ export default function Testimonials() {
                 <X className="h-5 w-5" />
               </button>
 
-              {phase === "invoice" && (
-                <form onSubmit={checkInvoice}>
-                  <span className="eyebrow text-accent">Schritt 1 von 2</span>
-                  <h3 className="mt-2 font-display text-2xl font-semibold tracking-tight">Rechnung bestätigen</h3>
-                  <p className="mt-2 text-ink-soft">
-                    Bewertungen sind nur für echte Kunden möglich. Bitte geben Sie Ihre Rechnungsnummer ein.
-                  </p>
-                  <label htmlFor="invoice" className="mt-5 mb-1.5 block eyebrow text-muted">Rechnungsnummer</label>
-                  <input
-                    id="invoice"
-                    value={invoice}
-                    onChange={(e) => setInvoice(e.target.value)}
-                    placeholder="z. B. RG-2026-001"
-                    className={field}
-                    autoComplete="off"
-                  />
-                  {error && <p className="mt-2 text-sm text-accent-ink">{error}</p>}
-                  <p className="mt-2 text-xs text-muted">Prototyp — Testcode: <span className="font-mono">DEMO-1234</span></p>
-                  <button
-                    type="submit"
-                    className="mt-5 w-full rounded-xl bg-accent px-6 py-3.5 font-medium text-white transition-colors hover:bg-accent-ink cursor-pointer"
-                  >
-                    Weiter
-                  </button>
-                </form>
-              )}
-
-              {phase === "form" && (
+              {!done ? (
                 <form onSubmit={submitReview}>
                   <span className="inline-flex items-center gap-1.5 eyebrow text-accent">
-                    <ShieldCheck className="h-4 w-4" /> Rechnung bestätigt
+                    <ShieldCheck className="h-4 w-4" /> Geschützt & geprüft
                   </span>
                   <h3 className="mt-2 font-display text-2xl font-semibold tracking-tight">Ihre Bewertung</h3>
 
@@ -198,29 +161,43 @@ export default function Testimonials() {
                   </div>
 
                   <label htmlFor="rev-name" className="mt-5 mb-1.5 block eyebrow text-muted">Name</label>
-                  <input id="rev-name" value={name} onChange={(e) => setName(e.target.value)} placeholder="z. B. Familie Müller" className={field} />
+                  <input id="rev-name" value={name} onChange={(e) => setName(e.target.value)} placeholder="z. B. Familie Müller" className={field} maxLength={80} />
 
                   <label htmlFor="rev-text" className="mt-4 mb-1.5 block eyebrow text-muted">Ihre Erfahrung</label>
-                  <textarea id="rev-text" value={text} onChange={(e) => setText(e.target.value)} rows={4} placeholder="Was hat Ihnen gefallen?" className={cn(field, "resize-none")} />
+                  <textarea id="rev-text" value={text} onChange={(e) => setText(e.target.value)} rows={4} placeholder="Was hat Ihnen gefallen?" className={cn(field, "resize-none")} maxLength={1200} />
+
+                  {/* Honeypot gegen Bots — für Menschen unsichtbar */}
+                  <input
+                    type="text"
+                    value={website}
+                    onChange={(e) => setWebsite(e.target.value)}
+                    name="website"
+                    tabIndex={-1}
+                    autoComplete="off"
+                    aria-hidden="true"
+                    className="absolute -left-[9999px] top-0 h-0 w-0 opacity-0"
+                  />
+
+                  {error && <p className="mt-3 rounded-lg border border-red-300 bg-red-50 px-3 py-2 text-sm text-red-700">{error}</p>}
 
                   <button
                     type="submit"
-                    disabled={!rating || !name.trim() || !text.trim()}
-                    className="mt-5 w-full rounded-xl bg-accent px-6 py-3.5 font-medium text-white transition-colors hover:bg-accent-ink disabled:cursor-not-allowed disabled:opacity-40 cursor-pointer"
+                    disabled={busy || !rating || !name.trim() || !text.trim()}
+                    className="mt-5 flex w-full items-center justify-center gap-2 rounded-xl bg-accent px-6 py-3.5 font-medium text-white transition-colors hover:bg-accent-ink disabled:cursor-not-allowed disabled:opacity-40 cursor-pointer"
                   >
-                    Bewertung absenden
+                    {busy && <Loader2 className="h-5 w-5 animate-spin" />} Bewertung absenden
                   </button>
                 </form>
-              )}
-
-              {phase === "done" && (
+              ) : (
                 <div className="py-4 text-center">
                   <span className="mx-auto grid h-14 w-14 place-items-center rounded-full bg-accent-soft text-accent">
                     <ShieldCheck className="h-7 w-7" />
                   </span>
                   <h3 className="mt-5 font-display text-2xl font-semibold">Vielen Dank!</h3>
                   <p className="mx-auto mt-2 max-w-sm text-ink-soft">
-                    Ihre Bewertung wurde hinzugefügt. Im Live-Betrieb wird sie nach kurzer Prüfung veröffentlicht.
+                    {done === "pending"
+                      ? "Ihre Bewertung wurde sicher übermittelt und erscheint nach kurzer Prüfung."
+                      : "Ihre Bewertung ist jetzt online — versiegelt und verifiziert."}
                   </p>
                   <div className="mt-6 flex justify-center gap-3">
                     <button type="button" onClick={reset} className="rounded-full border border-line-strong bg-surface px-6 py-3 font-medium text-ink transition-colors hover:border-ink cursor-pointer">
