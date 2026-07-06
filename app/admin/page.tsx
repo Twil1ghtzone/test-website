@@ -5,6 +5,7 @@ import {
   ShieldCheck, LogIn, LogOut, Users, Inbox, LayoutDashboard, Plus, Trash2, Pencil, X,
   Eye, EyeOff, Loader2, Check, Mail, Phone, Sparkles, Database, FileText, Cookie,
   Star, Ticket, Hammer, Wallet, MessageCircle, History, HardDrive, UserRound, Menu,
+  Receipt, Bot,
 } from "lucide-react";
 import SettingsPanel from "@/components/admin/SettingsPanel";
 import BackupPanel from "@/components/admin/BackupPanel";
@@ -18,26 +19,30 @@ import ChatPanel from "@/components/admin/ChatPanel";
 import ActivityPanel from "@/components/admin/ActivityPanel";
 import DatabasePanel from "@/components/admin/DatabasePanel";
 import AccountPanel from "@/components/admin/AccountPanel";
+import InvoicesPanel from "@/components/admin/InvoicesPanel";
+import AssistantPanel from "@/components/admin/AssistantPanel";
 
 type Role = "admin" | "editor";
 type Permission =
   | "inquiries" | "users" | "settings" | "blog" | "backup" | "cookies"
-  | "reviews" | "tickets" | "chat" | "orders" | "finance" | "activity" | "database";
+  | "reviews" | "tickets" | "chat" | "orders" | "finance" | "activity" | "database" | "invoices";
 type Permissions = Record<Permission, boolean>;
 type User = { id: string; username: string; name: string; email: string; role: Role; permissions: Permissions; active: boolean; createdAt: string };
 type Inquiry = { id: string; name: string; email: string; phone?: string; topic?: string; building?: string; message: string; packages?: string[]; status: "neu" | "gelesen" | "erledigt"; createdAt: string };
 type Tab =
   | "overview" | "users" | "inquiries" | "blog" | "settings" | "backup" | "cookies"
-  | "reviews" | "tickets" | "chat" | "orders" | "finance" | "activity" | "database" | "account";
+  | "reviews" | "tickets" | "chat" | "orders" | "finance" | "activity" | "database" | "account"
+  | "invoices" | "assistant";
 
 const PERMISSION_LABELS: Record<Permission, string> = {
   inquiries: "Anfragen", users: "Benutzer", settings: "KI & Einstellungen",
   blog: "Blog", backup: "Backup", cookies: "Cookies",
   reviews: "Bewertungen", tickets: "Tickets", chat: "Team-Chat",
   orders: "Aufträge", finance: "Finanzen", activity: "Aktivität", database: "Datenbank",
+  invoices: "Rechnungen",
 };
 const ALL_PERMISSIONS: Permission[] = [
-  "inquiries", "users", "blog", "reviews", "tickets", "chat",
+  "inquiries", "users", "blog", "reviews", "invoices", "tickets", "chat",
   "orders", "finance", "activity", "settings", "backup", "cookies", "database",
 ];
 
@@ -169,6 +174,7 @@ function Dashboard({ me, onLogout }: { me: User; onLogout: () => void }) {
       items: [
         { id: "tickets", label: "Tickets", icon: Ticket, show: can(me, "tickets") },
         { id: "orders", label: "Aufträge", icon: Hammer, show: can(me, "orders") },
+        { id: "invoices", label: "Rechnungen", icon: Receipt, show: can(me, "invoices") },
         { id: "finance", label: "Finanzen", icon: Wallet, show: can(me, "finance") },
       ],
     },
@@ -192,6 +198,7 @@ function Dashboard({ me, onLogout }: { me: User; onLogout: () => void }) {
       items: [
         { id: "users", label: "Benutzer", icon: Users, show: can(me, "users") },
         { id: "activity", label: "Aktivität", icon: History, show: can(me, "activity") },
+        { id: "assistant", label: "KI-Assistent", icon: Bot, show: true },
         { id: "settings", label: "KI & Einstellungen", icon: Sparkles, show: can(me, "settings") },
         { id: "backup", label: "Backup", icon: Database, show: can(me, "backup") },
         { id: "database", label: "Datenbank", icon: HardDrive, show: can(me, "database") },
@@ -243,6 +250,8 @@ function Dashboard({ me, onLogout }: { me: User; onLogout: () => void }) {
       {tab === "reviews" && can(me, "reviews") && <ReviewsPanel canSettings={can(me, "settings")} />}
       {tab === "tickets" && can(me, "tickets") && <TicketsPanel />}
       {tab === "orders" && can(me, "orders") && <OrdersPanel />}
+      {tab === "invoices" && can(me, "invoices") && <InvoicesPanel />}
+      {tab === "assistant" && <AssistantPanel />}
       {tab === "finance" && can(me, "finance") && <FinancePanel />}
       {tab === "chat" && can(me, "chat") && <ChatPanel meId={me.id} isAdmin={me.role === "admin"} />}
       {tab === "activity" && can(me, "activity") && <ActivityPanel isAdmin={me.role === "admin"} />}

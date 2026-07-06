@@ -32,7 +32,7 @@ export default function BackupPanel() {
   async function importBackup() {
     if (!file) { setMsg("Bitte Backup-Datei wählen."); return; }
     if (pass.length < 8) { setMsg("Passphrase: mindestens 8 Zeichen."); return; }
-    if (!confirm("Import überschreibt aktuelle Benutzer, Anfragen und Einstellungen. Fortfahren?")) return;
+    if (!confirm("Der Import stellt das KOMPLETTE System aus dem Backup wieder her und überschreibt alle aktuellen Daten (inkl. Bilder). Fortfahren?")) return;
     setBusy(true); setMsg("");
     try {
       const backup = JSON.parse(await file.text());
@@ -41,7 +41,10 @@ export default function BackupPanel() {
         body: JSON.stringify({ action: "import", passphrase: pass, backup }),
       });
       setBusy(false);
-      setMsg(r.ok ? "Backup importiert ✓ — bitte ggf. neu anmelden." : (await r.json()).error || "Import fehlgeschlagen.");
+      const d = await r.json().catch(() => ({}));
+      setMsg(r.ok
+        ? `Wiederhergestellt ✓ — ${d.restoredCollections ?? 0} Sammlungen, ${d.restoredUploads ?? 0} Dateien. Bitte ggf. neu anmelden.`
+        : d.error || "Import fehlgeschlagen.");
     } catch {
       setBusy(false); setMsg("Datei konnte nicht gelesen werden.");
     }
@@ -54,8 +57,10 @@ export default function BackupPanel() {
       <div className="rounded-3xl border border-line bg-surface p-6 sm:p-7">
         <h2 className="flex items-center gap-2 font-display text-xl font-semibold tracking-tight"><Database className="h-5 w-5 text-accent" /> Verschlüsseltes Backup</h2>
         <p className="mt-2 text-sm leading-relaxed text-ink-soft">
-          Sichert <b>Benutzer, Anfragen und Einstellungen</b> in einer mit AES-256-GCM verschlüsselten Datei.
-          Nur mit derselben Passphrase wieder importierbar — bitte sicher aufbewahren.
+          Sichert das <b>komplette System</b> — Benutzer, Anfragen, Blog, Bewertungen, Rechnungen, Tickets,
+          Aufträge, Finanzen, Team-Chat, Aktivitätslog, Einstellungen <b>und alle hochgeladenen Bilder</b> —
+          in einer passwortgeschützten Datei (AES-256-GCM). Nur mit derselben Passphrase wieder
+          importierbar — bitte sicher aufbewahren.
         </p>
         <div className="mt-5 max-w-md">
           <label className="mb-1.5 block eyebrow text-muted">Passphrase (min. 8 Zeichen)</label>

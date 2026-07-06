@@ -3,7 +3,9 @@
 import { useCallback, useEffect, useState } from "react";
 import { Star, Trash2, Check, X, ShieldCheck, ShieldAlert, Loader2, Save } from "lucide-react";
 
-type Review = { id: string; name: string; rating: number; text: string; status: "offen" | "freigegeben" | "abgelehnt"; createdAt: string; verified: boolean };
+type Review = { id: string; name: string; rating: number; text: string; status: "offen" | "freigegeben" | "abgelehnt"; createdAt: string; verified: boolean; invoiceNumber: string; phase: string; kind: "teil" | "end" };
+
+const PHASE_LABEL: Record<string, string> = { geplant: "Geplant", in_arbeit: "In Arbeit mit der Umsetzung", abgeschlossen: "Abgeschlossen" };
 type Cfg = { enabled: boolean; autoApprove: boolean; maxPerDay: number };
 
 function Stars({ n }: { n: number }) {
@@ -100,6 +102,10 @@ export default function ReviewsPanel({ canSettings }: { canSettings: boolean }) 
                 <span className="font-medium text-ink">{r.name}</span>
                 <Stars n={r.rating} />
                 <span className={`rounded-full px-2 py-0.5 text-xs font-medium ${badge[r.status]}`}>{r.status}</span>
+                {r.invoiceNumber && <span className="rounded-full bg-canvas px-2 py-0.5 font-mono text-xs text-ink-soft">{r.invoiceNumber}</span>}
+                <span className={`rounded-full px-2 py-0.5 text-xs font-medium ${r.kind === "teil" ? "bg-sky-100 text-sky-700" : "bg-surface-2 text-ink-soft"}`}>
+                  {r.kind === "teil" ? `Teilbewertung · ${PHASE_LABEL[r.phase] || r.phase}` : "Endbewertung"}
+                </span>
                 {r.verified ? (
                   <span className="inline-flex items-center gap-1 rounded-full bg-emerald-50 px-2 py-0.5 text-xs text-emerald-700" title="HMAC-Siegel gültig — Eintrag stammt vom Server und ist unverändert"><ShieldCheck className="h-3 w-3" /> Siegel gültig</span>
                 ) : (

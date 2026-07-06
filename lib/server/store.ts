@@ -47,6 +47,7 @@ export const COLLECTIONS = {
   "orders.json": "Aufträge",
   "finance.json": "Finanzen",
   "audit.json": "Aktivitätslog",
+  "invoices.json": "Rechnungen",
   "settings.json": "Einstellungen",
 } as const;
 export type CollectionFile = keyof typeof COLLECTIONS;
@@ -73,10 +74,10 @@ export type Role = "admin" | "editor";
 
 export type Permission =
   | "inquiries" | "users" | "settings" | "blog" | "backup" | "cookies"
-  | "reviews" | "tickets" | "chat" | "orders" | "finance" | "activity" | "database";
+  | "reviews" | "tickets" | "chat" | "orders" | "finance" | "activity" | "database" | "invoices";
 export const ALL_PERMISSIONS: Permission[] = [
   "inquiries", "users", "settings", "blog", "backup", "cookies",
-  "reviews", "tickets", "chat", "orders", "finance", "activity", "database",
+  "reviews", "tickets", "chat", "orders", "finance", "activity", "database", "invoices",
 ];
 export const PERMISSION_LABELS: Record<Permission, string> = {
   inquiries: "Anfragen",
@@ -92,6 +93,7 @@ export const PERMISSION_LABELS: Record<Permission, string> = {
   finance: "Finanzen",
   activity: "Aktivität",
   database: "Datenbank",
+  invoices: "Rechnungen",
 };
 export type Permissions = Record<Permission, boolean>;
 export const emptyPermissions = (): Permissions =>
@@ -160,7 +162,30 @@ export interface Review {
   createdAt: string;
   seal: string; // HMAC-Siegel — beweist, dass der Eintrag serverseitig & unverändert ist
   ipHash: string; // gehashte IP (Rate-Limit), niemals Klartext
+  invoiceNumber: string; // zugehörige, im System registrierte Rechnung
+  phase: InvoiceStatus; // Prozess-Status zum Zeitpunkt der Bewertung
+  kind: "teil" | "end"; // Teilbewertung (laufend) oder Endbewertung (abgeschlossen)
 }
+
+// ── Rechnungen (registrieren gültige Rechnungsnummern fürs Bewertungssystem) ──
+export type InvoiceStatus = "geplant" | "in_arbeit" | "abgeschlossen";
+export const INVOICE_STATUS_LABELS: Record<InvoiceStatus, string> = {
+  geplant: "Geplant",
+  in_arbeit: "In Arbeit mit der Umsetzung",
+  abgeschlossen: "Abgeschlossen",
+};
+export interface Invoice {
+  id: string;
+  number: string; // z. B. RG-2026-001 — eindeutig
+  customer: string;
+  title: string; // Leistung
+  amount: number; // €
+  status: InvoiceStatus;
+  createdAt: string;
+  updatedAt: string;
+}
+export const readInvoices = () => readJson<Invoice[]>("invoices.json", []);
+export const writeInvoices = (i: Invoice[]) => writeJson("invoices.json", i);
 export const readReviews = () => readJson<Review[]>("reviews.json", []);
 export const writeReviews = (r: Review[]) => writeJson("reviews.json", r);
 

@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { readSettings } from "@/lib/server/store";
+import { callAI } from "@/lib/server/ai";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -21,41 +22,19 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ reply: ai.greeting, source: "fallback" });
   }
 
-  try {
-    const controller = new AbortController();
-    const t = setTimeout(() => controller.abort(), 60000);
-    const headers: Record<string, string> = { "Content-Type": "application/json" };
-    if (ai.apiKey) headers.Authorization = `Bearer ${ai.apiKey}`;
-    const res = await fetch(ai.endpoint, {
-      method: "POST",
-      headers,
-      signal: controller.signal,
-      body: JSON.stringify({
-        model: ai.model,
-        temperature: ai.temperature,
-        max_tokens: ai.maxTokens,
-        messages: [
-          { role: "system", content: ai.systemPrompt },
-          ...messages.map((m) => ({ role: m.role === "user" ? "user" : "assistant", content: m.text })),
-        ],
-      }),
-    });
-    clearTimeout(t);
-    if (!res.ok) {
-      const detail = (await res.text().catch(() => "")).slice(0, 200);
-      return NextResponse.json({ reply: ai.fallback, source: "error", detail: `HTTP ${res.status} ${detail}` });
-    }
-    const data = await res.json();
-    const reply = data?.choices?.[0]?.message?.content?.trim();
-    return NextResponse.json({ reply: reply || ai.fallback, source: reply ? "ai" : "fallback" });
-  } catch (e) {
-    const detail = e instanceof Error ? e.message : "Verbindung fehlgeschlagen";
-    return NextResponse.json({ reply: ai.fallback, source: "error", detail });
+  const result = await callAI(ai, [
+    { role: "system", content: ai.systemPrompt },
+    ...messages.map((m) => ({ role: m.role === "user" ? ("user" as const) : ("assistant" as const), content: m.text })),
+  ]);
+
+  if (!result.ok) {
+    return NextResponse.json({ reply: ai.fallback, source: "error", detail: result.detail });
   }
+  return NextResponse.json({ reply: result.reply, source: "ai" });
 }
 
 // Status für den Chat (zeigt ob KI aktiv ist) — verrät keinen Key.
 export async function GET() {
   const { ai } = readSettings();
-  return NextResponse.json({ enabled: ai.enabled && !!ai.endpoint, greeting: ai.greeting });
+  return NextResponse.json({ enabled: ai.enabled && !!ai.endpoint && !(ai.requireApiKey && !ai.apiKey), greeting: ai.greeting });
 }

@@ -1,5 +1,25 @@
 import crypto from "crypto";
-import type { Review } from "./store";
+import { readInvoices, INVOICE_STATUS_LABELS, type Review, type Invoice } from "./store";
+
+// Rechnungsnummern normalisieren (Groß-/Kleinschreibung, Leerzeichen).
+export function normalizeInvoiceNumber(n: string): string {
+  return n.trim().toUpperCase().replace(/\s+/g, "");
+}
+
+// Nur im System registrierte Rechnungen sind gültig.
+export function findInvoice(number: string): Invoice | undefined {
+  const n = normalizeInvoiceNumber(number);
+  return readInvoices().find((i) => i.number === n);
+}
+
+export function phaseLabel(inv: Invoice): string {
+  return INVOICE_STATUS_LABELS[inv.status];
+}
+
+// Vor Abschluss = Teilbewertung, danach = Endbewertung.
+export function reviewKind(inv: Invoice): "teil" | "end" {
+  return inv.status === "abgeschlossen" ? "end" : "teil";
+}
 
 function secret(): string {
   return process.env.SESSION_SECRET || "studio-lokal-dev-secret-bitte-aendern";
@@ -8,20 +28,31 @@ function secret(): string {
 // HMAC-Siegel über die unveränderlichen Felder einer Bewertung.
 // Nur der Server kennt das Secret → Einträge können nicht "ausgedacht"
 // oder nachträglich manipuliert werden, ohne dass das Siegel bricht.
-export function sealReview(r: Pick<Review, "id" | "name" | "rating" | "text" | "createdAt">): string {
+export function sealReview(r: Pick<Review, "id" | "name" | "rating" | "text" | "createdAt" | "invoiceNumber" | "phase" | "kind">): string {
+  return crypto
+    .createHmac("sha256", secret())
+    .update(`${r.id}|${r.name}|${r.rating}|${r.text}|${r.createdAt}|${r.invoiceNumber}|${r.phase}|${r.kind}`)
+    .digest("hex");
+}
+
+// Altes Siegel-Format (vor Rechnungs-Pflicht) weiter akzeptieren.
+function sealReviewV1(r: Pick<Review, "id" | "name" | "rating" | "text" | "createdAt">): string {
   return crypto
     .createHmac("sha256", secret())
     .update(`${r.id}|${r.name}|${r.rating}|${r.text}|${r.createdAt}`)
     .digest("hex");
 }
 
-export function verifyReview(r: Review): boolean {
-  const expected = sealReview(r);
+function safeEqual(a: string, b: string): boolean {
   try {
-    return crypto.timingSafeEqual(Buffer.from(r.seal, "hex"), Buffer.from(expected, "hex"));
+    return crypto.timingSafeEqual(Buffer.from(a, "hex"), Buffer.from(b, "hex"));
   } catch {
     return false;
   }
+}
+
+export function verifyReview(r: Review): boolean {
+  return safeEqual(r.seal, sealReview(r)) || safeEqual(r.seal, sealReviewV1(r));
 }
 
 // IP nur gehasht speichern (Datenschutz) — reicht fürs Rate-Limit.

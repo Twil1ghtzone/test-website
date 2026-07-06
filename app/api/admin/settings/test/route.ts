@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { readSettings } from "@/lib/server/store";
 import { requirePermission } from "@/lib/server/auth";
+import { callAI, normalizeEndpoint } from "@/lib/server/ai";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -20,54 +21,15 @@ export async function POST(req: NextRequest) {
 
   if (!endpoint) return NextResponse.json({ ok: false, detail: "Kein Endpunkt angegeben." }, { status: 200 });
 
-  const started = Date.now();
-  try {
-    const controller = new AbortController();
-    const t = setTimeout(() => controller.abort(), 20000);
-    const headers: Record<string, string> = { "Content-Type": "application/json" };
-    if (apiKey) headers.Authorization = `Bearer ${apiKey}`;
+  const result = await callAI(
+    { endpoint, apiKey, model, temperature: 0, maxTokens: 32 },
+    [
+      { role: "system", content: systemPrompt },
+      { role: "user", content: "Antworte nur mit dem Wort: OK" },
+    ],
+    20000
+  );
 
-    const res = await fetch(endpoint, {
-      method: "POST",
-      headers,
-      signal: controller.signal,
-      body: JSON.stringify({
-        model,
-        max_tokens: 32,
-        temperature: 0,
-        messages: [
-          { role: "system", content: systemPrompt },
-          { role: "user", content: "Antworte nur mit dem Wort: OK" },
-        ],
-      }),
-    });
-    clearTimeout(t);
-    const ms = Date.now() - started;
-
-    if (!res.ok) {
-      const detail = (await res.text().catch(() => "")).slice(0, 300);
-      return NextResponse.json({ ok: false, status: res.status, ms, detail: `HTTP ${res.status} — ${detail || "keine Antwort"}` });
-    }
-    const data = await res.json().catch(() => null);
-    const reply = data?.choices?.[0]?.message?.content?.trim();
-    if (!reply) {
-      return NextResponse.json({ ok: false, status: res.status, ms, detail: "Antwort ohne verwertbaren Inhalt (choices[0].message.content leer)." });
-    }
-    return NextResponse.json({ ok: true, status: res.status, ms, model, reply: reply.slice(0, 120) });
-  } catch (e) {
-    let detail = "Verbindung fehlgeschlagen";
-    if (e instanceof Error) {
-      if (e.name === "AbortError") {
-        detail = "Zeitüberschreitung (20 s) — läuft der Server?";
-      } else {
-        // Node/undici versteckt den Grund in `cause` (z. B. ECONNREFUSED).
-        const cause = (e as { cause?: { code?: string; message?: string } }).cause;
-        const code = cause?.code;
-        detail = code === "ECONNREFUSED"
-          ? "Verbindung abgelehnt — kein Server unter dieser Adresse/Port erreichbar. Läuft Ollama/LM Studio? Im Docker host.docker.internal statt localhost nutzen."
-          : `${e.message}${code ? ` (${code})` : ""}`;
-      }
-    }
-    return NextResponse.json({ ok: false, detail });
-  }
+  if (!result.ok) return NextResponse.json({ ok: false, status: result.status, ms: result.ms, detail: result.detail, endpoint: normalizeEndpoint(endpoint) });
+  return NextResponse.json({ ok: true, status: result.status, ms: result.ms, model, reply: result.reply.slice(0, 120), endpoint: normalizeEndpoint(endpoint) });
 }

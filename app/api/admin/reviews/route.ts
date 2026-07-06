@@ -13,6 +13,7 @@ export async function GET() {
   const reviews = readReviews().map((r) => ({
     id: r.id, name: r.name, rating: r.rating, text: r.text,
     status: r.status, createdAt: r.createdAt, verified: verifyReview(r),
+    invoiceNumber: r.invoiceNumber || "", phase: r.phase || "", kind: r.kind || "end",
   }));
   return NextResponse.json({ reviews });
 }
