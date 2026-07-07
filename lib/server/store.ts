@@ -11,16 +11,24 @@ function ensureDir() {
 // ── Schnelle DB-Schicht ──
 // In-Memory-Cache (Lesezugriffe ohne Disk-I/O) + atomare Schreibvorgänge
 // (temp-Datei + rename → nie halbe Dateien, auch bei parallelen Requests).
-const cache = new Map<string, unknown>();
+// Cache-Eintrag merkt sich die Datei-Änderungszeit: ändert ein ANDERER
+// Node-Prozess (z. B. zweiter Worker) die Datei, wird sie neu gelesen —
+// behebt u. a. "gelöschter Blog-Beitrag wird noch angezeigt".
+const cache = new Map<string, { mtimeMs: number; data: unknown }>();
 
 export function readJson<T>(file: string, fallback: T): T {
-  if (cache.has(file)) return cache.get(file) as T;
   try {
     ensureDir();
     const p = path.join(DATA_DIR, file);
-    if (!fs.existsSync(p)) return fallback;
+    if (!fs.existsSync(p)) {
+      cache.delete(file);
+      return fallback;
+    }
+    const mtimeMs = fs.statSync(p).mtimeMs;
+    const hit = cache.get(file);
+    if (hit && hit.mtimeMs === mtimeMs) return hit.data as T;
     const val = JSON.parse(fs.readFileSync(p, "utf-8")) as T;
-    cache.set(file, val);
+    cache.set(file, { mtimeMs, data: val });
     return val;
   } catch {
     return fallback;
@@ -33,7 +41,7 @@ export function writeJson(file: string, data: unknown): void {
   const tmp = `${p}.${process.pid}.${Date.now()}.tmp`;
   fs.writeFileSync(tmp, JSON.stringify(data, null, 2), "utf-8");
   fs.renameSync(tmp, p); // atomarer Tausch
-  cache.set(file, data);
+  cache.set(file, { mtimeMs: fs.statSync(p).mtimeMs, data });
 }
 
 // Alle bekannten Sammlungen — Grundlage für Statistik & Reset im Admin.
@@ -48,6 +56,7 @@ export const COLLECTIONS = {
   "finance.json": "Finanzen",
   "audit.json": "Aktivitätslog",
   "invoices.json": "Rechnungen",
+  "subscribers.json": "Blog-Abonnenten",
   "settings.json": "Einstellungen",
 } as const;
 export type CollectionFile = keyof typeof COLLECTIONS;
@@ -123,9 +132,23 @@ export interface BlogPost {
   coverImage?: string;
   status: "draft" | "published";
   author: string;
+  tags?: string[];
+  seoDescription?: string;
+  notifiedAt?: string; // wann Abonnenten benachrichtigt wurden
   createdAt: string;
   updatedAt: string;
 }
+
+// ── Blog-Abonnenten (kostenloses Abo mit Bestätigung) ──
+export interface Subscriber {
+  id: string;
+  email: string;
+  verified: boolean;
+  token: string; // für Bestätigung & Abmeldung
+  createdAt: string;
+}
+export const readSubscribers = () => readJson<Subscriber[]>("subscribers.json", []);
+export const writeSubscribers = (s: Subscriber[]) => writeJson("subscribers.json", s);
 
 export interface Inquiry {
   id: string;
@@ -174,22 +197,41 @@ export const INVOICE_STATUS_LABELS: Record<InvoiceStatus, string> = {
   in_arbeit: "In Arbeit mit der Umsetzung",
   abgeschlossen: "Abgeschlossen",
 };
+export interface InvoiceItem {
+  id: string;
+  name: string; // Paket von der Website oder frei ("anders beschlossen")
+  price: number; // € — je Position frei einstellbar
+  sqm: number; // m² — 0 = ohne Flächenangabe
+  custom: boolean; // true = eigenes Paket (nicht von der Website)
+}
+
 export interface Invoice {
   id: string;
   number: string; // z. B. RG-2026-001 — eindeutig
   customer: string;
+  customerAddress?: string; // für die Druckansicht
   title: string; // Leistung
+  items: InvoiceItem[]; // Positionen — amount ist die Summe
   amount: number; // €
   status: InvoiceStatus;
   createdAt: string;
   updatedAt: string;
 }
-export const readInvoices = () => readJson<Invoice[]>("invoices.json", []);
+// Alt-Datensätze ohne `items` nachrüsten.
+export const readInvoices = (): Invoice[] =>
+  readJson<Invoice[]>("invoices.json", []).map((i) => ({ ...i, items: i.items || [] }));
 export const writeInvoices = (i: Invoice[]) => writeJson("invoices.json", i);
 export const readReviews = () => readJson<Review[]>("reviews.json", []);
 export const writeReviews = (r: Review[]) => writeJson("reviews.json", r);
 
 // ── Tickets (interne Aufgaben) ──
+export interface TicketComment {
+  id: string;
+  author: string;
+  text: string;
+  createdAt: string;
+}
+
 export interface Ticket {
   id: string;
   title: string;
@@ -197,11 +239,15 @@ export interface Ticket {
   priority: "niedrig" | "mittel" | "hoch";
   status: "offen" | "in_arbeit" | "erledigt";
   assignee: string;
+  dueDate?: string; // YYYY-MM-DD
+  comments: TicketComment[];
   createdBy: string;
   createdAt: string;
   updatedAt: string;
 }
-export const readTickets = () => readJson<Ticket[]>("tickets.json", []);
+// Alt-Datensätze ohne `comments` nachrüsten.
+export const readTickets = (): Ticket[] =>
+  readJson<Ticket[]>("tickets.json", []).map((t) => ({ ...t, comments: t.comments || [] }));
 export const writeTickets = (t: Ticket[]) => writeJson("tickets.json", t);
 
 // ── Team-Chat ──
@@ -257,6 +303,7 @@ export interface AISettings {
   enabled: boolean;
   endpoint: string; // OpenAI-kompatibler Chat-Endpunkt (…/v1/chat/completions)
   apiKey: string; // nur serverseitig, nie an den Client
+  apiKeyEnabled: boolean; // Key mitsenden ja/nein (deaktivieren ohne ihn zu löschen)
   requireApiKey: boolean; // true = Key ist Pflicht (Cloud-APIs); false = ohne Key (Ollama/LM Studio)
   model: string;
   systemPrompt: string; // Core-Prompt / Persönlichkeit
@@ -272,19 +319,30 @@ export interface ReviewSettings {
   maxPerDay: number; // Rate-Limit pro IP
 }
 
+export interface SmtpSettings {
+  host: string;
+  port: number;
+  user: string;
+  pass: string; // nur serverseitig
+  from: string;
+}
+
 export interface Settings {
   siteName: string;
   ai: AISettings;
   reviews: ReviewSettings;
+  smtp: SmtpSettings;
 }
 
 export const DEFAULT_SETTINGS: Settings = {
   siteName: "STUDIO//LOKAL",
   reviews: { enabled: true, autoApprove: false, maxPerDay: 3 },
+  smtp: { host: "", port: 587, user: "", pass: "", from: "" },
   ai: {
     enabled: false,
     endpoint: "https://api.openai.com/v1/chat/completions",
     apiKey: "",
+    apiKeyEnabled: true,
     requireApiKey: false,
     model: "gpt-4o-mini",
     systemPrompt:
@@ -303,6 +361,7 @@ export function readSettings(): Settings {
     ...s,
     ai: { ...DEFAULT_SETTINGS.ai, ...(s.ai || {}) },
     reviews: { ...DEFAULT_SETTINGS.reviews, ...(s.reviews || {}) },
+    smtp: { ...DEFAULT_SETTINGS.smtp, ...(s.smtp || {}) },
   };
 }
 export const writeSettings = (s: Settings) => writeJson("settings.json", s);

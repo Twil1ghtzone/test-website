@@ -29,6 +29,8 @@ export async function POST(req: NextRequest) {
     priority: PRIORITIES.includes(body.priority) ? body.priority : "mittel",
     status: "offen",
     assignee: String(body.assignee || "").slice(0, 80),
+    dueDate: /^\d{4}-\d{2}-\d{2}$/.test(body.dueDate || "") ? body.dueDate : undefined,
+    comments: [],
     createdBy: me.name,
     createdAt: now,
     updatedAt: now,
@@ -54,6 +56,18 @@ export async function PATCH(req: NextRequest) {
   if (PRIORITIES.includes(body.priority)) t.priority = body.priority;
   if (STATUSES.includes(body.status)) t.status = body.status;
   if (typeof body.assignee === "string") t.assignee = body.assignee.slice(0, 80);
+  if (typeof body.dueDate === "string") t.dueDate = /^\d{4}-\d{2}-\d{2}$/.test(body.dueDate) ? body.dueDate : undefined;
+  // Kommentar anhängen (Verlauf pro Ticket).
+  if (typeof body.comment === "string" && body.comment.trim()) {
+    t.comments = t.comments || [];
+    t.comments.push({
+      id: `c-${Date.now()}`,
+      author: me.name,
+      text: body.comment.trim().slice(0, 1000),
+      createdAt: new Date().toISOString(),
+    });
+    t.comments = t.comments.slice(-100);
+  }
   t.updatedAt = new Date().toISOString();
   writeTickets(all);
   logAudit(me.name, "Ticket aktualisiert", `${t.title} → ${t.status}`);

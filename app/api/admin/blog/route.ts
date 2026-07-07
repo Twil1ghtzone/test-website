@@ -45,6 +45,8 @@ export async function POST(req: NextRequest) {
     excerpt: String(body.excerpt || "").slice(0, 400),
     content: String(body.content || ""),
     coverImage: body.coverImage ? String(body.coverImage) : undefined,
+    tags: Array.isArray(body.tags) ? body.tags.map((t: unknown) => String(t).trim()).filter(Boolean).slice(0, 10) : [],
+    seoDescription: String(body.seoDescription || "").slice(0, 200),
     status: body.status === "published" ? "published" : "draft",
     author: me.name,
     createdAt: now,
@@ -70,6 +72,8 @@ export async function PATCH(req: NextRequest) {
   if (typeof body.excerpt === "string") p.excerpt = body.excerpt.slice(0, 400);
   if (typeof body.content === "string") p.content = body.content;
   if (typeof body.coverImage === "string") p.coverImage = body.coverImage || undefined;
+  if (Array.isArray(body.tags)) p.tags = body.tags.map((t: unknown) => String(t).trim()).filter(Boolean).slice(0, 10);
+  if (typeof body.seoDescription === "string") p.seoDescription = body.seoDescription.slice(0, 200);
   if (body.status === "published" || body.status === "draft") p.status = body.status;
   if (typeof body.slug === "string" && body.slug.trim()) p.slug = uniqueSlug(slugify(body.slug), posts, p.id);
   p.updatedAt = new Date().toISOString();

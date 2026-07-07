@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { readInvoices, writeInvoices, readReviews, INVOICE_STATUS_LABELS, type Invoice, type InvoiceStatus } from "@/lib/server/store";
+import { readInvoices, writeInvoices, readReviews, INVOICE_STATUS_LABELS, type Invoice, type InvoiceStatus, type InvoiceItem } from "@/lib/server/store";
 import { requirePermission } from "@/lib/server/auth";
 import { logAudit } from "@/lib/server/audit";
 
@@ -7,6 +7,23 @@ export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
 const STATUSES: InvoiceStatus[] = ["geplant", "in_arbeit", "abgeschlossen"];
+
+// Positionen bereinigen: Name Pflicht, Preis/m² numerisch, eigener Posten markiert.
+function sanitizeItems(input: unknown): InvoiceItem[] {
+  if (!Array.isArray(input)) return [];
+  return input
+    .map((raw, idx) => ({
+      id: typeof raw?.id === "string" ? raw.id : `it-${Date.now()}-${idx}`,
+      name: String(raw?.name || "").trim().slice(0, 160),
+      price: Math.max(0, Math.round((Number(raw?.price) || 0) * 100) / 100),
+      sqm: Math.max(0, Math.round((Number(raw?.sqm) || 0) * 10) / 10),
+      custom: !!raw?.custom,
+    }))
+    .filter((it) => it.name.length > 0)
+    .slice(0, 50);
+}
+
+const itemsTotal = (items: InvoiceItem[]) => Math.round(items.reduce((s, it) => s + it.price, 0) * 100) / 100;
 
 // Nächste freie Nummer im Format RG-JJJJ-NNN.
 function nextNumber(invoices: Invoice[]): string {
@@ -50,12 +67,15 @@ export async function POST(req: NextRequest) {
   }
 
   const now = new Date().toISOString();
+  const items = sanitizeItems(body.items);
   const inv: Invoice = {
     id: `inv-${Date.now()}`,
     number,
     customer,
     title,
-    amount: Math.max(0, Number(body.amount) || 0),
+    // Summe aus Positionen; ohne Positionen frei einstellbar.
+    amount: items.length > 0 ? itemsTotal(items) : Math.max(0, Number(body.amount) || 0),
+    items,
     status: STATUSES.includes(body.status) ? body.status : "geplant",
     createdAt: now,
     updatedAt: now,
@@ -77,7 +97,9 @@ export async function PATCH(req: NextRequest) {
 
   if (typeof body.customer === "string" && body.customer.trim()) inv.customer = body.customer.trim().slice(0, 120);
   if (typeof body.title === "string" && body.title.trim()) inv.title = body.title.trim().slice(0, 160);
-  if (body.amount !== undefined) inv.amount = Math.max(0, Number(body.amount) || 0);
+  if (body.items !== undefined) inv.items = sanitizeItems(body.items);
+  if (inv.items.length > 0) inv.amount = itemsTotal(inv.items);
+  else if (body.amount !== undefined) inv.amount = Math.max(0, Number(body.amount) || 0);
   if (STATUSES.includes(body.status)) inv.status = body.status;
   inv.updatedAt = new Date().toISOString();
   writeInvoices(invoices);

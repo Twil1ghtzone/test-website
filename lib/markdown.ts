@@ -20,6 +20,8 @@ function inline(s: string): string {
   t = t.replace(/\*\*([^*]+)\*\*/g, "<strong>$1</strong>");
   // Kursiv *x*
   t = t.replace(/(^|[^*])\*([^*]+)\*/g, "$1<em>$2</em>");
+  // Durchgestrichen ~~x~~
+  t = t.replace(/~~([^~]+)~~/g, "<del>$1</del>");
   // Inline-Code `x`
   t = t.replace(/`([^`]+)`/g, '<code class="rounded bg-canvas px-1.5 py-0.5 text-[0.9em]">$1</code>');
   return t;
@@ -30,7 +32,11 @@ export function renderMarkdown(md: string): string {
   const out: string[] = [];
   let i = 0;
   let inList = false;
-  const closeList = () => { if (inList) { out.push("</ul>"); inList = false; } };
+  let inOl = false;
+  const closeList = () => {
+    if (inList) { out.push("</ul>"); inList = false; }
+    if (inOl) { out.push("</ol>"); inOl = false; }
+  };
 
   while (i < lines.length) {
     const line = lines[i];
@@ -53,8 +59,15 @@ export function renderMarkdown(md: string): string {
       i++; continue;
     }
     if (/^\s*[-*]\s+/.test(line)) {
+      if (inOl) { out.push("</ol>"); inOl = false; }
       if (!inList) { out.push('<ul class="my-3 list-disc space-y-1 pl-6">'); inList = true; }
       out.push(`<li>${inline(line.replace(/^\s*[-*]\s+/, ""))}</li>`);
+      i++; continue;
+    }
+    if (/^\s*\d+[.)]\s+/.test(line)) {
+      if (inList) { out.push("</ul>"); inList = false; }
+      if (!inOl) { out.push('<ol class="my-3 list-decimal space-y-1 pl-6">'); inOl = true; }
+      out.push(`<li>${inline(line.replace(/^\s*\d+[.)]\s+/, ""))}</li>`);
       i++; continue;
     }
     if (/^>\s?/.test(line)) {

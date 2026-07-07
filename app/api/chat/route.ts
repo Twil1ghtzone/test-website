@@ -8,7 +8,9 @@ export const dynamic = "force-dynamic";
 type Msg = { role: "user" | "assistant"; text: string };
 
 export async function POST(req: NextRequest) {
-  const { ai } = readSettings();
+  const { ai: aiRaw } = readSettings();
+  // Key-Knopf: deaktiviert = Key nicht mitsenden (bleibt aber gespeichert).
+  const ai = { ...aiRaw, apiKey: aiRaw.apiKeyEnabled ? aiRaw.apiKey : "" };
   const body = await req.json().catch(() => null);
   const messages: Msg[] = Array.isArray(body?.messages) ? body.messages.slice(-20) : [];
   const userText = messages.filter((m) => m.role === "user").slice(-1)[0]?.text || "";
@@ -36,5 +38,6 @@ export async function POST(req: NextRequest) {
 // Status für den Chat (zeigt ob KI aktiv ist) — verrät keinen Key.
 export async function GET() {
   const { ai } = readSettings();
-  return NextResponse.json({ enabled: ai.enabled && !!ai.endpoint && !(ai.requireApiKey && !ai.apiKey), greeting: ai.greeting });
+  const effectiveKey = ai.apiKeyEnabled ? ai.apiKey : "";
+  return NextResponse.json({ enabled: ai.enabled && !!ai.endpoint && !(ai.requireApiKey && !effectiveKey), greeting: ai.greeting });
 }

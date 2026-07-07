@@ -16,8 +16,9 @@ export async function POST(req: NextRequest) {
   const endpoint = (typeof body.endpoint === "string" ? body.endpoint : cur.ai.endpoint).trim();
   const model = (typeof body.model === "string" ? body.model : cur.ai.model).trim();
   const systemPrompt = typeof body.systemPrompt === "string" && body.systemPrompt ? body.systemPrompt : cur.ai.systemPrompt;
-  // Neu getippten Key nehmen, sonst gespeicherten.
-  const apiKey = typeof body.apiKey === "string" && body.apiKey.length > 0 ? body.apiKey : cur.ai.apiKey;
+  // Neu getippten Key nehmen, sonst gespeicherten — Key-Knopf berücksichtigen.
+  const storedKey = cur.ai.apiKeyEnabled ? cur.ai.apiKey : "";
+  const apiKey = typeof body.apiKey === "string" && body.apiKey.length > 0 ? body.apiKey : storedKey;
 
   if (!endpoint) return NextResponse.json({ ok: false, detail: "Kein Endpunkt angegeben." }, { status: 200 });
 

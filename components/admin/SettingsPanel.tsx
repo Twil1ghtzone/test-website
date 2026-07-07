@@ -6,8 +6,10 @@ import { Sparkles, Save, Loader2, Wifi, Eye, EyeOff, Check, AlertTriangle, X } f
 type AISettings = {
   enabled: boolean; endpoint: string; model: string; systemPrompt: string;
   temperature: number; maxTokens: number; greeting: string; fallback: string;
-  requireApiKey: boolean; apiKeySet?: boolean;
+  requireApiKey: boolean; apiKeyEnabled: boolean; apiKeySet?: boolean;
 };
+
+type SmtpSettings = { host: string; port: number; user: string; from: string; passSet?: boolean };
 
 type TestResult = { ok: boolean; ms?: number; status?: number; reply?: string; detail?: string; model?: string };
 
@@ -18,6 +20,10 @@ const PROMPT_EXAMPLE =
 
 export default function SettingsPanel() {
   const [ai, setAi] = useState<AISettings | null>(null);
+  const [smtp, setSmtp] = useState<SmtpSettings | null>(null);
+  const [smtpPass, setSmtpPass] = useState("");
+  const [savedEndpoint, setSavedEndpoint] = useState("");
+  const [adminPassword, setAdminPassword] = useState("");
   const [siteName, setSiteName] = useState("");
   const [apiKey, setApiKey] = useState("");
   const [showKey, setShowKey] = useState(false);
@@ -33,25 +39,43 @@ export default function SettingsPanel() {
     if (r.ok) {
       const d = await r.json();
       setAi(d.settings.ai);
+      setSmtp(d.settings.smtp);
+      setSavedEndpoint(d.settings.ai.endpoint);
       setSiteName(d.settings.siteName);
     }
   }, []);
   useEffect(() => { load(); }, [load]);
 
+  const endpointChanged = !!ai && ai.endpoint.trim() !== savedEndpoint;
+
   async function doSave() {
     if (!ai) return;
-    setConfirm(false);
     setBusy(true); setMsg("");
     // clearKey → Key aktiv leeren; sonst nur bei neuer Eingabe überschreiben.
     const keyField = clearKey ? { apiKey: "" } : apiKey ? { apiKey } : {};
+    const smtpField = smtp ? { smtp: { ...smtp, ...(smtpPass ? { pass: smtpPass } : {}) } } : {};
     const r = await fetch("/api/admin/settings", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ siteName, ai: { ...ai, ...keyField } }),
+      body: JSON.stringify({
+        siteName,
+        ai: { ...ai, ...keyField },
+        ...smtpField,
+        // Endpunkt-Änderung erfordert das Admin-Passwort (Sicherheitsstufe).
+        ...(endpointChanged ? { adminPassword } : {}),
+      }),
     });
+    const d = await r.json().catch(() => ({}));
     setBusy(false);
-    setMsg(r.ok ? "Gespeichert ✓" : "Fehler beim Speichern");
-    if (r.ok) { setApiKey(""); setClearKey(false); load(); }
+    if (!r.ok) {
+      setMsg(d.error || "Fehler beim Speichern");
+      setTimeout(() => setMsg(""), 4000);
+      return;
+    }
+    setConfirm(false);
+    setMsg("Gespeichert ✓");
+    setApiKey(""); setClearKey(false); setSmtpPass(""); setAdminPassword("");
+    load();
     setTimeout(() => setMsg(""), 2500);
   }
 
@@ -144,6 +168,19 @@ export default function SettingsPanel() {
               <input type="checkbox" checked={ai.requireApiKey} onChange={(e) => setAi({ ...ai, requireApiKey: e.target.checked })} className="h-3.5 w-3.5 accent-[var(--color-accent)]" />
               API-Key erforderlich (an: Cloud-APIs wie OpenAI · aus: Ollama/LM Studio ohne Key)
             </label>
+            {/* Key aktivieren/deaktivieren ohne ihn zu löschen (wie novum) */}
+            <button
+              type="button"
+              onClick={() => setAi({ ...ai, apiKeyEnabled: !ai.apiKeyEnabled })}
+              className={`mt-2 inline-flex items-center gap-2 rounded-full border px-3.5 py-1.5 text-xs font-medium transition-colors cursor-pointer ${
+                ai.apiKeyEnabled
+                  ? "border-emerald-300 bg-emerald-50 text-emerald-700 hover:bg-emerald-100"
+                  : "border-line-strong bg-canvas text-ink-soft hover:border-ink"
+              }`}
+            >
+              <span className={`h-2 w-2 rounded-full ${ai.apiKeyEnabled ? "bg-emerald-500" : "bg-line-strong"}`} />
+              API-Key {ai.apiKeyEnabled ? "aktiv — Klick zum Deaktivieren" : "deaktiviert — Klick zum Aktivieren"}
+            </button>
           </div>
           <div><label className={lbl}>Temperatur ({ai.temperature.toFixed(1)})</label><input type="range" min={0} max={2} step={0.1} value={ai.temperature} onChange={(e) => setAi({ ...ai, temperature: +e.target.value })} className="mt-3 w-full accent-[var(--color-accent)]" /></div>
           <div><label className={lbl}>Max. Tokens</label><input type="number" min={50} max={4000} value={ai.maxTokens} onChange={(e) => setAi({ ...ai, maxTokens: +e.target.value })} className={field} /></div>
@@ -179,6 +216,23 @@ export default function SettingsPanel() {
         </div>
       </div>
 
+      {smtp && (
+        <div className="rounded-3xl border border-line bg-surface p-6 sm:p-7">
+          <h2 className="font-display text-xl font-semibold tracking-tight">E-Mail-Versand (SMTP)</h2>
+          <p className="mt-1 text-sm text-muted">Für Blog-Abo-Bestätigungen und Newsletter. Leer lassen = Abos funktionieren ohne E-Mail-Bestätigung.</p>
+          <div className="mt-4 grid gap-4 sm:grid-cols-2">
+            <div><label className={lbl}>SMTP-Host</label><input value={smtp.host} onChange={(e) => setSmtp({ ...smtp, host: e.target.value })} className={field} placeholder="smtp.example.de" /></div>
+            <div><label className={lbl}>Port</label><input type="number" min={1} max={65535} value={smtp.port} onChange={(e) => setSmtp({ ...smtp, port: +e.target.value })} className={field} /></div>
+            <div><label className={lbl}>Benutzer</label><input value={smtp.user} onChange={(e) => setSmtp({ ...smtp, user: e.target.value })} className={field} placeholder="mail@example.de" autoComplete="off" /></div>
+            <div>
+              <label className={lbl}>Passwort {smtp.passSet && <span className="normal-case text-emerald-600">· gesetzt</span>}</label>
+              <input type="password" value={smtpPass} onChange={(e) => setSmtpPass(e.target.value)} className={field} placeholder={smtp.passSet ? "•••• (leer = unverändert)" : "SMTP-Passwort"} autoComplete="off" />
+            </div>
+            <div className="sm:col-span-2"><label className={lbl}>Absender (From)</label><input value={smtp.from} onChange={(e) => setSmtp({ ...smtp, from: e.target.value })} className={field} placeholder='STUDIO//LOKAL <mail@example.de>' /></div>
+          </div>
+        </div>
+      )}
+
       <div className="flex items-center gap-3">
         <button type="submit" disabled={busy} className="inline-flex items-center gap-2 rounded-full bg-accent px-6 py-3 font-medium text-white transition-colors hover:bg-accent-ink disabled:opacity-60 cursor-pointer">
           {busy ? <Loader2 className="h-5 w-5 animate-spin" /> : <Save className="h-5 w-5" />} Speichern
@@ -198,10 +252,25 @@ export default function SettingsPanel() {
               Die Einstellungen des Support-Assistenten werden aktualisiert.{" "}
               {ai.enabled ? "Der KI-Assistent ist danach aktiv." : "Der KI-Assistent bleibt deaktiviert (Fallback-Antworten)."}
               {clearKey && " Der gespeicherte API-Key wird entfernt."}
+              {!ai.apiKeyEnabled && " Der API-Key ist deaktiviert und wird nicht mitgesendet."}
             </p>
+            {endpointChanged && (
+              <div className="mt-4 rounded-xl border border-amber-300 bg-amber-50 p-3">
+                <p className="text-sm font-medium text-amber-800">Der KI-Endpunkt wurde geändert — bitte mit Ihrem Admin-Passwort bestätigen:</p>
+                <input
+                  type="password"
+                  value={adminPassword}
+                  onChange={(e) => setAdminPassword(e.target.value)}
+                  className="mt-2 w-full rounded-xl border border-line bg-surface px-4 py-2.5 text-ink outline-none focus:border-accent"
+                  placeholder="Ihr Passwort"
+                  autoComplete="current-password"
+                />
+              </div>
+            )}
+            {msg && msg !== "Gespeichert ✓" && <p className="mt-3 rounded-lg border border-red-300 bg-red-50 px-3 py-2 text-sm text-red-700">{msg}</p>}
             <div className="mt-5 flex justify-end gap-3">
               <button type="button" onClick={() => setConfirm(false)} className="rounded-full border border-line-strong bg-surface px-5 py-2.5 text-sm font-medium text-ink hover:border-ink cursor-pointer">Abbrechen</button>
-              <button type="button" onClick={doSave} className="inline-flex items-center gap-2 rounded-full bg-accent px-6 py-2.5 text-sm font-medium text-white hover:bg-accent-ink cursor-pointer"><Check className="h-4 w-4" /> Speichern</button>
+              <button type="button" onClick={doSave} disabled={busy || (endpointChanged && adminPassword.length === 0)} className="inline-flex items-center gap-2 rounded-full bg-accent px-6 py-2.5 text-sm font-medium text-white hover:bg-accent-ink disabled:opacity-50 cursor-pointer"><Check className="h-4 w-4" /> Speichern</button>
             </div>
           </div>
         </div>

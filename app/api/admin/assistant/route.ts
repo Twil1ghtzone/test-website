@@ -19,7 +19,8 @@ export async function POST(req: NextRequest) {
   const me = await getCurrentUser();
   if (!me) return NextResponse.json({ error: "Nicht autorisiert" }, { status: 401 });
 
-  const { ai } = readSettings();
+  const { ai: aiRaw } = readSettings();
+  const ai = { ...aiRaw, apiKey: aiRaw.apiKeyEnabled ? aiRaw.apiKey : "" };
   if (!ai.enabled || !ai.endpoint || (ai.requireApiKey && !ai.apiKey)) {
     return NextResponse.json({ error: "KI ist nicht konfiguriert/aktiv — unter KI & Einstellungen einrichten." }, { status: 503 });
   }
@@ -42,8 +43,9 @@ export async function GET() {
   const me = await getCurrentUser();
   if (!me) return NextResponse.json({ error: "Nicht autorisiert" }, { status: 401 });
   const { ai } = readSettings();
+  const effectiveKey = ai.apiKeyEnabled ? ai.apiKey : "";
   return NextResponse.json({
-    configured: ai.enabled && !!ai.endpoint && !(ai.requireApiKey && !ai.apiKey),
+    configured: ai.enabled && !!ai.endpoint && !(ai.requireApiKey && !effectiveKey),
     model: ai.model,
   });
 }

@@ -1,8 +1,31 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
-import { Zap, ArrowRight, Info, Check } from "lucide-react";
+import { Zap, ArrowRight, Info, Check, Leaf, CalendarRange, Tv } from "lucide-react";
+
+// Sanft zählende Zahl — macht Änderungen im Ergebnis spürbar statt sprunghaft.
+function useAnimatedNumber(target: number, duration = 600): number {
+  const [value, setValue] = useState(target);
+  const fromRef = useRef(target);
+  const rafRef = useRef<number>(0);
+  useEffect(() => {
+    const from = fromRef.current;
+    const start = performance.now();
+    cancelAnimationFrame(rafRef.current);
+    const tick = (now: number) => {
+      const t = Math.min(1, (now - start) / duration);
+      const eased = 1 - Math.pow(1 - t, 3);
+      const v = from + (target - from) * eased;
+      setValue(v);
+      if (t < 1) rafRef.current = requestAnimationFrame(tick);
+      else fromRef.current = target;
+    };
+    rafRef.current = requestAnimationFrame(tick);
+    return () => cancelAnimationFrame(rafRef.current);
+  }, [target, duration]);
+  return value;
+}
 
 // Strom-Maßnahmen (Anteil am Stromverbrauch, der eingespart werden kann)
 const MEASURES = [
@@ -51,8 +74,17 @@ export default function StromrechnerPage() {
     const stromEuro = kWhSaved * preis;
     const aboMonth = CLOUD.filter((c) => abos.has(c.key)).reduce((s, c) => s + c.price, 0);
     const aboEuro = aboMonth * 12;
-    return { pct, kWhSaved, stromEuro, aboMonth, aboEuro, total: stromEuro + aboEuro };
+    const total = stromEuro + aboEuro;
+    return {
+      pct, kWhSaved, stromEuro, aboMonth, aboEuro, total,
+      co2: kWhSaved * 0.38, // kg CO₂ je kWh (dt. Strommix, gerundet)
+      tenYears: total * 10,
+      streamingMonths: total > 0 ? Math.round(total / 12.99) : 0, // „entspricht X Streaming-Monaten"
+    };
   }, [verbrauch, preis, measures, abos]);
+
+  const animTotal = useAnimatedNumber(result.total);
+  const animKwh = useAnimatedNumber(result.kWhSaved);
 
   const cardHover = "transition-all duration-300 hover:-translate-y-0.5 hover:shadow-[0_16px_40px_-18px_rgba(33,28,23,0.18)]";
 
@@ -181,25 +213,45 @@ export default function StromrechnerPage() {
               <div className="p-7">
                 <span className="eyebrow text-accent">Ihre Schätzung</span>
                 <div className="mt-4">
-                  <div className="font-display text-5xl font-semibold tracking-tight">{eur.format(result.total)}</div>
+                  <div className="font-display text-5xl font-semibold tabular-nums tracking-tight">{eur.format(animTotal)}</div>
                   <div className="mt-1 text-white/60">mögliche Ersparnis pro Jahr</div>
                 </div>
 
-                <div className="mt-6 h-2 overflow-hidden rounded-full bg-white/15">
-                  <div className="h-full rounded-full bg-accent transition-all duration-500" style={{ width: `${Math.round(result.pct * 100)}%` }} />
+                {/* Aufschlüsselung Strom vs. Abos als gestapelter Balken */}
+                <div className="mt-6 flex h-2 overflow-hidden rounded-full bg-white/15">
+                  <div className="h-full bg-accent transition-all duration-500" style={{ width: `${result.total > 0 ? (result.stromEuro / result.total) * 100 : 0}%` }} />
+                  <div className="h-full bg-emerald-400/80 transition-all duration-500" style={{ width: `${result.total > 0 ? (result.aboEuro / result.total) * 100 : 0}%` }} />
                 </div>
-                <div className="mt-2 text-sm text-white/60">−{Math.round(result.pct * 100)} % Stromverbrauch</div>
+                <div className="mt-2 flex justify-between text-xs text-white/60">
+                  <span><span className="mr-1 inline-block h-2 w-2 rounded-full bg-accent" />Strom (−{Math.round(result.pct * 100)} %)</span>
+                  <span><span className="mr-1 inline-block h-2 w-2 rounded-full bg-emerald-400/80" />Abos</span>
+                </div>
 
                 <dl className="mt-6 space-y-3 border-t border-white/10 pt-5 text-sm">
                   <div className="flex items-center justify-between">
                     <dt className="text-white/60">Strom gespart</dt>
-                    <dd className="text-right font-medium">{nf.format(result.kWhSaved)} kWh<br /><span className="text-white/70">{eur.format(result.stromEuro)}/Jahr</span></dd>
+                    <dd className="text-right font-medium tabular-nums">{nf.format(animKwh)} kWh<br /><span className="text-white/70">{eur.format(result.stromEuro)}/Jahr</span></dd>
                   </div>
                   <div className="flex items-center justify-between">
                     <dt className="text-white/60">Wegfallende Abos</dt>
-                    <dd className="font-medium">{eur.format(result.aboEuro)}/Jahr</dd>
+                    <dd className="font-medium tabular-nums">{eur.format(result.aboEuro)}/Jahr</dd>
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <dt className="flex items-center gap-1.5 text-white/60"><Leaf className="h-3.5 w-3.5" /> CO₂ vermieden</dt>
+                    <dd className="font-medium tabular-nums">~{nf.format(result.co2)} kg/Jahr</dd>
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <dt className="flex items-center gap-1.5 text-white/60"><CalendarRange className="h-3.5 w-3.5" /> In 10 Jahren</dt>
+                    <dd className="font-semibold tabular-nums text-accent">{eur.format(result.tenYears)}</dd>
                   </div>
                 </dl>
+
+                {result.streamingMonths > 0 && (
+                  <p className="mt-4 flex items-center gap-2 rounded-xl bg-white/5 px-3.5 py-2.5 text-xs text-white/70">
+                    <Tv className="h-4 w-4 shrink-0 text-accent" />
+                    Das entspricht rund {result.streamingMonths} Monaten Streaming-Abo — jedes Jahr.
+                  </p>
+                )}
 
                 <Link href="/kontakt" className="group mt-7 flex w-full items-center justify-center gap-2 rounded-full bg-accent px-6 py-3.5 font-medium text-white transition-colors hover:bg-accent-ink cursor-pointer">
                   Jetzt beraten lassen

@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import Image from "next/image";
 import Placeholder from "@/components/Placeholder";
+import BlogSubscribe from "@/components/BlogSubscribe";
 import { ArrowIcon } from "@/components/icons";
 import { posts as staticPosts, formatDate, type Post } from "@/lib/blog";
 import { brand } from "@/lib/data";
@@ -112,6 +113,8 @@ export default function BlogPage() {
             </Link>
           ))}
         </div>
+
+        <BlogSubscribe />
       </div>
     </main>
   );
