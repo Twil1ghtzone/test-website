@@ -181,48 +181,58 @@ export default function Nav() {
                         <span className="text-[0.7rem] font-medium text-muted">{services.length} Bereiche</span>
                       </div>
 
-                      <div className="relative" onMouseLeave={() => setSvcHover(null)}>
-                        {services.map((s) => {
-                          const Icon = iconMap[s.icon];
-                          const on = svcHover === s.slug;
-                          return (
-                            <Link
-                              key={s.slug}
-                              role="menuitem"
-                              href={`/leistungen/${s.slug}`}
-                              onClick={() => setServicesOpen(false)}
-                              onMouseEnter={() => setSvcHover(s.slug)}
-                              onFocus={() => setSvcHover(s.slug)}
-                              className="group/item relative flex items-center gap-3 rounded-2xl p-2.5 outline-none cursor-pointer"
-                            >
-                              {on && (
-                                <motion.span
-                                  layoutId="svc-hl"
-                                  transition={{ type: "spring", stiffness: 400, damping: 34 }}
-                                  className="absolute inset-0 z-0 overflow-hidden rounded-2xl bg-accent-soft/70 ring-1 ring-accent/10"
-                                >
-                                  <span className="absolute inset-0 opacity-60">
-                                    <CanvasRevealEffect
-                                      animationSpeed={4}
-                                      containerClassName="bg-transparent"
-                                      colors={[[176, 84, 58], [212, 150, 110]]}
-                                      dotSize={2}
-                                      showGradient={false}
-                                    />
-                                  </span>
-                                </motion.span>
-                              )}
-                              <span className={`relative z-10 grid h-9 w-9 shrink-0 place-items-center rounded-xl transition-colors duration-300 ${on ? "bg-accent text-white" : "bg-accent-soft text-accent"}`}>
-                                <Icon className="h-4 w-4" />
-                              </span>
-                              <span className="relative z-10 min-w-0 flex-1">
-                                <span className="block truncate text-sm font-semibold text-ink">{s.title}</span>
-                                <span className="block truncate text-xs text-muted">{s.tagline}</span>
-                              </span>
-                              <ArrowRight className={`relative z-10 h-4 w-4 shrink-0 text-accent transition-all duration-300 ${on ? "translate-x-0 opacity-100" : "-translate-x-1 opacity-0"}`} />
-                            </Link>
-                          );
-                        })}
+                      {/* Nach Kategorie gruppiert — schlanke Eyebrow-Labels, sonst unverändert kompakt */}
+                      <div onMouseLeave={() => setSvcHover(null)}>
+                        {serviceGroups.map((group, gi) => (
+                          <div key={group.category.key} className={gi > 0 ? "mt-1" : undefined}>
+                            <span className="block px-2.5 pb-1 pt-2 text-[0.65rem] font-semibold uppercase tracking-[0.14em] text-muted/80">
+                              {group.category.label}
+                            </span>
+                            <div className="relative">
+                              {group.items.map((s) => {
+                                const Icon = iconMap[s.icon];
+                                const on = svcHover === s.slug;
+                                return (
+                                  <Link
+                                    key={s.slug}
+                                    role="menuitem"
+                                    href={`/leistungen/${s.slug}`}
+                                    onClick={() => setServicesOpen(false)}
+                                    onMouseEnter={() => setSvcHover(s.slug)}
+                                    onFocus={() => setSvcHover(s.slug)}
+                                    className="group/item relative flex items-center gap-3 rounded-2xl p-2.5 outline-none cursor-pointer"
+                                  >
+                                    {on && (
+                                      <motion.span
+                                        layoutId="svc-hl"
+                                        transition={{ type: "spring", stiffness: 400, damping: 34 }}
+                                        className="absolute inset-0 z-0 overflow-hidden rounded-2xl bg-accent-soft/70 ring-1 ring-accent/10"
+                                      >
+                                        <span className="absolute inset-0 opacity-60">
+                                          <CanvasRevealEffect
+                                            animationSpeed={4}
+                                            containerClassName="bg-transparent"
+                                            colors={[[176, 84, 58], [212, 150, 110]]}
+                                            dotSize={2}
+                                            showGradient={false}
+                                          />
+                                        </span>
+                                      </motion.span>
+                                    )}
+                                    <span className={`relative z-10 grid h-9 w-9 shrink-0 place-items-center rounded-xl transition-colors duration-300 ${on ? "bg-accent text-white" : "bg-accent-soft text-accent"}`}>
+                                      <Icon className="h-4 w-4" />
+                                    </span>
+                                    <span className="relative z-10 min-w-0 flex-1">
+                                      <span className="block truncate text-sm font-semibold text-ink">{s.title}</span>
+                                      <span className="block truncate text-xs text-muted">{s.tagline}</span>
+                                    </span>
+                                    <ArrowRight className={`relative z-10 h-4 w-4 shrink-0 text-accent transition-all duration-300 ${on ? "translate-x-0 opacity-100" : "-translate-x-1 opacity-0"}`} />
+                                  </Link>
+                                );
+                              })}
+                            </div>
+                          </div>
+                        ))}
                       </div>
 
                       <div className="mx-1.5 my-2 h-px bg-line" />

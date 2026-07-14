@@ -22,12 +22,12 @@ export default function PathCards() {
   const [hoverIdx, setHoverIdx] = useState<number | null>(null);
 
   return (
-    <div className="mt-14 grid items-start gap-8 md:grid-cols-3">
+    <div className="mt-14 grid gap-8 md:grid-cols-3">
       {paths.map((p, i) => {
         const isOpen = openIdx === i;
         return (
-          <Reveal key={p.no} delay={i * 110}>
-            <GlowCard className="group flex flex-col rounded-3xl p-5">
+          <Reveal key={p.no} delay={i * 110} className="h-full">
+            <GlowCard className="group flex h-full flex-col rounded-3xl p-5">
               <div
                 onMouseEnter={() => setHoverIdx(i)}
                 onMouseLeave={() => setHoverIdx((v) => (v === i ? null : v))}
@@ -66,19 +66,21 @@ export default function PathCards() {
               </div>
               <div className="mt-5 flex flex-1 flex-col">
                 <span className="eyebrow text-accent">{p.no}</span>
-                {/* Titel verweist mit Bild-Vorschau (LinkPreview) direkt auf die Leistungsseite */}
-                <h3 className="mt-2 font-display text-2xl font-semibold leading-tight tracking-tight">
+                {/* Titel verweist mit Bild-Vorschau (LinkPreview) direkt auf die Leistungsseite.
+                    Feste Mindesthöhe hält alle Karten auf gleicher Basislinie, egal wie lang der Titel ist. */}
+                <h3 className="mt-2 min-h-[3.75rem] font-display text-2xl font-semibold leading-tight tracking-tight sm:min-h-[3.9rem]">
                   <LinkPreview url={p.link.href} imageSrc={p.image} className="font-display text-2xl font-semibold leading-tight tracking-tight">
                     {p.title}
                   </LinkPreview>
                 </h3>
                 <p className="mt-2 leading-relaxed text-ink-soft">{p.body}</p>
 
+                {/* mt-auto verankert den Button an der Kartenunterkante — unabhängig von Textlänge */}
                 <button
                   type="button"
                   onClick={() => setOpenIdx(isOpen ? null : i)}
                   aria-expanded={isOpen}
-                  className="mt-3 inline-flex w-fit items-center gap-2 font-medium text-accent transition-colors hover:text-accent-ink cursor-pointer"
+                  className="mt-auto inline-flex w-fit items-center gap-2 pt-3 font-medium text-accent transition-colors hover:text-accent-ink cursor-pointer"
                 >
                   {isOpen ? "Weniger" : "Mehr erfahren"}
                   <ArrowIcon

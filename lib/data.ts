@@ -28,30 +28,43 @@ export const hero = {
     "Wir verbinden sauberes Elektrohandwerk mit moderner Technik. So entsteht ein Zuhause, das Energie spart, Ihre Daten schützt und ganz ohne monatliche Gebühren funktioniert. Verständlich erklärt, sauber installiert.",
   ctaPrimary: "Unverbindlich anfragen",
   ctaSecondary: "So arbeiten wir",
-  imageCaption: "Platzhalter — Foto: Installation / das Duo bei der Arbeit",
+  imageCaption: "Platzhalter — Foto: Installation vor Ort",
 };
 
-// Über uns / das Duo (wie „father-daughter duo")
+// Über uns / unser Team — bewusst nicht auf einzelne Personen zugeschnitten,
+// sondern auf die Bandbreite der Fachbereiche, die aus einer Hand kommen.
 export const about = {
   eyebrow: "Über uns",
-  titleLead: "Zwei Disziplinen,",
+  titleLead: "Mehrere Gewerke,",
   titleEmph: "ein",
-  titleTail: "Ansprechpartner.",
+  titleTail: "eingespieltes Team.",
   body:
-    "Unser Betrieb vereint zwei Fachbereiche, die üblicherweise getrennt vergeben werden: meisterhaftes Elektrohandwerk und professionelle IT-Infrastruktur. Für Sie bedeutet das eine durchgängige Betreuung aus einer Hand — von der Planung über die fachgerechte Installation bis zum eingerichteten, dokumentierten System. Klar erklärt, verlässlich umgesetzt.",
-  imageCaption: "Platzhalter — Porträtfoto: die beiden Gründer",
+    "Unser Betrieb bündelt mehrere Fachbereiche, die sonst einzeln beauftragt werden müssten: Elektrotechnik, IT-Infrastruktur, Smart-Home-Integration und individuelle Fertigung per 3D-Druck. Für Sie bedeutet das eine durchgängige Betreuung aus einer Hand — von der Planung über die fachgerechte Installation bis zum eingerichteten, dokumentierten System. Klar erklärt, verlässlich umgesetzt.",
+  imageCaption: "Platzhalter — Foto: Werkstatt & Arbeit vor Ort",
   roles: [
     {
       role: "Elektrotechnik",
-      sub: "Meister für Gebäudetechnik",
-      body: "Verantwortlich für Planung, Verkabelung und fachgerechte Montage — saubere Ausführung nach anerkannten Regeln der Technik.",
-      imageCaption: "Platzhalter — Porträt 1",
+      sub: "Gebäudetechnik & Verkabelung",
+      body: "Planung, Verkabelung und fachgerechte Montage — saubere Ausführung nach anerkannten Regeln der Technik.",
+      imageCaption: "Platzhalter — Werkzeug & Verkabelung",
     },
     {
-      role: "IT-Infrastruktur",
-      sub: "Systemintegrator",
-      body: "Verantwortlich für Server, Netzwerk und Datensicherheit — sicher konfiguriert, verständlich dokumentiert und langfristig wartbar.",
-      imageCaption: "Platzhalter — Porträt 2",
+      role: "IT & Netzwerke",
+      sub: "Server & Datensicherheit",
+      body: "Server, Netzwerk-Trennung und Datensicherheit — sicher konfiguriert, verständlich dokumentiert und langfristig wartbar.",
+      imageCaption: "Platzhalter — Server & Netzwerk",
+    },
+    {
+      role: "Smart-Home-Integration",
+      sub: "Automatisierung im Alltag",
+      body: "Lokale Automatisierung für Heizung, Licht und Kameras — spürbar mehr Komfort, ganz ohne Cloud-Anbindung.",
+      imageCaption: "Platzhalter — Smart-Home-Steuerung",
+    },
+    {
+      role: "3D-Druck & Fertigung",
+      sub: "Individuelle Lösungen",
+      body: "Passgenaue Halterungen, Gehäuse und Adapter — konstruiert und gedruckt für genau Ihre Räume.",
+      imageCaption: "Platzhalter — 3D-Druck in der Werkstatt",
     },
   ],
 };

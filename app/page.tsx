@@ -13,6 +13,7 @@ import { MotionLink, pressable } from "@/components/ui/motion";
 import { CardBody, CardContainer, CardItem } from "@/components/ui/3d-card";
 import Testimonials from "@/components/TestimonialsLazy";
 import ScrollRail from "@/components/ScrollRail";
+import ScrollParticles from "@/components/ScrollParticles";
 import { ArrowIcon, CheckIcon } from "@/components/icons";
 import { pillarIcons } from "@/components/icons";
 import { Leaf, PiggyBank, Lock, Home as HomeIcon } from "lucide-react";
@@ -28,6 +29,8 @@ const promiseCards = [
 export default function Home() {
   return (
     <main id="top">
+        {/* Dezente Hintergrund-Partikel, driften beim Scrollen mit (Tiefenwirkung) */}
+        <ScrollParticles />
         {/* Scroll-Indikator am rechten Rand (nur Desktop) */}
         <ScrollRail />
         {/* ───────────────────────── HERO (Scroll-Reveal) ───────────────────────── */}
@@ -49,7 +52,7 @@ export default function Home() {
           </div>
         </div>
 
-        {/* ───────────────────────── ÜBER UNS / DUO ───────────────────────── */}
+        {/* ───────────────────────── ÜBER UNS / TEAM ───────────────────────── */}
         <section id="ueber-uns" className="px-5 py-16 sm:py-24">
           <div className="mx-auto max-w-6xl">
             <div className="grid items-center gap-12 lg:grid-cols-2">
