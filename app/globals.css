@@ -72,6 +72,20 @@
     line-height: 1.6;
     -webkit-font-smoothing: antialiased;
     text-rendering: optimizeLegibility;
+    /* App-Gefühl: kein grauer Tap-Blitz, kein Gummiband-Weiß hinter der Seite */
+    -webkit-tap-highlight-color: transparent;
+    overscroll-behavior-y: none;
+  }
+
+  /* Touch: sofortige Klicks ohne Doppeltipp-Zoom-Verzögerung */
+  button,
+  a,
+  [role="button"],
+  input,
+  select,
+  textarea,
+  label {
+    touch-action: manipulation;
   }
 
   ::selection { background: var(--color-accent); color: #fff; }
@@ -85,6 +99,10 @@
 
 @layer utilities {
   .font-display { font-family: var(--font-display); }
+
+  /* Abstände für Notch & Home-Bar (iOS/Android Edge-to-Edge) */
+  .pb-safe { padding-bottom: env(safe-area-inset-bottom); }
+  .pt-safe { padding-top: env(safe-area-inset-top); }
 
   /* Editorial italic emphasis (wie „style meets science") */
   .emph {

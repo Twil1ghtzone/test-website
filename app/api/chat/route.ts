@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { readSettings } from "@/lib/server/store";
 import { callAI } from "@/lib/server/ai";
+import { rateLimit } from "@/lib/server/ratelimit";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -8,6 +9,16 @@ export const dynamic = "force-dynamic";
 type Msg = { role: "user" | "assistant"; text: string };
 
 export async function POST(req: NextRequest) {
+  // Öffentlicher Endpunkt → Missbrauchs-Bremse (LLM-Kosten/-Last).
+  const ip = (req.headers.get("x-forwarded-for") || "local").split(",")[0].trim();
+  const rl = rateLimit(`chat:${ip}`, 20, 60_000);
+  if (!rl.ok) {
+    return NextResponse.json(
+      { reply: "Einen Moment bitte — zu viele Anfragen hintereinander.", source: "ratelimit" },
+      { status: 429, headers: { "Retry-After": String(rl.retryAfterSec) } }
+    );
+  }
+
   const { ai: aiRaw } = readSettings();
   // Key-Knopf: deaktiviert = Key nicht mitsenden (bleibt aber gespeichert).
   const ai = { ...aiRaw, apiKey: aiRaw.apiKeyEnabled ? aiRaw.apiKey : "" };

@@ -21,8 +21,12 @@ export function reviewKind(inv: Invoice): "teil" | "end" {
   return inv.status === "abgeschlossen" ? "end" : "teil";
 }
 
+// Prozessweites Zufalls-Secret als Produktions-Fallback (siehe lib/server/auth.ts).
+const runtimeSecret = crypto.randomBytes(32).toString("hex");
+
 function secret(): string {
-  return process.env.SESSION_SECRET || "studio-lokal-dev-secret-bitte-aendern";
+  if (process.env.SESSION_SECRET) return process.env.SESSION_SECRET;
+  return process.env.NODE_ENV === "production" ? runtimeSecret : "studio-lokal-dev-secret-bitte-aendern";
 }
 
 // HMAC-Siegel über die unveränderlichen Felder einer Bewertung.

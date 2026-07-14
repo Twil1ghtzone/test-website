@@ -59,7 +59,7 @@ export default function SupportButton() {
   }
 
   return (
-    <div className="pointer-events-none fixed bottom-5 right-4 z-[90] flex flex-col items-end gap-3 sm:right-5">
+    <div className="pointer-events-none fixed bottom-5 right-4 z-[90] flex flex-col items-end gap-3 pb-safe sm:right-5">
       {/* Panel — Spring-Einblendung, verlässt das DOM beim Schließen (AnimatePresence) */}
       <AnimatePresence>
       {open && (

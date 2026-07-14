@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import crypto from "crypto";
 import { readSubscribers, writeSubscribers, type Subscriber } from "@/lib/server/store";
 import { smtpConfigured, sendMail, mailLayout } from "@/lib/server/mail";
+import { rateLimit } from "@/lib/server/ratelimit";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -16,6 +17,12 @@ function baseUrl(req: NextRequest): string {
 
 // Öffentlich: Blog kostenlos abonnieren (wie novum — mit Double-Opt-In, wenn SMTP konfiguriert).
 export async function POST(req: NextRequest) {
+  const ip = (req.headers.get("x-forwarded-for") || "local").split(",")[0].trim();
+  const rl = rateLimit(`subscribe:${ip}`, 5, 60 * 60 * 1000);
+  if (!rl.ok) {
+    return NextResponse.json({ error: "Zu viele Anmeldungen — bitte später erneut versuchen." }, { status: 429 });
+  }
+
   const body = await req.json().catch(() => null);
   const email = String(body?.email || "").trim().toLowerCase();
   // Honeypot

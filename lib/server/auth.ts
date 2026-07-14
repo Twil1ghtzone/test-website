@@ -6,9 +6,22 @@ import { readUsers, writeUsers, fullPermissions, type User, type Role, type Perm
 export const SESSION_COOKIE = "sl_session";
 const SESSION_TTL_MS = 1000 * 60 * 60 * 8; // 8 Stunden
 
+// In Produktion ohne gesetztes SESSION_SECRET wird ein zufälliges Prozess-
+// Secret erzeugt: Sessions überleben dann keinen Neustart, sind aber NICHT
+// fälschbar (der alte Dev-Fallback war öffentlich bekannt → Session-Forgery).
+const runtimeSecret = crypto.randomBytes(32).toString("hex");
+let warned = false;
+
 function getSecret(): string {
-  // In Produktion (Docker) SESSION_SECRET setzen. Dev-Fallback, damit der erste Start läuft.
-  return process.env.SESSION_SECRET || "studio-lokal-dev-secret-bitte-aendern";
+  if (process.env.SESSION_SECRET) return process.env.SESSION_SECRET;
+  if (process.env.NODE_ENV === "production") {
+    if (!warned) {
+      console.warn("[Sicherheit] SESSION_SECRET ist nicht gesetzt — es wird ein zufälliges Prozess-Secret verwendet. Sessions enden bei jedem Neustart. Bitte SESSION_SECRET in der Umgebung setzen.");
+      warned = true;
+    }
+    return runtimeSecret;
+  }
+  return "studio-lokal-dev-secret-bitte-aendern";
 }
 
 // ── Passwörter (bcrypt, Kostenfaktor 12 — kein Klartext) ──

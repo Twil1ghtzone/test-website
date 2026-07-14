@@ -1,15 +1,26 @@
 import { NextRequest, NextResponse } from "next/server";
 import { readInquiries, writeInquiries, type Inquiry } from "@/lib/server/store";
 import { requirePermission } from "@/lib/server/auth";
+import { rateLimit } from "@/lib/server/ratelimit";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
 // Öffentlich: Kontaktanfrage speichern (vom Kontaktformular).
 export async function POST(req: NextRequest) {
+  // Spam-Bremse: max. 10 Anfragen pro IP je Stunde.
+  const ip = (req.headers.get("x-forwarded-for") || "local").split(",")[0].trim();
+  if (!rateLimit(`inquiry:${ip}`, 10, 60 * 60 * 1000).ok) {
+    return NextResponse.json({ error: "Zu viele Anfragen — bitte später erneut versuchen." }, { status: 429 });
+  }
+
   const body = await req.json().catch(() => null);
   if (!body || !body.name || !body.email || !body.message) {
     return NextResponse.json({ error: "Name, E-Mail und Nachricht sind erforderlich." }, { status: 400 });
+  }
+  // Einfacher E-Mail-Plausibilitätscheck.
+  if (!/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(String(body.email))) {
+    return NextResponse.json({ error: "Bitte eine gültige E-Mail-Adresse angeben." }, { status: 400 });
   }
   const inquiries = readInquiries();
   const item: Inquiry = {

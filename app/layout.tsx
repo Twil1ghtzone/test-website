@@ -33,6 +33,8 @@ export const viewport: Viewport = {
   width: "device-width",
   initialScale: 1,
   themeColor: "#f6f2ea",
+  // Inhalt darf bis in die Notch-/Home-Bar-Bereiche — Abstände regeln safe-area-Utilities.
+  viewportFit: "cover",
 };
 
 export default function RootLayout({

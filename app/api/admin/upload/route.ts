@@ -9,12 +9,12 @@ export const dynamic = "force-dynamic";
 const DATA_DIR = process.env.DATA_DIR || path.join(process.cwd(), "data");
 const UPLOAD_DIR = path.join(DATA_DIR, "uploads");
 
+// Bewusst OHNE SVG: SVG kann eingebettete Skripte enthalten (Stored XSS).
 const ALLOWED: Record<string, string> = {
   "image/png": "png",
   "image/jpeg": "jpg",
   "image/webp": "webp",
   "image/gif": "gif",
-  "image/svg+xml": "svg",
 };
 
 // Bild hochladen (nur mit Blog-Berechtigung). Speichert im Docker-Volume.
@@ -26,7 +26,7 @@ export async function POST(req: NextRequest) {
   if (!file || !(file instanceof File)) return NextResponse.json({ error: "Keine Datei." }, { status: 400 });
 
   const ext = ALLOWED[file.type];
-  if (!ext) return NextResponse.json({ error: "Nur PNG, JPG, WEBP, GIF oder SVG." }, { status: 415 });
+  if (!ext) return NextResponse.json({ error: "Nur PNG, JPG, WEBP oder GIF." }, { status: 415 });
   if (file.size > 8 * 1024 * 1024) return NextResponse.json({ error: "Datei zu groß (max. 8 MB)." }, { status: 413 });
 
   if (!fs.existsSync(UPLOAD_DIR)) fs.mkdirSync(UPLOAD_DIR, { recursive: true });

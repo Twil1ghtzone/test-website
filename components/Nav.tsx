@@ -174,15 +174,16 @@ export default function Nav() {
                       role="menu"
                       aria-label="Dienstleistungen"
                       onKeyDown={(e) => { if (e.key === "Escape") setServicesOpen(false); }}
-                      className="w-[24rem] max-w-[92vw] overflow-hidden rounded-3xl border border-line bg-surface/95 p-2.5 shadow-[0_28px_70px_-24px_rgba(33,28,23,0.35)] backdrop-blur-xl"
+                      className="w-[38rem] max-w-[94vw] overflow-hidden rounded-3xl border border-line bg-surface/95 p-2.5 shadow-[0_28px_70px_-24px_rgba(33,28,23,0.35)] backdrop-blur-xl"
                     >
                       <div className="flex items-center justify-between px-2.5 pb-2 pt-1">
                         <span className="eyebrow text-muted">Unsere Leistungen</span>
                         <span className="text-[0.7rem] font-medium text-muted">{services.length} Bereiche</span>
                       </div>
 
-                      {/* Nach Kategorie gruppiert — schlanke Eyebrow-Labels, sonst unverändert kompakt */}
-                      <div onMouseLeave={() => setSvcHover(null)}>
+                      <div className="flex gap-2.5">
+                      {/* Linke Spalte: nach Kategorie gruppiert — schlanke Eyebrow-Labels */}
+                      <div className="min-w-0 flex-1" onMouseLeave={() => setSvcHover(null)}>
                         {serviceGroups.map((group, gi) => (
                           <div key={group.category.key} className={gi > 0 ? "mt-1" : undefined}>
                             <span className="block px-2.5 pb-1 pt-2 text-[0.65rem] font-semibold uppercase tracking-[0.14em] text-muted/80">
@@ -233,6 +234,58 @@ export default function Nav() {
                             </div>
                           </div>
                         ))}
+                      </div>
+
+                      {/* Rechte Spalte: Live-Vorschau des gehoverten Eintrags mit weichem Crossfade */}
+                      <div className="hidden w-[13.5rem] shrink-0 overflow-hidden rounded-2xl border border-line bg-canvas/70 lg:block">
+                        <AnimatePresence mode="wait" initial={false}>
+                          {(() => {
+                            const active = services.find((x) => x.slug === svcHover) ?? null;
+                            return (
+                              <motion.div
+                                key={active ? active.slug : "default"}
+                                initial={{ opacity: 0, y: 6 }}
+                                animate={{ opacity: 1, y: 0 }}
+                                exit={{ opacity: 0, y: -6 }}
+                                transition={{ duration: 0.16, ease: "easeOut" }}
+                                className="flex h-full flex-col"
+                              >
+                                {active ? (
+                                  <>
+                                    <div className="relative h-32 w-full overflow-hidden">
+                                      {active.image ? (
+                                        // eslint-disable-next-line @next/next/no-img-element
+                                        <img src={active.image} alt="" className="h-full w-full object-cover" />
+                                      ) : (
+                                        <div className="grid h-full w-full place-items-center bg-accent-soft">
+                                          {(() => { const I = iconMap[active.icon]; return <I className="h-9 w-9 text-accent" />; })()}
+                                        </div>
+                                      )}
+                                      <div className="absolute inset-x-0 bottom-0 h-10 bg-gradient-to-t from-canvas/80 to-transparent" />
+                                    </div>
+                                    <div className="flex flex-1 flex-col p-3">
+                                      <span className="text-sm font-semibold leading-snug text-ink">{active.title}</span>
+                                      <span className="mt-1 line-clamp-3 text-xs leading-relaxed text-muted">{active.outcomes[0]}</span>
+                                      <span className="mt-auto inline-flex items-center gap-1.5 pt-2 text-xs font-semibold text-accent">
+                                        Ansehen <ArrowRight className="h-3.5 w-3.5" />
+                                      </span>
+                                    </div>
+                                  </>
+                                ) : (
+                                  <div className="flex h-full flex-col items-center justify-center gap-2 p-4 text-center">
+                                    <span className="grid h-11 w-11 place-items-center rounded-2xl bg-accent-soft text-accent">
+                                      <Zap className="h-5 w-5" />
+                                    </span>
+                                    <span className="text-xs leading-relaxed text-muted">
+                                      Fahren Sie über eine Leistung,<br />um eine Vorschau zu sehen.
+                                    </span>
+                                  </div>
+                                )}
+                              </motion.div>
+                            );
+                          })()}
+                        </AnimatePresence>
+                      </div>
                       </div>
 
                       <div className="mx-1.5 my-2 h-px bg-line" />
@@ -299,7 +352,7 @@ export default function Nav() {
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -8 }}
             transition={{ duration: 0.22, ease: [0.22, 1, 0.36, 1] }}
-            className="mx-3 mt-2 max-h-[80vh] overflow-y-auto rounded-3xl border border-line bg-canvas/95 p-2 shadow-[0_24px_60px_-24px_rgba(33,28,23,0.32)] backdrop-blur-xl lg:hidden"
+            className="mx-3 mt-2 max-h-[80vh] overflow-y-auto overscroll-contain rounded-3xl border border-line bg-canvas/95 p-2 pb-safe shadow-[0_24px_60px_-24px_rgba(33,28,23,0.32)] backdrop-blur-xl lg:hidden"
           >
             <div className="flex flex-col gap-1 p-2">
               <span className="px-2 pb-1 eyebrow text-muted">Entdecken</span>

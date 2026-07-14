@@ -2,6 +2,14 @@
 // Inhalte stammen aus dem geschützten Admin-Bereich; HTML wird zuerst escaped,
 // danach werden nur bekannte Markdown-Muster in Tags umgewandelt.
 
+// Nur harmlose Ziele zulassen: http(s), mailto, tel und relative Pfade.
+// Verhindert javascript:/data:-URLs in Links & Bildern (XSS über Blog-Inhalte).
+function safeUrl(url: string): string {
+  const u = url.trim();
+  if (/^(https?:\/\/|mailto:|tel:|\/|#)/i.test(u) && !/[\s"'<>]/.test(u)) return u;
+  return "#";
+}
+
 function esc(s: string): string {
   return s
     .replace(/&/g, "&amp;")
@@ -13,9 +21,9 @@ function esc(s: string): string {
 function inline(s: string): string {
   let t = esc(s);
   // Bilder ![alt](url)
-  t = t.replace(/!\[([^\]]*)\]\(([^)\s]+)\)/g, (_m, alt, url) => `<img src="${url}" alt="${alt}" class="my-4 rounded-2xl border border-line" />`);
+  t = t.replace(/!\[([^\]]*)\]\(([^)\s]+)\)/g, (_m, alt, url) => `<img src="${safeUrl(url)}" alt="${alt}" class="my-4 rounded-2xl border border-line" />`);
   // Links [text](url)
-  t = t.replace(/\[([^\]]+)\]\(([^)\s]+)\)/g, (_m, txt, url) => `<a href="${url}" class="text-accent underline underline-offset-2 hover:text-accent-ink">${txt}</a>`);
+  t = t.replace(/\[([^\]]+)\]\(([^)\s]+)\)/g, (_m, txt, url) => `<a href="${safeUrl(url)}" class="text-accent underline underline-offset-2 hover:text-accent-ink">${txt}</a>`);
   // Fett **x**
   t = t.replace(/\*\*([^*]+)\*\*/g, "<strong>$1</strong>");
   // Kursiv *x*

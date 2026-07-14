@@ -16,20 +16,26 @@ const eur = (n: number) => n.toLocaleString("de-DE", { style: "currency", curren
 // Pakete von der Website (lib/services) als Vorlagen für Rechnungspositionen.
 const WEBSITE_PACKAGES = services.map((s) => s.title);
 
+// HTML-Escape für alle vom Nutzer eingegebenen Felder in der Druckansicht —
+// verhindert, dass z. B. ein Kundenname mit <script> im Druckfenster ausgeführt wird.
+function esc(s: string): string {
+  return s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
+}
+
 // Druckansicht: eigenes Fenster mit sauberem Rechnungslayout, druckt automatisch.
 function printInvoice(inv: Invoice) {
   const rows = (inv.items.length > 0 ? inv.items : [{ id: "x", name: inv.title, price: inv.amount, sqm: 0, custom: false }])
     .map(
       (it, i) => `<tr>
         <td style="padding:10px 8px;border-bottom:1px solid #e7ddcc;">${i + 1}</td>
-        <td style="padding:10px 8px;border-bottom:1px solid #e7ddcc;">${it.name}${it.custom ? ' <span style="font-size:11px;color:#8a7f70;">(individuelle Vereinbarung)</span>' : ""}</td>
+        <td style="padding:10px 8px;border-bottom:1px solid #e7ddcc;">${esc(it.name)}${it.custom ? ' <span style="font-size:11px;color:#8a7f70;">(individuelle Vereinbarung)</span>' : ""}</td>
         <td style="padding:10px 8px;border-bottom:1px solid #e7ddcc;text-align:right;">${it.sqm > 0 ? `${String(it.sqm).replace(".", ",")} m²` : "—"}</td>
         <td style="padding:10px 8px;border-bottom:1px solid #e7ddcc;text-align:right;white-space:nowrap;">${eur(it.price)}</td>
       </tr>`
     )
     .join("");
 
-  const html = `<!doctype html><html lang="de"><head><meta charset="utf-8"><title>Rechnung ${inv.number}</title>
+  const html = `<!doctype html><html lang="de"><head><meta charset="utf-8"><title>Rechnung ${esc(inv.number)}</title>
 <style>
   @page { margin: 18mm; }
   body { font-family: Georgia, "Times New Roman", serif; color: #211c17; margin: 0; }
@@ -44,14 +50,14 @@ function printInvoice(inv: Invoice) {
       </div>
       <div style="text-align:right;">
         <h1 style="font-size:26px;margin:0;">Rechnung</h1>
-        <p style="font-family:monospace;font-size:14px;margin:4px 0 0;">${inv.number}</p>
+        <p style="font-family:monospace;font-size:14px;margin:4px 0 0;">${esc(inv.number)}</p>
       </div>
     </div>
 
     <div style="display:flex;justify-content:space-between;margin-top:36px;">
       <div>
         <p style="font-size:11px;letter-spacing:1px;text-transform:uppercase;color:#8a7f70;margin:0 0 4px;">Rechnung an</p>
-        <p style="font-size:16px;font-weight:bold;margin:0;">${inv.customer}</p>
+        <p style="font-size:16px;font-weight:bold;margin:0;">${esc(inv.customer)}</p>
       </div>
       <div style="text-align:right;font-size:13px;color:#5c5244;">
         <p style="margin:0;">Datum: ${new Date(inv.createdAt).toLocaleDateString("de-DE")}</p>
@@ -59,7 +65,7 @@ function printInvoice(inv: Invoice) {
       </div>
     </div>
 
-    <p style="margin:28px 0 8px;font-size:15px;"><b>Leistung:</b> ${inv.title}</p>
+    <p style="margin:28px 0 8px;font-size:15px;"><b>Leistung:</b> ${esc(inv.title)}</p>
 
     <table style="width:100%;border-collapse:collapse;margin-top:8px;font-size:14px;">
       <thead>

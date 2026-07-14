@@ -9,7 +9,7 @@ const UPLOAD_DIR = path.join(DATA_DIR, "uploads");
 
 const MIME: Record<string, string> = {
   png: "image/png", jpg: "image/jpeg", jpeg: "image/jpeg",
-  webp: "image/webp", gif: "image/gif", svg: "image/svg+xml",
+  webp: "image/webp", gif: "image/gif",
 };
 
 // Öffentliches Ausliefern hochgeladener Bilder aus dem Volume.
@@ -24,7 +24,11 @@ export async function GET(_req: Request, { params }: { params: Promise<{ name: s
   const buf = fs.readFileSync(file);
   return new NextResponse(new Uint8Array(buf), {
     headers: {
+      // Unbekannte Endungen (inkl. Alt-SVGs) als Download statt inline — kein Skript-Kontext.
       "Content-Type": MIME[ext] || "application/octet-stream",
+      ...(MIME[ext] ? {} : { "Content-Disposition": "attachment" }),
+      "X-Content-Type-Options": "nosniff",
+      "Content-Security-Policy": "sandbox",
       "Cache-Control": "public, max-age=31536000, immutable",
     },
   });
