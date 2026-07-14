@@ -181,9 +181,12 @@ export default function Nav() {
                         <span className="text-[0.7rem] font-medium text-muted">{services.length} Bereiche</span>
                       </div>
 
-                      <div className="flex gap-2.5">
+                      {/* onMouseLeave auf dem GANZEN Bereich: so bleibt die Vorschau
+                          aktiv, wenn man von der Liste zur rechten Vorschau wandert,
+                          um dort auf „Ansehen" zu klicken. */}
+                      <div className="flex gap-2.5" onMouseLeave={() => setSvcHover(null)}>
                       {/* Linke Spalte: nach Kategorie gruppiert — schlanke Eyebrow-Labels */}
-                      <div className="min-w-0 flex-1" onMouseLeave={() => setSvcHover(null)}>
+                      <div className="min-w-0 flex-1">
                         {serviceGroups.map((group, gi) => (
                           <div key={group.category.key} className={gi > 0 ? "mt-1" : undefined}>
                             <span className="block px-2.5 pb-1 pt-2 text-[0.65rem] font-semibold uppercase tracking-[0.14em] text-muted/80">
@@ -251,11 +254,15 @@ export default function Nav() {
                                 className="flex h-full flex-col"
                               >
                                 {active ? (
-                                  <>
+                                  <Link
+                                    href={`/leistungen/${active.slug}`}
+                                    onClick={() => setServicesOpen(false)}
+                                    className="group/preview flex h-full flex-col outline-none"
+                                  >
                                     <div className="relative h-32 w-full overflow-hidden">
                                       {active.image ? (
                                         // eslint-disable-next-line @next/next/no-img-element
-                                        <img src={active.image} alt="" className="h-full w-full object-cover" />
+                                        <img src={active.image} alt="" className="h-full w-full object-cover transition-transform duration-500 group-hover/preview:scale-105" />
                                       ) : (
                                         <div className="grid h-full w-full place-items-center bg-accent-soft">
                                           {(() => { const I = iconMap[active.icon]; return <I className="h-9 w-9 text-accent" />; })()}
@@ -267,10 +274,10 @@ export default function Nav() {
                                       <span className="text-sm font-semibold leading-snug text-ink">{active.title}</span>
                                       <span className="mt-1 line-clamp-3 text-xs leading-relaxed text-muted">{active.outcomes[0]}</span>
                                       <span className="mt-auto inline-flex items-center gap-1.5 pt-2 text-xs font-semibold text-accent">
-                                        Ansehen <ArrowRight className="h-3.5 w-3.5" />
+                                        Ansehen <ArrowRight className="h-3.5 w-3.5 transition-transform group-hover/preview:translate-x-1" />
                                       </span>
                                     </div>
-                                  </>
+                                  </Link>
                                 ) : (
                                   <div className="flex h-full flex-col items-center justify-center gap-2 p-4 text-center">
                                     <span className="grid h-11 w-11 place-items-center rounded-2xl bg-accent-soft text-accent">
