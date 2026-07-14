@@ -4,7 +4,7 @@ import Image from "next/image";
 import Placeholder from "@/components/Placeholder";
 import BlogSubscribe from "@/components/BlogSubscribe";
 import { ArrowIcon } from "@/components/icons";
-import { posts as staticPosts, formatDate, type Post } from "@/lib/blog";
+import { formatDate, type Post } from "@/lib/blog";
 import { brand } from "@/lib/data";
 import { readPosts } from "@/lib/server/store";
 
@@ -20,22 +20,22 @@ function readingMinutes(text: string): number {
 }
 
 export default function BlogPage() {
-  // Im Admin geschriebene, veröffentlichte Beiträge mit den statischen zusammenführen.
-  const dynamicPosts: Post[] = readPosts()
+  // Alle Beiträge kommen aus dem Store (inkl. der eingespielten Beispiele).
+  // Gelöschte Beiträge sind damit sofort weg — nichts wird mehr fest dazugemischt.
+  const posts: Post[] = readPosts()
     .filter((p) => p.status === "published")
     .map((p) => ({
       slug: p.slug,
       title: p.title,
       excerpt: p.excerpt,
       date: p.createdAt.slice(0, 10),
-      category: "Journal",
+      category: p.tags?.[0] || "Journal",
       readingMinutes: readingMinutes(p.content),
       imageCaption: p.title,
       image: p.coverImage,
       body: [],
-    }));
-
-  const posts = [...dynamicPosts, ...staticPosts].sort((a, b) => (a.date < b.date ? 1 : -1));
+    }))
+    .sort((a, b) => (a.date < b.date ? 1 : -1));
   const [lead, ...rest] = posts;
 
   return (
@@ -56,6 +56,18 @@ export default function BlogPage() {
             Tipps und Hintergründe zu Energie sparen, Datenschutz und Technik, die im Haus bleibt.
           </p>
         </div>
+
+        {/* Noch keine Beiträge — freundlicher Hinweis statt leerer Seite */}
+        {posts.length === 0 && (
+          <div className="mt-12 rounded-3xl border border-dashed border-line-strong bg-surface p-10 text-center">
+            <span className="mx-auto grid h-12 w-12 place-items-center rounded-2xl bg-accent-soft text-2xl">✍️</span>
+            <h2 className="mt-4 font-display text-xl font-semibold tracking-tight">Die ersten Beiträge sind in Arbeit</h2>
+            <p className="mx-auto mt-2 max-w-md text-sm leading-relaxed text-ink-soft">
+              Hier erscheinen bald Tipps und Hintergründe rund um Energie sparen, Datenschutz und Technik im eigenen Zuhause.
+              Abonnieren Sie unten kostenlos — dann verpassen Sie den Start nicht.
+            </p>
+          </div>
+        )}
 
         {/* Hervorgehobener Beitrag */}
         {lead && (

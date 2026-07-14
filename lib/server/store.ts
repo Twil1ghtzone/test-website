@@ -172,6 +172,8 @@ export const readUsers = (): User[] =>
 export const writeUsers = (u: User[]) => writeJson("users.json", u);
 export const readInquiries = () => readJson<Inquiry[]>("inquiries.json", []);
 export const writeInquiries = (i: Inquiry[]) => writeJson("inquiries.json", i);
+// ── Blog ──
+// Beiträge kommen ausschließlich aus dem Admin (keine vorgefertigten Seeds).
 export const readPosts = () => readJson<BlogPost[]>("blog.json", []);
 export const writePosts = (p: BlogPost[]) => writeJson("blog.json", p);
 

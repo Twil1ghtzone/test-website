@@ -7,11 +7,15 @@ import { GlowCard } from "@/components/ui/spotlight-card";
 import Bucket from "@/components/ui/bucket";
 import { HoverBorderGradient } from "@/components/ui/hover-border-gradient";
 import PathCards from "@/components/PathCards";
+import ProcessReveal from "@/components/ProcessReveal";
+import { LinkPreview } from "@/components/ui/link-preview";
+import { MotionLink, pressable } from "@/components/ui/motion";
+import { CardBody, CardContainer, CardItem } from "@/components/ui/3d-card";
 import Testimonials from "@/components/TestimonialsLazy";
 import { ArrowIcon, CheckIcon } from "@/components/icons";
 import { pillarIcons } from "@/components/icons";
 import { Leaf, PiggyBank, Lock, Home as HomeIcon } from "lucide-react";
-import { about, pillars, featured, process } from "@/lib/data";
+import { about, pillars, featured } from "@/lib/data";
 
 const promiseCards = [
   { icon: Leaf, title: "Energie sparen", body: "Heizung und Licht regeln sich clever — das senkt den Verbrauch spürbar." },
@@ -55,6 +59,13 @@ export default function Home() {
                   {about.titleLead} <span className="emph">{about.titleEmph}</span> {about.titleTail}
                 </h2>
                 <p className="mt-6 max-w-md text-lg leading-relaxed text-ink-soft">{about.body}</p>
+                <p className="mt-4 max-w-md text-lg leading-relaxed text-ink-soft">
+                  Neugierig, was möglich ist? Entdecken Sie alle unsere{" "}
+                  <LinkPreview url="#bereiche" imageSrc="/handwerk.webp" className="font-semibold">
+                    Dienstleistungen
+                  </LinkPreview>
+                  .
+                </p>
               </Reveal>
             </div>
 
@@ -77,7 +88,7 @@ export default function Home() {
         </section>
 
         {/* ───────────────── DREI WEGE (Choose your path) ───────────────── */}
-        <section className="px-5 py-16 sm:py-24">
+        <section id="bereiche" className="px-5 py-16 sm:py-24">
           <div className="mx-auto max-w-6xl">
             <SectionHead
               eyebrow="Was wir tun"
@@ -99,6 +110,11 @@ export default function Home() {
               <p className="mx-auto mt-4 max-w-lg leading-relaxed text-ink-soft">
                 Monatliche Gebühren, Werbung, Daten auf fremden Servern — all das werfen
                 wir über Bord. Ihr Zuhause arbeitet künftig für Sie, nicht für die Konzerne.
+                Wie viel drin ist, zeigt der{" "}
+                <LinkPreview url="/stromrechner" imageSrc="/energie.webp" className="font-semibold">
+                  Strom-Spar-Rechner
+                </LinkPreview>
+                .
               </p>
             </Reveal>
             <Reveal delay={120}>
@@ -107,13 +123,14 @@ export default function Home() {
               </div>
             </Reveal>
             <Reveal delay={200}>
-              <a
+              <MotionLink
                 href="#warum"
+                {...pressable}
                 className="group mt-2 inline-flex items-center gap-2 rounded-full bg-accent px-7 py-3.5 font-medium text-white transition-colors hover:bg-accent-ink cursor-pointer"
               >
                 Warum lokal besser ist
                 <ArrowIcon className="h-5 w-5 transition-transform group-hover:translate-x-1" />
-              </a>
+              </MotionLink>
             </Reveal>
           </div>
         </section>
@@ -138,13 +155,14 @@ export default function Home() {
                     </li>
                   ))}
                 </ul>
-                <Link
+                <MotionLink
                   href="/kontakt"
+                  {...pressable}
                   className="group mt-9 inline-flex items-center gap-2 rounded-full bg-accent px-7 py-3.5 font-medium text-white transition-colors hover:bg-accent-ink cursor-pointer"
                 >
                   Jetzt anfragen
                   <ArrowIcon className="h-5 w-5 transition-transform group-hover:translate-x-1" />
-                </Link>
+                </MotionLink>
               </Reveal>
               <div className="relative order-1 min-h-[20rem] lg:order-2">
                 <Image src="/energie.webp" alt="Smarte Heizungssteuerung in einem warmen Wohnraum" fill sizes="(max-width: 1024px) 100vw, 50vw" className="object-cover" />
@@ -214,24 +232,7 @@ export default function Home() {
               emph="Übergabe."
               text="Klar strukturiert und koordiniert aus einer Hand — Sie haben einen Ansprechpartner für alles."
             />
-            <div className="mt-14 grid gap-8 sm:grid-cols-2 lg:grid-cols-4">
-              {process.map((p, i) => (
-                <Reveal key={p.step} delay={i * 90}>
-                  <div className="relative">
-                    <div className="flex items-center gap-3">
-                      <span className="grid h-11 w-11 place-items-center rounded-full border border-accent font-display text-lg font-semibold text-accent">
-                        {p.step}
-                      </span>
-                      {i < process.length - 1 && (
-                        <span className="hidden h-px flex-1 bg-line-strong lg:block" />
-                      )}
-                    </div>
-                    <h3 className="mt-5 font-display text-xl font-semibold tracking-tight">{p.title}</h3>
-                    <p className="mt-2 leading-relaxed text-ink-soft">{p.body}</p>
-                  </div>
-                </Reveal>
-              ))}
-            </div>
+            <ProcessReveal />
           </div>
         </section>
 
@@ -251,13 +252,15 @@ export default function Home() {
                 const Icon = p.icon;
                 return (
                   <Reveal key={p.title} delay={i * 90} className="h-full">
-                    <div className="group h-full rounded-3xl border border-line bg-surface p-6 transition-all duration-300 hover:-translate-y-1.5 hover:border-accent/40 hover:shadow-[0_22px_50px_-22px_rgba(176,84,58,0.45)]">
-                      <span className="grid h-12 w-12 place-items-center rounded-2xl bg-accent-soft text-accent transition-colors duration-300 group-hover:bg-accent group-hover:text-white">
-                        <Icon className="h-6 w-6" />
-                      </span>
-                      <h3 className="mt-5 font-display text-lg font-semibold tracking-tight">{p.title}</h3>
-                      <p className="mt-2 text-sm leading-relaxed text-ink-soft">{p.body}</p>
-                    </div>
+                    <CardContainer containerClassName="h-full" className="h-full w-full">
+                      <CardBody className="group/card h-full w-full rounded-3xl border border-line bg-surface p-6 transition-shadow duration-300 hover:border-accent/40 hover:shadow-[0_26px_60px_-24px_rgba(176,84,58,0.5)]">
+                        <CardItem translateZ={60} className="grid h-12 w-12 place-items-center rounded-2xl bg-accent-soft text-accent transition-colors duration-300 group-hover/card:bg-accent group-hover/card:text-white">
+                          <Icon className="h-6 w-6" />
+                        </CardItem>
+                        <CardItem as="h3" translateZ={45} className="mt-5 w-full font-display text-lg font-semibold tracking-tight">{p.title}</CardItem>
+                        <CardItem as="p" translateZ={30} className="mt-2 w-full text-sm leading-relaxed text-ink-soft">{p.body}</CardItem>
+                      </CardBody>
+                    </CardContainer>
                   </Reveal>
                 );
               })}
@@ -281,12 +284,12 @@ export default function Home() {
                 unverbindlichen Angebot.
               </p>
               <div className="mt-8 flex justify-center">
-                <Link href="/kontakt" className="group cursor-pointer">
+                <MotionLink href="/kontakt" {...pressable} className="group cursor-pointer">
                   <HoverBorderGradient as="span" tone="dark" className="flex items-center gap-2">
                     Zum Kontakt
                     <ArrowIcon className="h-5 w-5 transition-transform group-hover:translate-x-1" />
                   </HoverBorderGradient>
-                </Link>
+                </MotionLink>
               </div>
             </div>
           </Reveal>

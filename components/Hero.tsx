@@ -12,6 +12,7 @@ import {
 import { hero } from "@/lib/data";
 import { ArrowIcon } from "./icons";
 import { HoverBorderGradient } from "@/components/ui/hover-border-gradient";
+import { MotionLink, pressable } from "@/components/ui/motion";
 
 export default function Hero() {
   const reduced = useReducedMotion();
@@ -178,24 +179,27 @@ function HeroText({ onScrollClick }: { onScrollClick?: () => void }) {
           {hero.ctaPrimary}
           <ArrowIcon className="h-5 w-5 transition-transform group-hover:translate-x-1" />
         </HoverBorderGradient>
-        <a
+        <MotionLink
           href="#ablauf"
+          {...pressable}
           className="rounded-full border border-line-strong bg-surface/90 px-7 py-4 text-center font-medium text-ink transition-colors hover:border-ink cursor-pointer"
         >
           {hero.ctaSecondary}
-        </a>
+        </MotionLink>
       </div>
-      <button
+      <motion.button
         type="button"
         onClick={onScrollClick}
         aria-label="Zum nächsten Abschnitt scrollen"
+        whileTap={{ scale: 0.9 }}
+        transition={pressable.transition}
         className="group mt-12 inline-flex animate-bounce flex-col items-center gap-1 text-muted transition-colors hover:text-accent cursor-pointer"
       >
         <span className="eyebrow">Scrollen</span>
         <svg className="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
           <path d="M12 5v14M6 13l6 6 6-6" />
         </svg>
-      </button>
+      </motion.button>
     </div>
   );
 }

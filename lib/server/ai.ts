@@ -26,6 +26,44 @@ export function isAnthropic(endpoint: string): boolean {
   return endpoint.toLowerCase().includes("anthropic");
 }
 
+// Manche lokalen "Reasoning"-Modelle (DeepSeek-R1, Qwen3-Thinking, gpt-oss …)
+// packen ihre Denkschritte in <think>…</think> — die eigentliche Antwort
+// steht danach. Entfernt den Denkblock und liefert den Rest.
+// Ein GEÖFFNETER aber nie geschlossener <think>-Block bedeutet: das
+// Token-Budget ist mitten im Nachdenken ausgegangen — es gibt keine echte
+// Antwort, auch wenn der Text nicht leer ist. Dann bewusst "" liefern.
+function stripThinking(text: string): string {
+  if (/<think>/i.test(text) && !/<\/think>/i.test(text)) return "";
+  return text.replace(/<think>[\s\S]*?<\/think>/gi, "").trim();
+}
+
+// Extrahiert die Antwort aus einer OpenAI-kompatiblen Chat-Completion —
+// mit Fallbacks für lokale Server, die vom Standard abweichen (LM Studio,
+// llama.cpp, manche Reasoning-Modelle liefern reasoning_content statt/neben content).
+function extractReply(data: unknown): { reply: string; raw: string } {
+  const msg = (data as { choices?: { message?: { content?: unknown; reasoning_content?: unknown }; text?: unknown }[] })?.choices?.[0];
+  const rawContent = msg?.message?.content;
+  const contentStr =
+    typeof rawContent === "string"
+      ? rawContent
+      : Array.isArray(rawContent)
+        ? rawContent.map((p) => (typeof p === "string" ? p : p?.text || "")).join("")
+        : "";
+  const stripped = stripThinking(contentStr);
+  if (stripped) return { reply: stripped, raw: contentStr };
+
+  // Fallback: reasoning_content (manche Server legen die Antwort NUR dort ab).
+  const reasoning = typeof msg?.message?.reasoning_content === "string" ? msg.message.reasoning_content : "";
+  const strippedReasoning = stripThinking(reasoning);
+  if (strippedReasoning) return { reply: strippedReasoning, raw: reasoning };
+
+  // Fallback: alte /v1/completions-Form (choices[0].text).
+  const legacyText = typeof msg?.text === "string" ? msg.text : "";
+  if (legacyText.trim()) return { reply: legacyText.trim(), raw: legacyText };
+
+  return { reply: "", raw: contentStr || reasoning || "" };
+}
+
 export async function callAI(
   ai: Pick<AISettings, "endpoint" | "apiKey" | "model" | "temperature" | "maxTokens">,
   messages: AIMessage[],
@@ -91,8 +129,18 @@ export async function callAI(
       return { ok: false, detail: `HTTP ${res.status} — ${detail || "keine Antwort"}`, ms, status: res.status };
     }
     const data = await res.json().catch(() => null);
-    const reply = data?.choices?.[0]?.message?.content?.trim();
-    if (!reply) return { ok: false, detail: "Antwort ohne verwertbaren Inhalt (choices[0].message.content leer).", ms, status: res.status };
+    const { reply, raw } = extractReply(data);
+    if (!reply) {
+      const hint = raw
+        ? " Modell hat vermutlich das Token-Limit mit interner Reasoning verbraucht (Denkschritte) — maxTokens erhöhen oder ein Nicht-Reasoning-Modell wählen."
+        : "";
+      return {
+        ok: false,
+        detail: `Antwort ohne verwertbaren Inhalt (choices[0].message.content leer).${hint}`,
+        ms,
+        status: res.status,
+      };
+    }
     return { ok: true, reply, ms, status: res.status };
   } catch (e) {
     clearTimeout(t);

@@ -22,13 +22,15 @@ export async function POST(req: NextRequest) {
 
   if (!endpoint) return NextResponse.json({ ok: false, detail: "Kein Endpunkt angegeben." }, { status: 200 });
 
+  // Genug Spielraum für Modelle mit interner Reasoning (Denkschritte) —
+  // ein zu kleines Limit lässt die eigentliche Antwort leer erscheinen.
   const result = await callAI(
-    { endpoint, apiKey, model, temperature: 0, maxTokens: 32 },
+    { endpoint, apiKey, model, temperature: 0, maxTokens: 300 },
     [
       { role: "system", content: systemPrompt },
       { role: "user", content: "Antworte nur mit dem Wort: OK" },
     ],
-    20000
+    30000
   );
 
   if (!result.ok) return NextResponse.json({ ok: false, status: result.status, ms: result.ms, detail: result.detail, endpoint: normalizeEndpoint(endpoint) });

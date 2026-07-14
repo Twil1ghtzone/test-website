@@ -31,3 +31,7 @@ Test1.png
 # Referenz-Projekte (nur Beispiele)
 /novum-systems-main
 /erklärung-und-funktionen
+
+# Lokale Tooling-Konfiguration
+.mcp.json
+tsconfig.tsbuildinfo

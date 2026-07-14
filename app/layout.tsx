@@ -2,6 +2,8 @@ import type { Metadata, Viewport } from "next";
 import { Inter, Fraunces } from "next/font/google";
 import { brand } from "@/lib/data";
 import Nav from "@/components/Nav";
+import ScrollProgress from "@/components/ScrollProgress";
+import ScrollBackdrop from "@/components/ScrollBackdrop";
 import Footer from "@/components/Footer";
 import SupportButton from "@/components/SupportButton";
 import SiteChrome from "@/components/SiteChrome";
@@ -42,6 +44,8 @@ export default function RootLayout({
     <html lang="de" data-scroll-behavior="smooth" className={`${inter.variable} ${fraunces.variable}`}>
       <body>
         <SiteChrome>
+          <ScrollBackdrop />
+          <ScrollProgress />
           <Nav />
         </SiteChrome>
         {children}

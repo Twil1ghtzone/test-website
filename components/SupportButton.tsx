@@ -2,8 +2,10 @@
 
 import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
+import { AnimatePresence, motion } from "framer-motion";
 import { MessageCircle, X, Mail, Phone, FileQuestion, Bot, Send, ArrowLeft, Sparkles } from "lucide-react";
 import { brand } from "@/lib/data";
+import { pressSpring } from "@/components/ui/motion";
 
 type Msg = { from: "bot" | "user"; text: string };
 
@@ -58,11 +60,15 @@ export default function SupportButton() {
 
   return (
     <div className="pointer-events-none fixed bottom-5 right-4 z-[90] flex flex-col items-end gap-3 sm:right-5">
-      {/* Panel */}
-      <div
-        className={`flex w-[min(21rem,calc(100vw-2rem))] origin-bottom-right flex-col overflow-hidden rounded-2xl border border-line bg-surface shadow-[0_24px_60px_-20px_rgba(33,28,23,0.4)] transition-all duration-300 ${
-          open ? "pointer-events-auto translate-y-0 scale-100 opacity-100" : "pointer-events-none translate-y-3 scale-95 opacity-0"
-        }`}
+      {/* Panel — Spring-Einblendung, verlässt das DOM beim Schließen (AnimatePresence) */}
+      <AnimatePresence>
+      {open && (
+      <motion.div
+        initial={{ opacity: 0, y: 14, scale: 0.95 }}
+        animate={{ opacity: 1, y: 0, scale: 1 }}
+        exit={{ opacity: 0, y: 10, scale: 0.96, transition: { duration: 0.16, ease: "easeIn" } }}
+        transition={{ type: "spring", stiffness: 380, damping: 26 }}
+        className="pointer-events-auto flex w-[min(21rem,calc(100vw-2rem))] origin-bottom-right flex-col overflow-hidden rounded-2xl border border-line bg-surface shadow-[0_24px_60px_-20px_rgba(33,28,23,0.35)]"
       >
         {/* Kopf */}
         <div className="flex items-center gap-3 bg-night px-5 py-4 text-canvas">
@@ -91,8 +97,16 @@ export default function SupportButton() {
           </div>
         </div>
 
+        <AnimatePresence mode="wait" initial={false}>
         {view === "menu" ? (
-          <div className="p-2">
+          <motion.div
+            key="menu"
+            initial={{ opacity: 0, x: -10 }}
+            animate={{ opacity: 1, x: 0 }}
+            exit={{ opacity: 0, x: -10 }}
+            transition={{ duration: 0.15, ease: "easeOut" }}
+            className="p-2"
+          >
             <button type="button" onClick={() => setView("chat")} className="flex w-full items-center gap-3 rounded-xl p-3 text-left transition-colors hover:bg-canvas cursor-pointer">
               <span className="relative grid h-9 w-9 place-items-center rounded-lg bg-accent-soft text-accent">
                 <Bot className="h-5 w-5" />
@@ -116,9 +130,15 @@ export default function SupportButton() {
               <span className="grid h-9 w-9 place-items-center rounded-lg bg-accent-soft text-accent"><FileQuestion className="h-5 w-5" /></span>
               <span><span className="block text-sm font-medium text-ink">Sparpotenzial?</span><span className="block text-xs text-muted">Strom-Spar-Rechner</span></span>
             </Link>
-          </div>
+          </motion.div>
         ) : (
-          <>
+          <motion.div
+            key="chat"
+            initial={{ opacity: 0, x: 10 }}
+            animate={{ opacity: 1, x: 0 }}
+            exit={{ opacity: 0, x: 10 }}
+            transition={{ duration: 0.15, ease: "easeOut" }}
+          >
             <div ref={scrollRef} className="flex max-h-[15rem] min-h-[9rem] flex-col gap-2 overflow-y-auto bg-canvas/60 p-3">
               {messages.map((m, i) => (
                 <div key={i} className={`flex ${m.from === "user" ? "justify-end" : "justify-start"}`}>
@@ -155,23 +175,41 @@ export default function SupportButton() {
             <p className="flex items-center justify-center gap-1 pb-2.5 text-center text-[11px] text-muted">
               <Sparkles className="h-3 w-3" /> {aiOn ? "KI-Assistent aktiv" : "Assistent · KI im Admin aktivierbar"}
             </p>
-          </>
+          </motion.div>
         )}
-      </div>
+        </AnimatePresence>
+      </motion.div>
+      )}
+      </AnimatePresence>
 
-      {/* Button */}
-      <button
+      {/* Schwebe-Button — Spring-Physik: leichtes Anheben, knackiges Eindrücken */}
+      <motion.button
         type="button"
         onClick={() => setOpen((v) => !v)}
         aria-label={open ? "Support schließen" : "Support öffnen"}
         aria-expanded={open}
-        className="pointer-events-auto grid h-14 w-14 place-items-center rounded-full bg-accent text-white shadow-[0_12px_30px_-8px_rgba(176,84,58,0.6)] transition-all duration-300 hover:scale-105 hover:bg-accent-ink cursor-pointer"
+        whileHover={{ scale: 1.06, y: -2 }}
+        whileTap={{ scale: 0.92 }}
+        transition={pressSpring}
+        className="pointer-events-auto grid h-14 w-14 place-items-center rounded-full bg-accent text-white shadow-[0_12px_30px_-8px_rgba(176,84,58,0.5)] transition-colors hover:bg-accent-ink focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent cursor-pointer"
       >
         <span className="relative block h-6 w-6">
-          <MessageCircle className={`absolute inset-0 h-6 w-6 transition-all duration-300 ${open ? "rotate-90 scale-0 opacity-0" : "rotate-0 scale-100 opacity-100"}`} />
-          <X className={`absolute inset-0 h-6 w-6 transition-all duration-300 ${open ? "rotate-0 scale-100 opacity-100" : "-rotate-90 scale-0 opacity-0"}`} />
+          <motion.span
+            className="absolute inset-0"
+            animate={{ rotate: open ? 90 : 0, scale: open ? 0 : 1, opacity: open ? 0 : 1 }}
+            transition={pressSpring}
+          >
+            <MessageCircle className="h-6 w-6" />
+          </motion.span>
+          <motion.span
+            className="absolute inset-0"
+            animate={{ rotate: open ? 0 : -90, scale: open ? 1 : 0, opacity: open ? 1 : 0 }}
+            transition={pressSpring}
+          >
+            <X className="h-6 w-6" />
+          </motion.span>
         </span>
-      </button>
+      </motion.button>
     </div>
   );
 }

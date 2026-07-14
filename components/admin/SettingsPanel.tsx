@@ -1,7 +1,7 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
-import { Sparkles, Save, Loader2, Wifi, Eye, EyeOff, Check, AlertTriangle, X } from "lucide-react";
+import { useCallback, useEffect, useRef, useState } from "react";
+import { Sparkles, Save, Loader2, Wifi, Eye, EyeOff, Check, AlertTriangle, X, Plus } from "lucide-react";
 
 type AISettings = {
   enabled: boolean; endpoint: string; model: string; systemPrompt: string;
@@ -33,6 +33,7 @@ export default function SettingsPanel() {
   const [testing, setTesting] = useState(false);
   const [test, setTest] = useState<TestResult | null>(null);
   const [confirm, setConfirm] = useState(false);
+  const endpointInputRef = useRef<HTMLInputElement>(null);
 
   const load = useCallback(async () => {
     const r = await fetch("/api/admin/settings", { cache: "no-store" });
@@ -107,6 +108,9 @@ export default function SettingsPanel() {
     return <div className="rounded-3xl border border-line bg-surface p-10 text-center"><Loader2 className="mx-auto h-6 w-6 animate-spin text-accent" /></div>;
   }
 
+  // Eigener Endpunkt: aktiv, wenn keins der Presets zum aktuellen Endpunkt passt.
+  const isCustomEndpoint = !presets.some((p) => p.endpoint === ai.endpoint);
+
   const field = "w-full rounded-xl border border-line bg-canvas px-4 py-3 text-ink outline-none focus:border-accent focus:bg-surface";
   const lbl = "mb-1.5 block eyebrow text-muted";
 
@@ -127,19 +131,34 @@ export default function SettingsPanel() {
         <p className="mt-1 text-sm text-muted">OpenAI-kompatibler Endpunkt. Der API-Key bleibt serverseitig und wird nie angezeigt.</p>
 
         <div className="mt-4 flex flex-wrap gap-2">
-          {presets.map((p) => (
-            <button key={p.name} type="button" onClick={() => setAi({ ...ai, endpoint: p.endpoint, model: p.model })}
-              className="rounded-full border border-line-strong bg-canvas px-3.5 py-1.5 text-xs font-medium text-ink transition-colors hover:border-accent hover:text-accent-ink cursor-pointer">
-              {p.name}
-            </button>
-          ))}
+          {presets.map((p) => {
+            const active = ai.endpoint === p.endpoint;
+            return (
+              <button key={p.name} type="button" onClick={() => setAi({ ...ai, endpoint: p.endpoint, model: p.model })}
+                className={`rounded-full border px-3.5 py-1.5 text-xs font-medium transition-colors cursor-pointer ${
+                  active ? "border-accent bg-accent-soft text-accent-ink" : "border-line-strong bg-canvas text-ink hover:border-accent hover:text-accent-ink"
+                }`}>
+                {p.name}
+              </button>
+            );
+          })}
+          {/* Eigener Endpunkt: leert die Felder für eine freie, individuelle Adresse. */}
+          <button
+            type="button"
+            onClick={() => { setAi({ ...ai, endpoint: "", model: "" }); endpointInputRef.current?.focus(); }}
+            className={`inline-flex items-center gap-1.5 rounded-full border px-3.5 py-1.5 text-xs font-medium transition-colors cursor-pointer ${
+              isCustomEndpoint ? "border-accent bg-accent-soft text-accent-ink" : "border-dashed border-line-strong bg-canvas text-ink hover:border-accent hover:text-accent-ink"
+            }`}
+          >
+            <Plus className="h-3 w-3" /> Eigener Endpunkt
+          </button>
         </div>
 
         <div className="mt-4 grid gap-4 sm:grid-cols-2">
           <div className="sm:col-span-2">
-            <label className={lbl}>Endpunkt (Chat-Completions-URL)</label>
-            <input value={ai.endpoint} onChange={(e) => setAi({ ...ai, endpoint: e.target.value })} className={field} placeholder="http://localhost:11434/v1/chat/completions" />
-            <p className="mt-1 text-xs text-muted">Ollama: Port 11434 · LM Studio: Port 1234. Im Docker statt <span className="font-mono">localhost</span> ggf. <span className="font-mono">host.docker.internal</span>. Bei lokalen LLMs API-Key leer lassen.</p>
+            <label className={lbl}>Endpunkt (Chat-Completions-URL) {isCustomEndpoint && ai.endpoint && <span className="normal-case text-accent-ink">· eigener Endpunkt</span>}</label>
+            <input ref={endpointInputRef} value={ai.endpoint} onChange={(e) => setAi({ ...ai, endpoint: e.target.value })} className={field} placeholder="http://192.168.1.50:1234/v1/chat/completions oder https://api.ihr-anbieter.de/v1/chat/completions" />
+            <p className="mt-1 text-xs text-muted">Beliebiger OpenAI- oder Anthropic-kompatibler Endpunkt — auch ein anderer PC im Netzwerk oder ein eigener Cloud-Anbieter. Ollama: Port 11434 · LM Studio: Port 1234. Im Docker statt <span className="font-mono">localhost</span> ggf. <span className="font-mono">host.docker.internal</span>. Bei lokalen LLMs API-Key leer lassen.</p>
           </div>
           <div><label className={lbl}>Modell</label><input value={ai.model} onChange={(e) => setAi({ ...ai, model: e.target.value })} className={field} placeholder="gpt-4o-mini" /></div>
           <div>
@@ -183,7 +202,11 @@ export default function SettingsPanel() {
             </button>
           </div>
           <div><label className={lbl}>Temperatur ({ai.temperature.toFixed(1)})</label><input type="range" min={0} max={2} step={0.1} value={ai.temperature} onChange={(e) => setAi({ ...ai, temperature: +e.target.value })} className="mt-3 w-full accent-[var(--color-accent)]" /></div>
-          <div><label className={lbl}>Max. Tokens</label><input type="number" min={50} max={4000} value={ai.maxTokens} onChange={(e) => setAi({ ...ai, maxTokens: +e.target.value })} className={field} /></div>
+          <div>
+            <label className={lbl}>Max. Tokens</label>
+            <input type="number" min={50} max={4000} value={ai.maxTokens} onChange={(e) => setAi({ ...ai, maxTokens: +e.target.value })} className={field} />
+            <p className="mt-1 text-xs text-muted">Reasoning-Modelle (DeepSeek-R1, Qwen-Thinking, gpt-oss …) brauchen mehr Budget fürs „Nachdenken" — bei leeren Antworten hier erhöhen.</p>
+          </div>
           <div className="sm:col-span-2">
             <div className="mb-1.5 flex items-center justify-between gap-2">
               <label className={lbl.replace("mb-1.5 ", "")}>System-Prompt (Persönlichkeit / Anweisungen)</label>
