@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
+import { MotionLink, pressable } from "@/components/ui/motion";
 import { Zap, ArrowRight, Info, Check, Leaf, CalendarRange, Tv } from "lucide-react";
 
 // Sanft zählende Zahl — macht Änderungen im Ergebnis spürbar statt sprunghaft.
@@ -253,10 +254,10 @@ export default function StromrechnerPage() {
                   </p>
                 )}
 
-                <Link href="/kontakt" className="group mt-7 flex w-full items-center justify-center gap-2 rounded-full bg-accent px-6 py-3.5 font-medium text-white transition-colors hover:bg-accent-ink cursor-pointer">
+                <MotionLink href="/kontakt" {...pressable} className="group mt-7 flex w-full items-center justify-center gap-2 rounded-full bg-accent px-6 py-3.5 font-medium text-white transition-colors hover:bg-accent-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2 cursor-pointer">
                   Jetzt beraten lassen
                   <ArrowRight className="h-5 w-5 transition-transform group-hover:translate-x-1" />
-                </Link>
+                </MotionLink>
               </div>
               <p className="flex items-start gap-2 bg-black/20 px-7 py-4 text-xs leading-relaxed text-white/50">
                 <Info className="mt-0.5 h-4 w-4 shrink-0" />

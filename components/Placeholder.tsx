@@ -1,4 +1,5 @@
 import { CameraIcon } from "./icons";
+import { Tilt } from "@/components/ui/motion";
 
 type Props = {
   caption?: string;
@@ -27,9 +28,11 @@ export default function Placeholder({
       } ${className}`}
     >
       <div className="flex flex-col items-center gap-2 px-6 text-center text-muted">
-        <span className="grid h-11 w-11 place-items-center rounded-full bg-surface/70 text-ink-soft">
-          <CameraIcon className="h-5 w-5" />
-        </span>
+        <Tilt>
+          <span className="grid h-11 w-11 place-items-center rounded-full bg-surface/70 text-ink-soft">
+            <CameraIcon className="h-5 w-5" />
+          </span>
+        </Tilt>
         {caption && <span className="max-w-[14rem] text-xs leading-snug">{caption}</span>}
       </div>
     </div>

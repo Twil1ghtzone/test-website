@@ -77,7 +77,7 @@ export default function BlogPage() {
           >
             <div className="relative min-h-[14rem] overflow-hidden">
               {lead.image ? (
-                <Image src={lead.image} alt={lead.title} fill sizes="(max-width:1024px) 100vw, 600px" className="object-cover transition-transform duration-500 group-hover:scale-105" />
+                <Image src={lead.image} alt={lead.title} fill sizes="(max-width:1024px) 100vw, 600px" className="object-cover transition-transform duration-700 ease-[cubic-bezier(0.25,1,0.5,1)] group-hover:scale-105" />
               ) : (
                 <Placeholder caption={lead.imageCaption} ratio="h-full min-h-[14rem]" rounded="rounded-none" className="h-full border-0" />
               )}
@@ -106,7 +106,7 @@ export default function BlogPage() {
             >
               <div className="relative aspect-[16/10] overflow-hidden">
                 {p.image ? (
-                  <Image src={p.image} alt={p.title} fill sizes="(max-width:768px) 100vw, 360px" className="object-cover transition-transform duration-500 group-hover:scale-105" />
+                  <Image src={p.image} alt={p.title} fill sizes="(max-width:768px) 100vw, 360px" className="object-cover transition-transform duration-700 ease-[cubic-bezier(0.25,1,0.5,1)] group-hover:scale-105" />
                 ) : (
                   <Placeholder caption={p.imageCaption} ratio="aspect-[16/10]" rounded="rounded-none" className="border-0" />
                 )}

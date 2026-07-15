@@ -171,7 +171,7 @@ export default function Home() {
                 </MotionLink>
               </Reveal>
               <div className="relative order-1 min-h-[20rem] lg:order-2">
-                <Image src="/energie.webp" alt="Smarte Heizungssteuerung in einem warmen Wohnraum" fill sizes="(max-width: 1024px) 100vw, 50vw" className="object-cover" />
+                <Image src="/energie.webp" alt="Smarte Heizungssteuerung in einem warmen Wohnraum" fill sizes="(max-width: 1024px) 100vw, 50vw" className="object-cover transition-transform duration-[700ms] ease-[cubic-bezier(0.25,1,0.5,1)] hover:scale-105" />
               </div>
             </div>
           </div>
@@ -188,7 +188,7 @@ export default function Home() {
             />
             <Reveal className="mt-10">
               <div className="relative aspect-[16/9] w-full overflow-hidden rounded-3xl border border-line">
-                <Image src="/handwerk.webp" alt="Saubere PoE-Verkabelung neben Patchpanel und Netzwerk-Dashboard" fill sizes="(max-width: 768px) 100vw, 1152px" className="object-cover" />
+                <Image src="/handwerk.webp" alt="Saubere PoE-Verkabelung neben Patchpanel und Netzwerk-Dashboard" fill sizes="(max-width: 768px) 100vw, 1152px" className="object-cover transition-transform duration-[700ms] ease-[cubic-bezier(0.25,1,0.5,1)] hover:scale-105" />
               </div>
             </Reveal>
             <div className="mt-16 space-y-20">

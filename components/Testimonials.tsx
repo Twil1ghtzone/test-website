@@ -2,6 +2,8 @@
 
 import { useEffect, useState } from "react";
 import { Star, ShieldCheck, X, Loader2 } from "lucide-react";
+import { motion } from "framer-motion";
+import { pressable } from "@/components/ui/motion";
 import { cn } from "@/lib/utils";
 import { Component as ReviewStack, type CardData } from "@/components/ui/morphing-card-stack";
 
@@ -147,14 +149,15 @@ export default function Testimonials() {
         <div className="mx-auto mt-16 max-w-md text-center">
           {!open && (
             <>
-              <button
+              <motion.button
                 type="button"
                 onClick={() => { reset(); setOpen(true); }}
-                className="inline-flex items-center gap-2 rounded-full border border-line-strong bg-surface px-7 py-3.5 font-medium text-ink transition-colors hover:border-ink cursor-pointer"
+                {...pressable}
+                className="inline-flex items-center gap-2 rounded-full border border-line-strong bg-surface px-7 py-3.5 font-medium text-ink transition-colors hover:border-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2 cursor-pointer"
               >
                 <Star className="h-5 w-5 text-accent" />
                 Service bewerten
-              </button>
+              </motion.button>
               <p className="mt-3 inline-flex items-center justify-center gap-1.5 text-sm text-muted">
                 <ShieldCheck className="h-4 w-4" />
                 Nur mit Rechnungsnummer — auch Teilbewertungen während der Umsetzung.

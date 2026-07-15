@@ -41,7 +41,7 @@ export default function PathCards() {
                   alt={p.title}
                   fill
                   sizes="(max-width: 768px) 100vw, 360px"
-                  className="object-cover transition-transform duration-[600ms] ease-out group-hover:scale-[1.06]"
+                  className="object-cover transition-transform duration-700 ease-[cubic-bezier(0.25,1,0.5,1)] group-hover:scale-105"
                 />
                 {/* Cooles Kärtchen-Design: Punkteraster schimmert beim Hover über dem Foto */}
                 <AnimatePresence>

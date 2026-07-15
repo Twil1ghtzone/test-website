@@ -5,7 +5,7 @@ import Link from "next/link";
 import { AnimatePresence, motion } from "framer-motion";
 import { MessageCircle, X, Mail, Phone, FileQuestion, Bot, Send, ArrowLeft, Sparkles } from "lucide-react";
 import { brand } from "@/lib/data";
-import { pressSpring } from "@/components/ui/motion";
+import { pressSpring, Tilt } from "@/components/ui/motion";
 
 type Msg = { from: "bot" | "user"; text: string };
 
@@ -108,26 +108,25 @@ export default function SupportButton() {
             className="p-2"
           >
             <button type="button" onClick={() => setView("chat")} className="flex w-full items-center gap-3 rounded-xl p-3 text-left transition-colors hover:bg-canvas cursor-pointer">
-              <span className="relative grid h-9 w-9 place-items-center rounded-lg bg-accent-soft text-accent">
+              <Tilt><span className="relative grid h-9 w-9 place-items-center rounded-lg bg-accent-soft text-accent">
                 <Bot className="h-5 w-5" />
-                <span className="absolute -right-0.5 -top-0.5 h-2.5 w-2.5 rounded-full bg-emerald-500 ring-2 ring-surface" />
-              </span>
+                <span className="absolute -right-0.5 -top-0.5 h-2.5 w-2.5 rounded-full bg-emerald-500 ring-2 ring-surface" /></span></Tilt>
               <span><span className="block text-sm font-medium text-ink">Mit Assistent chatten</span><span className="block text-xs text-muted">Schnelle Fragen — sofort</span></span>
             </button>
             <Link href="/kontakt" onClick={() => setOpen(false)} className="flex items-center gap-3 rounded-xl p-3 transition-colors hover:bg-canvas cursor-pointer">
-              <span className="grid h-9 w-9 place-items-center rounded-lg bg-accent-soft text-accent"><MessageCircle className="h-5 w-5" /></span>
+              <Tilt><span className="grid h-9 w-9 place-items-center rounded-lg bg-accent-soft text-accent"><MessageCircle className="h-5 w-5" /></span></Tilt>
               <span><span className="block text-sm font-medium text-ink">Anfrage stellen</span><span className="block text-xs text-muted">Formular & Pakete</span></span>
             </Link>
             <a href={`mailto:${brand.email}`} className="flex items-center gap-3 rounded-xl p-3 transition-colors hover:bg-canvas cursor-pointer">
-              <span className="grid h-9 w-9 place-items-center rounded-lg bg-accent-soft text-accent"><Mail className="h-5 w-5" /></span>
+              <Tilt><span className="grid h-9 w-9 place-items-center rounded-lg bg-accent-soft text-accent"><Mail className="h-5 w-5" /></span></Tilt>
               <span><span className="block text-sm font-medium text-ink">E-Mail</span><span className="block text-xs text-muted">{brand.email}</span></span>
             </a>
             <a href={`tel:${brand.phone.replace(/\s/g, "")}`} className="flex items-center gap-3 rounded-xl p-3 transition-colors hover:bg-canvas cursor-pointer">
-              <span className="grid h-9 w-9 place-items-center rounded-lg bg-accent-soft text-accent"><Phone className="h-5 w-5" /></span>
+              <Tilt><span className="grid h-9 w-9 place-items-center rounded-lg bg-accent-soft text-accent"><Phone className="h-5 w-5" /></span></Tilt>
               <span><span className="block text-sm font-medium text-ink">Anrufen</span><span className="block text-xs text-muted">{brand.phone}</span></span>
             </a>
             <Link href="/stromrechner" onClick={() => setOpen(false)} className="flex items-center gap-3 rounded-xl p-3 transition-colors hover:bg-canvas cursor-pointer">
-              <span className="grid h-9 w-9 place-items-center rounded-lg bg-accent-soft text-accent"><FileQuestion className="h-5 w-5" /></span>
+              <Tilt><span className="grid h-9 w-9 place-items-center rounded-lg bg-accent-soft text-accent"><FileQuestion className="h-5 w-5" /></span></Tilt>
               <span><span className="block text-sm font-medium text-ink">Sparpotenzial?</span><span className="block text-xs text-muted">Strom-Spar-Rechner</span></span>
             </Link>
           </motion.div>

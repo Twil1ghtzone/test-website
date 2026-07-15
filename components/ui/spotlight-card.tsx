@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useEffect, useRef, ReactNode, CSSProperties } from "react";
+import { motion } from "framer-motion";
 
 /**
  * Spotlight-/Glow-Karte: ein leuchtender Rahmen, der dem Cursor folgt —
@@ -64,14 +65,18 @@ const GlowCard: React.FC<GlowCardProps> = ({ children, className = "", style }) 
   }, []);
 
   return (
-    <div
+    // Karten lösen sich beim Hover organisch vom Hintergrund: leichtes Anheben +
+    // minimale Vergrößerung (Spring) und ein weicher, getönter Schatten.
+    <motion.div
       ref={ref}
       data-glow
+      whileHover={{ y: -4, scale: 1.015 }}
+      transition={{ type: "spring", stiffness: 300, damping: 20 }}
       style={{ ...warmGlowVars, ...style }}
-      className={`relative ${className}`}
+      className={`relative transition-shadow duration-300 hover:shadow-2xl hover:shadow-ink/5 ${className}`}
     >
       {children}
-    </div>
+    </motion.div>
   );
 };
 

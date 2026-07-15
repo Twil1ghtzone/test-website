@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { Mail, Phone, MapPin, Clock, Tag, ListChecks } from "lucide-react";
 import ContactForm from "@/components/ContactForm";
+import { Tilt } from "@/components/ui/motion";
 import { brand, contact } from "@/lib/data";
 
 export const metadata: Metadata = {
@@ -50,9 +51,11 @@ export default function KontaktPage() {
                 const Icon = i.icon;
                 const inner = (
                   <>
-                    <span className="grid h-10 w-10 place-items-center rounded-xl bg-accent-soft text-accent">
-                      <Icon className="h-5 w-5" />
-                    </span>
+                    <Tilt>
+                      <span className="grid h-10 w-10 place-items-center rounded-xl bg-accent-soft text-accent">
+                        <Icon className="h-5 w-5" />
+                      </span>
+                    </Tilt>
                     <span className="mt-3 block eyebrow text-muted">{i.label}</span>
                     <span className="mt-1 block font-medium text-ink">{i.value}</span>
                   </>
@@ -72,9 +75,11 @@ export default function KontaktPage() {
                 const Icon = g.icon;
                 return (
                   <div key={g.title} className="flex gap-4 rounded-2xl border border-line bg-surface p-5">
-                    <span className="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-ink text-canvas">
-                      <Icon className="h-5 w-5" />
-                    </span>
+                    <Tilt className="shrink-0">
+                      <span className="grid h-10 w-10 place-items-center rounded-xl bg-ink text-canvas">
+                        <Icon className="h-5 w-5" />
+                      </span>
+                    </Tilt>
                     <div>
                       <h3 className="font-display text-lg font-semibold tracking-tight">{g.title}</h3>
                       <p className="mt-1 text-sm leading-relaxed text-ink-soft">{g.body}</p>

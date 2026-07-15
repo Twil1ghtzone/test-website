@@ -2,6 +2,8 @@
 
 import { useState } from "react";
 import { Mail, Check, Loader2 } from "lucide-react";
+import { motion } from "framer-motion";
+import { pressable } from "@/components/ui/motion";
 
 // Kostenloses Blog-Abo (wie novum): E-Mail eintragen, bei konfiguriertem
 // SMTP kommt eine Bestätigungs-Mail (Double-Opt-In), Abmelden per Link.
@@ -56,9 +58,9 @@ export default function BlogSubscribe() {
             />
             {/* Honeypot */}
             <input type="text" value={website} onChange={(e) => setWebsite(e.target.value)} name="website" tabIndex={-1} autoComplete="off" aria-hidden="true" className="absolute -left-[9999px] h-0 w-0 opacity-0" />
-            <button type="submit" disabled={busy} className="inline-flex h-12 shrink-0 items-center justify-center gap-2 rounded-full bg-accent px-6 font-medium text-white transition-colors hover:bg-accent-ink disabled:opacity-60 cursor-pointer">
+            <motion.button type="submit" disabled={busy} {...pressable} className="inline-flex h-12 shrink-0 items-center justify-center gap-2 rounded-full bg-accent px-6 font-medium text-white transition-colors hover:bg-accent-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2 disabled:opacity-60 cursor-pointer">
               {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : null} Abonnieren
-            </button>
+            </motion.button>
           </form>
         )}
         {error && <p className="mt-3 text-sm text-red-600">{error}</p>}

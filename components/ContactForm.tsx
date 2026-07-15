@@ -1,5 +1,8 @@
 "use client";
 
+import { motion } from "framer-motion";
+import { pressable } from "@/components/ui/motion";
+
 import { useState } from "react";
 import { ImagePlus, X } from "lucide-react";
 import { ArrowIcon, CheckIcon } from "./icons";
@@ -141,13 +144,14 @@ export default function ContactForm() {
         </div>
       </div>
 
-      <button
+      <motion.button
         type="submit"
-        className="group mt-6 flex w-full items-center justify-center gap-2 rounded-xl bg-accent px-6 py-4 font-medium text-white transition-colors hover:bg-accent-ink cursor-pointer"
+        {...pressable}
+        className="group mt-6 flex w-full items-center justify-center gap-2 rounded-xl bg-accent px-6 py-4 font-medium text-white transition-colors hover:bg-accent-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2 cursor-pointer"
       >
         Unverbindliche Anfrage senden
         <ArrowIcon className="h-5 w-5 transition-transform group-hover:translate-x-1" />
-      </button>
+      </motion.button>
       <p className="mt-3 text-center text-sm text-muted">
         Preise gibt es nur auf Anfrage — weil jedes Haus anders ist.
       </p>

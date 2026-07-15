@@ -47,11 +47,17 @@
     }
   }
 
-  /* Klick-Feedback auch mit Maus: Buttons drücken sich kurz ein */
+  /* Taktiles Feedback für ALLE Buttons: leichtes Anheben beim Hover,
+     knackiges Eindrücken beim Klick (Framer-Buttons überschreiben das
+     per Inline-Transform mit echter Feder-Physik). */
   @media (hover: hover) and (pointer: fine) {
+    button:not(:disabled):hover,
+    [role="button"]:not([aria-disabled="true"]):hover {
+      transform: translateY(-1px) scale(1.02);
+    }
     button:not(:disabled):active,
     [role="button"]:not([aria-disabled="true"]):active {
-      transform: scale(0.97);
+      transform: scale(0.95);
       transition: transform 0.08s ease;
     }
   }
@@ -103,6 +109,16 @@
   /* Abstände für Notch & Home-Bar (iOS/Android Edge-to-Edge) */
   .pb-safe { padding-bottom: env(safe-area-inset-bottom); }
   .pt-safe { padding-top: env(safe-area-inset-top); }
+
+  /* Luxuriöser Slow-Zoom für Bilder: Wrapper mit .zoom-media (+ overflow-hidden),
+     das Bild gleitet mit weichem cubic-bezier-Auslauf — edler als Spring bei Fotos. */
+  .zoom-media img {
+    transition: transform 700ms cubic-bezier(0.25, 1, 0.5, 1);
+    will-change: transform;
+  }
+  .zoom-media:hover img {
+    transform: scale(1.05);
+  }
 
   /* Editorial italic emphasis (wie „style meets science") */
   .emph {

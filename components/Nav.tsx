@@ -262,7 +262,7 @@ export default function Nav() {
                                     <div className="relative h-32 w-full overflow-hidden">
                                       {active.image ? (
                                         // eslint-disable-next-line @next/next/no-img-element
-                                        <img src={active.image} alt="" className="h-full w-full object-cover transition-transform duration-500 group-hover/preview:scale-105" />
+                                        <img src={active.image} alt="" className="h-full w-full object-cover transition-transform duration-700 ease-[cubic-bezier(0.25,1,0.5,1)] group-hover/preview:scale-105" />
                                       ) : (
                                         <div className="grid h-full w-full place-items-center bg-accent-soft">
                                           {(() => { const I = iconMap[active.icon]; return <I className="h-9 w-9 text-accent" />; })()}
