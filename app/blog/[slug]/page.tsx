@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { ArrowIcon } from "@/components/icons";
+import { MotionLink, pressable } from "@/components/ui/motion";
 import { formatDate } from "@/lib/blog";
 import { brand } from "@/lib/data";
 import { readPosts, type BlogPost } from "@/lib/server/store";
@@ -62,9 +63,9 @@ export default async function BlogPostPage({ params }: { params: Promise<{ slug:
         <div className="mt-10 rounded-3xl border border-line bg-surface p-7 text-center">
           <h2 className="font-display text-xl font-semibold tracking-tight">Klingt interessant für Ihr Zuhause?</h2>
           <p className="mx-auto mt-2 max-w-md text-sm text-ink-soft">Wir beraten Sie unverbindlich — jedes Haus ist anders.</p>
-          <Link href="/kontakt" className="group mt-5 inline-flex items-center gap-2 rounded-full bg-accent px-7 py-3.5 font-medium text-white transition-colors hover:bg-accent-ink cursor-pointer">
+          <MotionLink href="/kontakt" {...pressable} className="group mt-5 inline-flex items-center gap-2 rounded-full bg-accent px-7 py-3.5 font-medium text-white transition-colors hover:bg-accent-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2 cursor-pointer">
             Kontakt aufnehmen <ArrowIcon className="h-5 w-5 transition-transform group-hover:translate-x-1" />
-          </Link>
+          </MotionLink>
         </div>
 
         {more.length > 0 && (

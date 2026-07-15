@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
+import { MotionLink, pressable } from "@/components/ui/motion";
 import Image from "next/image";
 import { notFound } from "next/navigation";
 import Placeholder from "@/components/Placeholder";
@@ -55,19 +56,21 @@ export default async function ServicePage({ params }: { params: Promise<{ slug: 
             </h1>
             <p className="mt-4 text-lg leading-relaxed text-ink-soft">{service.tagline}</p>
             <div className="mt-7 flex flex-wrap gap-3">
-              <Link
+              <MotionLink
                 href="/konfigurator"
-                className="group flex items-center gap-2 rounded-full bg-accent px-6 py-3.5 font-medium text-white transition-colors hover:bg-accent-ink cursor-pointer"
+                {...pressable}
+                className="group flex items-center gap-2 rounded-full bg-accent px-6 py-3.5 font-medium text-white transition-colors hover:bg-accent-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2 cursor-pointer"
               >
                 Zum Konfigurator hinzufügen
                 <ArrowIcon className="h-5 w-5 transition-transform group-hover:translate-x-1" />
-              </Link>
-              <Link
+              </MotionLink>
+              <MotionLink
                 href="/kontakt"
-                className="rounded-full border border-line-strong bg-surface px-6 py-3.5 font-medium text-ink transition-colors hover:border-ink cursor-pointer"
+                {...pressable}
+                className="rounded-full border border-line-strong bg-surface px-6 py-3.5 font-medium text-ink transition-colors hover:border-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2 cursor-pointer"
               >
                 Anfragen
-              </Link>
+              </MotionLink>
             </div>
             {service.slug === "energie-management" && (
               <Link
@@ -81,8 +84,8 @@ export default async function ServicePage({ params }: { params: Promise<{ slug: 
             )}
           </div>
           {service.image ? (
-            <div className="relative aspect-[4/3] w-full overflow-hidden rounded-2xl border border-line">
-              <Image src={service.image} alt={service.pageTitle} fill sizes="(max-width: 1024px) 100vw, 480px" className="object-cover" />
+            <div className="group relative aspect-[4/3] w-full overflow-hidden rounded-2xl border border-line">
+              <Image src={service.image} alt={service.pageTitle} fill sizes="(max-width: 1024px) 100vw, 480px" className="object-cover transition-transform duration-[700ms] ease-[cubic-bezier(0.25,1,0.5,1)] group-hover:scale-105" />
             </div>
           ) : (
             <Placeholder caption={service.imageCaption} ratio="aspect-[4/3]" className="w-full" />
@@ -148,13 +151,13 @@ export default async function ServicePage({ params }: { params: Promise<{ slug: 
           </h2>
           <p className="mx-auto mt-3 max-w-md text-white/70">Jedes Haus ist anders — Sie erhalten ein unverbindliches Angebot auf Anfrage.</p>
           <div className="mt-7 flex flex-wrap justify-center gap-3">
-            <Link href="/kontakt" className="group inline-flex items-center gap-2 rounded-full bg-accent px-7 py-3.5 font-medium text-white transition-colors hover:bg-accent-ink cursor-pointer">
+            <MotionLink href="/kontakt" {...pressable} className="group inline-flex items-center gap-2 rounded-full bg-accent px-7 py-3.5 font-medium text-white transition-colors hover:bg-accent-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white focus-visible:ring-offset-2 focus-visible:ring-offset-night cursor-pointer">
               Unverbindlich anfragen
               <ArrowIcon className="h-5 w-5 transition-transform group-hover:translate-x-1" />
-            </Link>
-            <Link href="/konfigurator" className="rounded-full border border-white/20 px-7 py-3.5 font-medium text-canvas transition-colors hover:border-white/60 cursor-pointer">
+            </MotionLink>
+            <MotionLink href="/konfigurator" {...pressable} className="rounded-full border border-white/20 px-7 py-3.5 font-medium text-canvas transition-colors hover:border-white/60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white focus-visible:ring-offset-2 focus-visible:ring-offset-night cursor-pointer">
               Paket zusammenstellen
-            </Link>
+            </MotionLink>
           </div>
         </section>
 

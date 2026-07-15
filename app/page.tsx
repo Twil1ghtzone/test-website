@@ -132,7 +132,7 @@ export default function Home() {
               <MotionLink
                 href="#warum"
                 {...pressable}
-                className="group mt-2 inline-flex items-center gap-2 rounded-full bg-accent px-7 py-3.5 font-medium text-white transition-colors hover:bg-accent-ink cursor-pointer"
+                className="group mt-2 inline-flex items-center gap-2 rounded-full bg-accent px-7 py-3.5 font-medium text-white transition-colors hover:bg-accent-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2 cursor-pointer"
               >
                 Warum lokal besser ist
                 <ArrowIcon className="h-5 w-5 transition-transform group-hover:translate-x-1" />
@@ -164,7 +164,7 @@ export default function Home() {
                 <MotionLink
                   href="/kontakt"
                   {...pressable}
-                  className="group mt-9 inline-flex items-center gap-2 rounded-full bg-accent px-7 py-3.5 font-medium text-white transition-colors hover:bg-accent-ink cursor-pointer"
+                  className="group mt-9 inline-flex items-center gap-2 rounded-full bg-accent px-7 py-3.5 font-medium text-white transition-colors hover:bg-accent-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2 cursor-pointer"
                 >
                   Jetzt anfragen
                   <ArrowIcon className="h-5 w-5 transition-transform group-hover:translate-x-1" />
@@ -290,7 +290,7 @@ export default function Home() {
                 unverbindlichen Angebot.
               </p>
               <div className="mt-8 flex justify-center">
-                <MotionLink href="/kontakt" {...pressable} className="group cursor-pointer">
+                <MotionLink href="/kontakt" {...pressable} className="group rounded-full focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2 cursor-pointer">
                   <HoverBorderGradient as="span" tone="dark" className="flex items-center gap-2">
                     Zum Kontakt
                     <ArrowIcon className="h-5 w-5 transition-transform group-hover:translate-x-1" />

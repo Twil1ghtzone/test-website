@@ -105,13 +105,18 @@ export function Component({ cards = [], className, defaultLayout = "stack" }: Mo
   const [openCard, setOpenCard] = useState<CardData | null>(null);
   const [activeIndex, setActiveIndex] = useState(0);
   // Drag-vs-Click: onClick feuert NACH onDragEnd — deshalb per Ref merken,
-  // ob gerade gewischt wurde, und den Klick dann verwerfen (Wischen bleibt Wischen).
-  const wasDragged = useRef(false);
+  // wie weit tatsächlich gezogen wurde. WICHTIG: Wir werten das erst in
+  // onDragEnd aus (Gesamt-Offset), nicht schon in onDragStart — Framer
+  // feuert onDragStart bereits bei winzigem Zitter-Versatz (1–2 px), was
+  // sonst JEDEN echten Klick als „Wisch" verwirft und das Popup nie öffnet.
+  const dragOffset = useRef(0);
+  const CLICK_TOLERANCE = 6; // px — darunter zählt es als Klick, kein Wisch
 
   if (!cards || cards.length === 0) return null;
 
   const handleDragEnd = (_event: MouseEvent | TouchEvent | PointerEvent, info: PanInfo) => {
     const { offset, velocity } = info;
+    dragOffset.current = Math.abs(offset.x);
     const swipe = Math.abs(offset.x) * velocity.x;
     if (offset.x < -SWIPE_THRESHOLD || swipe < -1000) {
       setActiveIndex((prev) => (prev + 1) % cards.length);
@@ -189,13 +194,15 @@ export function Component({ cards = [], className, defaultLayout = "stack" }: Mo
                   drag={isTopCard ? "x" : false}
                   dragConstraints={{ left: 0, right: 0 }}
                   dragElastic={0.7}
-                  onDragStart={() => { wasDragged.current = true; }}
+                  onDragStart={() => { dragOffset.current = 0; }}
                   onDragEnd={handleDragEnd}
                   whileDrag={{ scale: 1.02, cursor: "grabbing" }}
-                  whileHover={layout !== "stack" ? { y: -3, scale: 1.01 } : undefined}
+                  whileHover={layout !== "stack" ? { y: -3, scale: 1.01 } : { scale: 1.01 }}
+                  whileTap={{ scale: 0.98 }}
                   onClick={() => {
-                    // Nach einem Wisch KEIN Popup — nur echte Klicks öffnen die Vollansicht.
-                    if (wasDragged.current) { wasDragged.current = false; return; }
+                    // Nach einem ECHTEN Wisch (> Toleranz) KEIN Popup — nur
+                    // Klicks/winziges Zittern öffnen die Vollansicht.
+                    if (dragOffset.current > CLICK_TOLERANCE) { dragOffset.current = 0; return; }
                     setOpenCard(card);
                   }}
                   className={cn(

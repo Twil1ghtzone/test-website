@@ -38,12 +38,15 @@
     -webkit-tap-highlight-color: transparent;
   }
 
-  /* Tap-Feedback auf Touch-Geräten: kurzes Eindrücken bei Buttons/Links */
+  /* Tap-Feedback auf Touch-Geräten: knackiges Eindrücken, dann ein
+     leicht überschwingendes Zurückfedern (siehe Basis-Transition unten)
+     — soll sich physisch und „app-artig" anfühlen, nicht nur linear. */
   @media (hover: none) and (pointer: coarse) {
     a:active,
-    button:active {
-      transform: scale(0.97);
-      transition: transform 0.08s ease;
+    button:not(:disabled):active,
+    [role="button"]:not([aria-disabled="true"]):active {
+      transform: scale(0.94);
+      transition: transform 0.08s ease-out;
     }
   }
 
@@ -62,12 +65,14 @@
     }
   }
 
-  /* Grundsätzlich weiche Zustandswechsel für interaktive Elemente */
+  /* Grundsätzlich weiche Zustandswechsel für interaktive Elemente.
+     Der Transform-Rücksprung (z. B. nach dem Loslassen bei :active)
+     überschwingt leicht — fühlt sich physisch/gefedert an statt linear. */
   button,
   a,
   [role="button"] {
     transition: color 0.2s ease, background-color 0.2s ease, border-color 0.2s ease,
-      box-shadow 0.2s ease, transform 0.12s ease;
+      box-shadow 0.2s ease, transform 0.28s cubic-bezier(0.34, 1.56, 0.64, 1);
   }
 
   body {

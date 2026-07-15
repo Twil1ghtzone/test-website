@@ -2,6 +2,8 @@
 
 import { useMemo, useState } from "react";
 import Link from "next/link";
+import { motion } from "framer-motion";
+import { MotionLink, pressable } from "@/components/ui/motion";
 import { Eye, Check, Plus, Minus } from "lucide-react";
 import { services, getService, servicesByCategory } from "@/lib/services";
 import { CameraIcon, ServerIcon, CubeIcon, BoltIcon, ShieldIcon, ArrowIcon } from "@/components/icons";
@@ -111,22 +113,24 @@ export default function KonfiguratorPage() {
                           </div>
                         </div>
                         <div className="mt-3 flex gap-2">
-                          <button
+                          <motion.button
                             type="button"
                             onClick={() => setPreviewSlug(s.slug)}
-                            className="inline-flex items-center gap-1.5 rounded-full border border-line-strong bg-surface px-3 py-1.5 text-xs font-medium text-ink transition-colors hover:border-ink cursor-pointer"
+                            {...pressable}
+                            className="inline-flex items-center gap-1.5 rounded-full border border-line-strong bg-surface px-3 py-1.5 text-xs font-medium text-ink transition-colors hover:border-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2 cursor-pointer"
                           >
                             <Eye className="h-3.5 w-3.5" /> Vorschau
-                          </button>
-                          <button
+                          </motion.button>
+                          <motion.button
                             type="button"
                             onClick={() => toggle(s.slug)}
-                            className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-medium transition-colors cursor-pointer ${
+                            {...pressable}
+                            className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2 cursor-pointer ${
                               isSel ? "bg-surface-2 text-ink hover:bg-line" : "bg-accent text-white hover:bg-accent-ink"
                             }`}
                           >
                             {isSel ? <><Minus className="h-3.5 w-3.5" /> Entfernen</> : <><Plus className="h-3.5 w-3.5" /> Hinzufügen</>}
-                          </button>
+                          </motion.button>
                         </div>
                       </div>
                     );
@@ -153,23 +157,27 @@ export default function KonfiguratorPage() {
                   {selectedServices.map((s) => (
                     <li key={s.slug} className="flex items-center justify-between gap-3 rounded-xl bg-canvas px-3 py-2.5">
                       <span className="text-sm font-medium text-ink">{s.title}</span>
-                      <button
+                      <motion.button
                         type="button"
                         onClick={() => remove(s.slug)}
                         aria-label={`${s.title} entfernen`}
-                        className="text-muted transition-colors hover:text-accent-ink cursor-pointer"
+                        whileHover={{ scale: 1.15, rotate: -6 }}
+                        whileTap={{ scale: 0.85 }}
+                        transition={{ type: "spring", stiffness: 300, damping: 12 }}
+                        className="rounded-full text-muted transition-colors hover:text-accent-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2 cursor-pointer"
                       >
                         <Minus className="h-4 w-4" />
-                      </button>
+                      </motion.button>
                     </li>
                   ))}
                 </ul>
               )}
 
-              <Link
+              <MotionLink
                 href="/kontakt"
                 aria-disabled={selectedServices.length === 0}
-                className={`mt-6 flex w-full items-center justify-center gap-2 rounded-full px-6 py-3.5 font-medium transition-colors ${
+                {...(selectedServices.length === 0 ? {} : pressable)}
+                className={`mt-6 flex w-full items-center justify-center gap-2 rounded-full px-6 py-3.5 font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2 ${
                   selectedServices.length === 0
                     ? "pointer-events-none bg-surface-2 text-muted"
                     : "bg-accent text-white hover:bg-accent-ink cursor-pointer"
@@ -177,7 +185,7 @@ export default function KonfiguratorPage() {
               >
                 Auswahl anfragen
                 <ArrowIcon className="h-5 w-5" />
-              </Link>
+              </MotionLink>
               <p className="mt-3 text-center text-xs text-muted">Preis individuell auf Anfrage.</p>
             </div>
           </aside>
