@@ -33,10 +33,13 @@ interface GlowCardProps {
   children?: ReactNode;
   className?: string;
   style?: CSSProperties;
+  /** max. Kipp-Winkel in Grad (0 = Tilt aus, nur Lift + Spotlight) */
+  tilt?: number;
 }
 
-const GlowCard: React.FC<GlowCardProps> = ({ children, className = "", style }) => {
+const GlowCard: React.FC<GlowCardProps> = ({ children, className = "", style, tilt = 6 }) => {
   const ref = useRef<HTMLDivElement>(null);
+  const tiltRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     const el = ref.current;
@@ -64,19 +67,43 @@ const GlowCard: React.FC<GlowCardProps> = ({ children, className = "", style }) 
     };
   }, []);
 
+  // Maus-getrackter 3D-Tilt auf einer eigenen Ebene — getrennt von der
+  // Framer-Lift-Ebene, damit sich die transforms nicht überschreiben.
+  // Nur echte Maus (pointerType mouse) kippt; Touch/reduced-motion bleiben flach.
+  const onTiltMove = (e: React.PointerEvent<HTMLDivElement>) => {
+    if (!tilt || e.pointerType !== "mouse") return;
+    const el = tiltRef.current;
+    if (!el) return;
+    const r = el.getBoundingClientRect();
+    const px = (e.clientX - r.left) / r.width - 0.5; // -0.5 … 0.5
+    const py = (e.clientY - r.top) / r.height - 0.5;
+    el.style.setProperty("--rx", `${px * tilt * 2}deg`); // rotateY
+    el.style.setProperty("--ry", `${-py * tilt * 2}deg`); // rotateX (invertiert)
+  };
+  const onTiltLeave = () => {
+    const el = tiltRef.current;
+    if (!el) return;
+    el.style.setProperty("--rx", "0deg");
+    el.style.setProperty("--ry", "0deg");
+  };
+
   return (
-    // Karten lösen sich beim Hover organisch vom Hintergrund: leichtes Anheben +
-    // minimale Vergrößerung (Spring) und ein weicher, getönter Schatten.
-    <motion.div
-      ref={ref}
-      data-glow
-      whileHover={{ y: -4, scale: 1.015 }}
-      transition={{ type: "spring", stiffness: 300, damping: 20 }}
-      style={{ ...warmGlowVars, ...style }}
-      className={`relative transition-shadow duration-300 hover:shadow-2xl hover:shadow-ink/5 ${className}`}
-    >
-      {children}
-    </motion.div>
+    // Perspektive-Ebene → Tilt-Ebene (card-3d) → Lift/Spotlight-Ebene (motion).
+    // So kombinieren sich Kippen (rotate) und Anheben (translate/scale) sauber.
+    <div style={{ perspective: "1000px" }} className={className.includes("h-full") ? "h-full" : undefined}>
+      <div ref={tiltRef} onPointerMove={onTiltMove} onPointerLeave={onTiltLeave} className="card-3d h-full">
+        <motion.div
+          ref={ref}
+          data-glow
+          whileHover={{ y: -4, scale: 1.015 }}
+          transition={{ type: "spring", stiffness: 300, damping: 20 }}
+          style={{ ...warmGlowVars, ...style }}
+          className={`relative transition-shadow duration-300 hover:shadow-2xl hover:shadow-ink/5 ${className}`}
+        >
+          {children}
+        </motion.div>
+      </div>
+    </div>
   );
 };
 

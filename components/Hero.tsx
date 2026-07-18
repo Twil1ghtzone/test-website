@@ -12,7 +12,7 @@ import {
 import { hero } from "@/lib/data";
 import { ArrowIcon } from "./icons";
 import { HoverBorderGradient } from "@/components/ui/hover-border-gradient";
-import { MotionLink, pressable } from "@/components/ui/motion";
+import { MotionLink, Magnetic, pressable } from "@/components/ui/motion";
 
 export default function Hero() {
   const reduced = useReducedMotion();
@@ -170,22 +170,26 @@ function HeroText({ onScrollClick }: { onScrollClick?: () => void }) {
         {hero.body}
       </p>
       <div className="mt-8 flex flex-col items-stretch justify-center gap-3 sm:mt-9 sm:flex-row sm:items-center">
-        <HoverBorderGradient
-          as="a"
-          href="/kontakt"
-          containerClassName="w-full sm:w-auto"
-          className="group flex w-full items-center justify-center gap-2 px-7 py-4"
-        >
-          {hero.ctaPrimary}
-          <ArrowIcon className="h-5 w-5 transition-transform group-hover:translate-x-1" />
-        </HoverBorderGradient>
-        <MotionLink
-          href="#ablauf"
-          {...pressable}
-          className="rounded-full border border-line-strong bg-surface/90 px-7 py-4 text-center font-medium text-ink transition-colors hover:border-ink cursor-pointer"
-        >
-          {hero.ctaSecondary}
-        </MotionLink>
+        <Magnetic strength={10} className="w-full sm:w-auto">
+          <HoverBorderGradient
+            as="a"
+            href="/kontakt"
+            containerClassName="w-full sm:w-auto"
+            className="group flex w-full items-center justify-center gap-2 px-7 py-4"
+          >
+            {hero.ctaPrimary}
+            <ArrowIcon className="h-5 w-5 transition-transform group-hover:translate-x-1" />
+          </HoverBorderGradient>
+        </Magnetic>
+        <Magnetic strength={8} className="w-full sm:w-auto">
+          <MotionLink
+            href="#ablauf"
+            {...pressable}
+            className="block rounded-full border border-line-strong bg-surface/90 px-7 py-4 text-center font-medium text-ink transition-colors hover:border-ink cursor-pointer"
+          >
+            {hero.ctaSecondary}
+          </MotionLink>
+        </Magnetic>
       </div>
       <motion.button
         type="button"

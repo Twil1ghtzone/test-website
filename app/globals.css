@@ -72,7 +72,19 @@
   a,
   [role="button"] {
     transition: color 0.2s ease, background-color 0.2s ease, border-color 0.2s ease,
-      box-shadow 0.2s ease, transform 0.28s cubic-bezier(0.34, 1.56, 0.64, 1);
+      box-shadow 0.25s cubic-bezier(0.25, 1, 0.5, 1), transform 0.28s cubic-bezier(0.34, 1.56, 0.64, 1);
+  }
+
+  /* Premium-Glow: JEDER Akzent-Button/-Link (Tailwind-Klasse .bg-accent) bekommt
+     beim Hover einen weichen, warmen Clay-Schein — eine Regel, sitewide, sicher
+     (nur box-shadow, GPU-freundlich). Deaktivierte Buttons bleiben ruhig. */
+  @media (hover: hover) and (pointer: fine) {
+    a.bg-accent:hover,
+    button.bg-accent:not(:disabled):hover,
+    [role="button"].bg-accent:hover {
+      box-shadow: 0 10px 30px -8px color-mix(in oklab, var(--color-accent) 55%, transparent),
+        0 2px 8px -2px color-mix(in oklab, var(--color-accent) 40%, transparent);
+    }
   }
 
   body {
@@ -123,6 +135,60 @@
   }
   .zoom-media:hover img {
     transform: scale(1.05);
+  }
+
+  /* ── Premium-Button „Sheen": diagonaler Lichtstreif, der beim Hover einmal
+     über den Button wischt. Rein transform/opacity (GPU). Voraussetzung:
+     das Element ist position:relative + overflow:hidden (gilt für alle
+     rounded-full-Buttons ohnehin). Nur auf feiner Maus, nicht auf Touch. */
+  .btn-sheen { position: relative; overflow: hidden; isolation: isolate; }
+  .btn-sheen::after {
+    content: "";
+    position: absolute;
+    top: 0;
+    left: 0;
+    height: 100%;
+    width: 45%;
+    z-index: 1;
+    pointer-events: none;
+    background: linear-gradient(
+      100deg,
+      transparent 0%,
+      color-mix(in oklab, #fff 45%, transparent) 50%,
+      transparent 100%
+    );
+    transform: translateX(-180%) skewX(-18deg);
+    opacity: 0;
+  }
+  @media (hover: hover) and (pointer: fine) {
+    .btn-sheen:hover::after {
+      opacity: 1;
+      transform: translateX(320%) skewX(-18deg);
+      transition: transform 0.7s cubic-bezier(0.22, 1, 0.36, 1), opacity 0.2s ease;
+    }
+  }
+
+  /* ── Wiederverwendbares 3D-Karten-System (.card-3d) ──
+     Verallgemeinert den Effekt der vier „Versprechen"-Boxen: Perspektive +
+     sanftes Anheben + gerichteter, weicher Schatten beim Hover. Der maus-
+     getrackte Kipp-Winkel wird per JS über die CSS-Variablen --rx/--ry gesetzt
+     (siehe useTilt-Hook); ohne JS bleibt es ein sauberer Perspektiv-Lift.
+     Nur transform/box-shadow → GPU-beschleunigt, kein Layout-Reflow. */
+  .card-3d {
+    transform-style: preserve-3d;
+    transform: perspective(1000px) rotateX(var(--ry, 0deg)) rotateY(var(--rx, 0deg)) translateZ(0);
+    transition: transform 0.28s cubic-bezier(0.22, 1, 0.36, 1),
+      box-shadow 0.28s cubic-bezier(0.22, 1, 0.36, 1);
+    will-change: transform;
+  }
+  @media (hover: hover) and (pointer: fine) {
+    .card-3d:hover {
+      box-shadow: 0 28px 60px -28px color-mix(in oklab, var(--color-ink) 22%, transparent);
+    }
+  }
+  /* Touch/reduzierte Bewegung: kein Kippen, nur ein ruhiger Lift. */
+  @media (hover: none), (prefers-reduced-motion: reduce) {
+    .card-3d { transform: none; }
   }
 
   /* Editorial italic emphasis (wie „style meets science") */

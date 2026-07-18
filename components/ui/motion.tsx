@@ -1,6 +1,7 @@
 "use client";
 
-import { motion } from "framer-motion";
+import { useRef } from "react";
+import { motion, useMotionValue, useSpring, useReducedMotion } from "framer-motion";
 import Link from "next/link";
 
 // Einheitliche „snappy" Physik für ALLE Button-Interaktionen der Seite.
@@ -39,3 +40,54 @@ export function Tilt({ children, className }: { children: React.ReactNode; class
 
 // Next-Link mit Motion-Fähigkeiten (für Button-artige Links).
 export const MotionLink = motion.create(Link);
+
+// ── Magnetischer Hover-Wrapper ──
+// Zieht das Kind sanft zum Cursor (max. ~`strength` px) und federt beim
+// Verlassen zurück. Rein transform-basiert (GPU) über gefederte MotionValues.
+// Kein Effekt auf Touch-Geräten und bei „reduzierte Bewegung" — dort ein
+// simpler Passthrough, damit nichts hakt oder springt.
+export function Magnetic({
+  children,
+  className,
+  strength = 8,
+}: {
+  children: React.ReactNode;
+  className?: string;
+  strength?: number;
+}) {
+  const reduced = useReducedMotion();
+  const ref = useRef<HTMLSpanElement>(null);
+  const x = useMotionValue(0);
+  const y = useMotionValue(0);
+  // Weiche Feder für organisches Nachziehen statt hartem 1:1-Folgen.
+  const sx = useSpring(x, { stiffness: 260, damping: 18, mass: 0.4 });
+  const sy = useSpring(y, { stiffness: 260, damping: 18, mass: 0.4 });
+
+  if (reduced) return <span className={className}>{children}</span>;
+
+  const onMove = (e: React.PointerEvent<HTMLSpanElement>) => {
+    // Nur echte Maus (fine pointer) zieht magnetisch — Finger nicht.
+    if (e.pointerType !== "mouse") return;
+    const el = ref.current;
+    if (!el) return;
+    const r = el.getBoundingClientRect();
+    const dx = e.clientX - (r.left + r.width / 2);
+    const dy = e.clientY - (r.top + r.height / 2);
+    // Auf ±strength begrenzen, relativ zur halben Kartengröße.
+    x.set(Math.max(-1, Math.min(1, dx / (r.width / 2))) * strength);
+    y.set(Math.max(-1, Math.min(1, dy / (r.height / 2))) * strength);
+  };
+  const reset = () => { x.set(0); y.set(0); };
+
+  return (
+    <motion.span
+      ref={ref}
+      onPointerMove={onMove}
+      onPointerLeave={reset}
+      style={{ x: sx, y: sy, display: "inline-block" }}
+      className={className}
+    >
+      {children}
+    </motion.span>
+  );
+}

@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { MotionLink, pressable } from "@/components/ui/motion";
+import TiltCard from "@/components/ui/tilt-card";
 import Image from "next/image";
 import { notFound } from "next/navigation";
 import Placeholder from "@/components/Placeholder";
@@ -168,20 +169,21 @@ export default async function ServicePage({ params }: { params: Promise<{ slug: 
             {others.map((o) => {
               const OIcon = iconMap[o.icon];
               return (
-                <Link
-                  key={o.slug}
-                  href={`/leistungen/${o.slug}`}
-                  className="group rounded-2xl border border-line bg-surface p-5 transition-all duration-300 hover:-translate-y-1 hover:border-accent/50 hover:shadow-[0_22px_50px_-22px_rgba(176,84,58,0.4)] cursor-pointer"
-                >
-                  <span className="grid h-10 w-10 place-items-center rounded-xl bg-accent-soft text-accent transition-colors duration-300 group-hover:bg-accent group-hover:text-white">
-                    <OIcon className="h-5 w-5" />
-                  </span>
-                  <h3 className="mt-4 font-display text-lg font-semibold leading-tight tracking-tight">{o.title}</h3>
-                  <span className="mt-3 inline-flex items-center gap-2 text-sm font-medium text-accent">
-                    Ansehen
-                    <ArrowIcon className="h-4 w-4 transition-transform group-hover:translate-x-1" />
-                  </span>
-                </Link>
+                <TiltCard key={o.slug} className="h-full">
+                  <Link
+                    href={`/leistungen/${o.slug}`}
+                    className="group block h-full rounded-2xl border border-line bg-surface p-5 transition-colors duration-300 hover:border-accent/50 cursor-pointer"
+                  >
+                    <span className="grid h-10 w-10 place-items-center rounded-xl bg-accent-soft text-accent transition-colors duration-300 group-hover:bg-accent group-hover:text-white">
+                      <OIcon className="h-5 w-5" />
+                    </span>
+                    <h3 className="mt-4 font-display text-lg font-semibold leading-tight tracking-tight">{o.title}</h3>
+                    <span className="mt-3 inline-flex items-center gap-2 text-sm font-medium text-accent">
+                      Ansehen
+                      <ArrowIcon className="h-4 w-4 transition-transform group-hover:translate-x-1" />
+                    </span>
+                  </Link>
+                </TiltCard>
               );
             })}
           </div>

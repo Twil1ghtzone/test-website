@@ -3,6 +3,7 @@ import Link from "next/link";
 import Image from "next/image";
 import Placeholder from "@/components/Placeholder";
 import BlogSubscribe from "@/components/BlogSubscribe";
+import TiltCard from "@/components/ui/tilt-card";
 import { ArrowIcon } from "@/components/icons";
 import { formatDate, type Post } from "@/lib/blog";
 import { brand } from "@/lib/data";
@@ -99,10 +100,10 @@ export default function BlogPage() {
         {/* Weitere Beiträge */}
         <div className="mt-8 grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
           {rest.map((p) => (
+            <TiltCard key={p.slug} className="h-full">
             <Link
-              key={p.slug}
               href={`/blog/${p.slug}`}
-              className="group flex flex-col overflow-hidden rounded-3xl border border-line bg-surface transition-all duration-300 hover:-translate-y-1 hover:border-accent/40 hover:shadow-[0_24px_50px_-26px_rgba(176,84,58,0.45)]"
+              className="group flex h-full flex-col overflow-hidden rounded-3xl border border-line bg-surface transition-colors duration-300 hover:border-accent/40"
             >
               <div className="relative aspect-[16/10] overflow-hidden">
                 {p.image ? (
@@ -123,6 +124,7 @@ export default function BlogPage() {
                 </span>
               </div>
             </Link>
+            </TiltCard>
           ))}
         </div>
 

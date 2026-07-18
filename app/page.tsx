@@ -9,7 +9,7 @@ import { HoverBorderGradient } from "@/components/ui/hover-border-gradient";
 import PathCards from "@/components/PathCards";
 import ProcessReveal from "@/components/ProcessReveal";
 import { LinkPreview } from "@/components/ui/link-preview";
-import { MotionLink, pressable } from "@/components/ui/motion";
+import { MotionLink, Magnetic, pressable } from "@/components/ui/motion";
 import { CardBody, CardContainer, CardItem } from "@/components/ui/3d-card";
 import Testimonials from "@/components/TestimonialsLazy";
 import ScrollRail from "@/components/ScrollRail";
@@ -129,14 +129,16 @@ export default function Home() {
               </div>
             </Reveal>
             <Reveal delay={200}>
-              <MotionLink
-                href="#warum"
-                {...pressable}
-                className="group mt-2 inline-flex items-center gap-2 rounded-full bg-accent px-7 py-3.5 font-medium text-white transition-colors hover:bg-accent-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2 cursor-pointer"
-              >
-                Warum lokal besser ist
-                <ArrowIcon className="h-5 w-5 transition-transform group-hover:translate-x-1" />
-              </MotionLink>
+              <Magnetic strength={9} className="mt-2 inline-block">
+                <MotionLink
+                  href="#warum"
+                  {...pressable}
+                  className="btn-sheen group inline-flex items-center gap-2 rounded-full bg-accent px-7 py-3.5 font-medium text-white transition-colors hover:bg-accent-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2 cursor-pointer"
+                >
+                  Warum lokal besser ist
+                  <ArrowIcon className="relative z-[2] h-5 w-5 transition-transform group-hover:translate-x-1" />
+                </MotionLink>
+              </Magnetic>
             </Reveal>
           </div>
         </section>
@@ -161,14 +163,16 @@ export default function Home() {
                     </li>
                   ))}
                 </ul>
-                <MotionLink
-                  href="/kontakt"
-                  {...pressable}
-                  className="group mt-9 inline-flex items-center gap-2 rounded-full bg-accent px-7 py-3.5 font-medium text-white transition-colors hover:bg-accent-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2 cursor-pointer"
-                >
-                  Jetzt anfragen
-                  <ArrowIcon className="h-5 w-5 transition-transform group-hover:translate-x-1" />
-                </MotionLink>
+                <Magnetic strength={9} className="mt-9 inline-block">
+                  <MotionLink
+                    href="/kontakt"
+                    {...pressable}
+                    className="btn-sheen group inline-flex items-center gap-2 rounded-full bg-accent px-7 py-3.5 font-medium text-white transition-colors hover:bg-accent-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2 cursor-pointer"
+                  >
+                    Jetzt anfragen
+                    <ArrowIcon className="relative z-[2] h-5 w-5 transition-transform group-hover:translate-x-1" />
+                  </MotionLink>
+                </Magnetic>
               </Reveal>
               <div className="relative order-1 min-h-[20rem] lg:order-2">
                 <Image src="/energie.webp" alt="Smarte Heizungssteuerung in einem warmen Wohnraum" fill sizes="(max-width: 1024px) 100vw, 50vw" className="object-cover transition-transform duration-[700ms] ease-[cubic-bezier(0.25,1,0.5,1)] hover:scale-105" />
@@ -290,12 +294,14 @@ export default function Home() {
                 unverbindlichen Angebot.
               </p>
               <div className="mt-8 flex justify-center">
-                <MotionLink href="/kontakt" {...pressable} className="group rounded-full focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2 cursor-pointer">
-                  <HoverBorderGradient as="span" tone="dark" className="flex items-center gap-2">
-                    Zum Kontakt
-                    <ArrowIcon className="h-5 w-5 transition-transform group-hover:translate-x-1" />
-                  </HoverBorderGradient>
-                </MotionLink>
+                <Magnetic strength={10}>
+                  <MotionLink href="/kontakt" {...pressable} className="group rounded-full focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2 cursor-pointer">
+                    <HoverBorderGradient as="span" tone="dark" className="flex items-center gap-2">
+                      Zum Kontakt
+                      <ArrowIcon className="h-5 w-5 transition-transform group-hover:translate-x-1" />
+                    </HoverBorderGradient>
+                  </MotionLink>
+                </Magnetic>
               </div>
             </div>
           </Reveal>
