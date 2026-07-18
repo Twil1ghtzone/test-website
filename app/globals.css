@@ -168,29 +168,6 @@
     }
   }
 
-  /* ── Wiederverwendbares 3D-Karten-System (.card-3d) ──
-     Verallgemeinert den Effekt der vier „Versprechen"-Boxen: Perspektive +
-     sanftes Anheben + gerichteter, weicher Schatten beim Hover. Der maus-
-     getrackte Kipp-Winkel wird per JS über die CSS-Variablen --rx/--ry gesetzt
-     (siehe useTilt-Hook); ohne JS bleibt es ein sauberer Perspektiv-Lift.
-     Nur transform/box-shadow → GPU-beschleunigt, kein Layout-Reflow. */
-  .card-3d {
-    transform-style: preserve-3d;
-    transform: perspective(1000px) rotateX(var(--ry, 0deg)) rotateY(var(--rx, 0deg)) translateZ(0);
-    transition: transform 0.28s cubic-bezier(0.22, 1, 0.36, 1),
-      box-shadow 0.28s cubic-bezier(0.22, 1, 0.36, 1);
-    will-change: transform;
-  }
-  @media (hover: hover) and (pointer: fine) {
-    .card-3d:hover {
-      box-shadow: 0 28px 60px -28px color-mix(in oklab, var(--color-ink) 22%, transparent);
-    }
-  }
-  /* Touch/reduzierte Bewegung: kein Kippen, nur ein ruhiger Lift. */
-  @media (hover: none), (prefers-reduced-motion: reduce) {
-    .card-3d { transform: none; }
-  }
-
   /* Editorial italic emphasis (wie „style meets science") */
   .emph {
     font-family: var(--font-display);
