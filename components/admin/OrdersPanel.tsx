@@ -101,7 +101,7 @@ function OrderModal({ order, onClose, onSaved }: { order: Order | null; onClose:
 
   return (
     <div className="fixed inset-0 z-[120] grid place-items-center bg-ink/55 p-4 backdrop-blur-sm" onClick={onClose}>
-      <div className="w-full max-w-md rounded-3xl border border-line bg-surface p-6" onClick={(e) => e.stopPropagation()}>
+      <div className="max-h-[90dvh] w-full max-w-md overflow-y-auto overscroll-contain rounded-3xl border border-line bg-surface p-6" onClick={(e) => e.stopPropagation()}>
         <div className="flex items-center justify-between">
           <h3 className="font-display text-xl font-semibold tracking-tight">{isNew ? "Neuer Auftrag" : "Auftrag bearbeiten"}</h3>
           <button onClick={onClose} aria-label="Schließen" className="grid h-9 w-9 place-items-center rounded-full text-muted hover:bg-canvas hover:text-ink cursor-pointer"><X className="h-5 w-5" /></button>

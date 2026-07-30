@@ -138,7 +138,7 @@ export default function SupportButton() {
             exit={{ opacity: 0, x: 10 }}
             transition={{ duration: 0.15, ease: "easeOut" }}
           >
-            <div ref={scrollRef} className="flex max-h-[15rem] min-h-[9rem] flex-col gap-2 overflow-y-auto bg-canvas/60 p-3">
+            <div ref={scrollRef} className="flex max-h-[min(15rem,40dvh)] min-h-[9rem] flex-col gap-2 overflow-y-auto overscroll-contain bg-canvas/60 p-3">
               {messages.map((m, i) => (
                 <div key={i} className={`flex ${m.from === "user" ? "justify-end" : "justify-start"}`}>
                   <span

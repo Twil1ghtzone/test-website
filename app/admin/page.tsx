@@ -5,7 +5,7 @@ import {
   ShieldCheck, LogIn, LogOut, Users, Inbox, LayoutDashboard, Plus, Trash2, Pencil, X,
   Eye, EyeOff, Loader2, Check, Mail, Phone, Sparkles, Database, FileText, Cookie,
   Star, Ticket, Hammer, Wallet, MessageCircle, History, HardDrive, UserRound, Menu,
-  Receipt, Bot,
+  Receipt, Bot, LifeBuoy, Scale,
 } from "lucide-react";
 import SettingsPanel from "@/components/admin/SettingsPanel";
 import BackupPanel from "@/components/admin/BackupPanel";
@@ -21,18 +21,21 @@ import DatabasePanel from "@/components/admin/DatabasePanel";
 import AccountPanel from "@/components/admin/AccountPanel";
 import InvoicesPanel from "@/components/admin/InvoicesPanel";
 import AssistantPanel from "@/components/admin/AssistantPanel";
+import SupportPanel from "@/components/admin/SupportPanel";
+import LegalPanel from "@/components/admin/LegalPanel";
 
 type Role = "admin" | "editor";
 type Permission =
   | "inquiries" | "users" | "settings" | "blog" | "backup" | "cookies"
-  | "reviews" | "tickets" | "chat" | "orders" | "finance" | "activity" | "database" | "invoices";
+  | "reviews" | "tickets" | "chat" | "orders" | "finance" | "activity" | "database" | "invoices"
+  | "support" | "legal";
 type Permissions = Record<Permission, boolean>;
 type User = { id: string; username: string; name: string; email: string; role: Role; permissions: Permissions; active: boolean; createdAt: string };
 type Inquiry = { id: string; name: string; email: string; phone?: string; topic?: string; building?: string; message: string; packages?: string[]; status: "neu" | "gelesen" | "erledigt"; createdAt: string };
 type Tab =
   | "overview" | "users" | "inquiries" | "blog" | "settings" | "backup" | "cookies"
   | "reviews" | "tickets" | "chat" | "orders" | "finance" | "activity" | "database" | "account"
-  | "invoices" | "assistant";
+  | "invoices" | "assistant" | "support" | "legal";
 
 const PERMISSION_LABELS: Record<Permission, string> = {
   inquiries: "Anfragen", users: "Benutzer", settings: "KI & Einstellungen",
@@ -40,10 +43,13 @@ const PERMISSION_LABELS: Record<Permission, string> = {
   reviews: "Bewertungen", tickets: "Tickets", chat: "Team-Chat",
   orders: "Aufträge", finance: "Finanzen", activity: "Aktivität", database: "Datenbank",
   invoices: "Rechnungen",
+  support: "Support-Tickets",
+  legal: "Rechtstexte & Kontakt",
 };
 const ALL_PERMISSIONS: Permission[] = [
   "inquiries", "users", "blog", "reviews", "invoices", "tickets", "chat",
   "orders", "finance", "activity", "settings", "backup", "cookies", "database",
+  "support", "legal",
 ];
 
 // Admin hat immer alle Rechte.
@@ -87,6 +93,9 @@ function LoginScreen({ onSuccess }: { onSuccess: () => void }) {
   const [show, setShow] = useState(false);
   const [err, setErr] = useState("");
   const [busy, setBusy] = useState(false);
+  // 2FA: Server antwortet mit needTotp → zweiter Schritt mit Code.
+  const [needTotp, setNeedTotp] = useState(false);
+  const [code, setCode] = useState("");
 
   async function submit(e: React.FormEvent) {
     e.preventDefault();
@@ -95,10 +104,15 @@ function LoginScreen({ onSuccess }: { onSuccess: () => void }) {
       const r = await fetch("/api/auth/login", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ username, password }),
+        body: JSON.stringify({ username, password, ...(needTotp ? { code } : {}) }),
       });
       const d = await r.json();
-      if (!r.ok) { setErr(d.error || "Anmeldung fehlgeschlagen."); setBusy(false); return; }
+      if (!r.ok) {
+        if (d.needTotp) { setNeedTotp(true); setCode(""); }
+        setErr(d.error || "Anmeldung fehlgeschlagen.");
+        setBusy(false);
+        return;
+      }
       onSuccess();
     } catch {
       setErr("Verbindungsfehler."); setBusy(false);
@@ -127,9 +141,26 @@ function LoginScreen({ onSuccess }: { onSuccess: () => void }) {
               </button>
             </div>
           </div>
+          {needTotp && (
+            <div className="rounded-xl border border-accent/40 bg-accent-soft/40 p-3">
+              <label htmlFor="totp" className="mb-1.5 block eyebrow text-accent-ink">Code aus der Authenticator-App</label>
+              <input
+                id="totp"
+                value={code}
+                onChange={(e) => setCode(e.target.value)}
+                inputMode="numeric"
+                maxLength={6}
+                autoFocus
+                autoComplete="one-time-code"
+                placeholder="123456"
+                className="w-full rounded-xl border border-line bg-surface px-4 py-3 text-center font-mono text-lg tracking-[0.3em] text-ink outline-none focus:border-accent"
+              />
+              <p className="mt-1.5 text-xs text-muted">Kein Zugriff aufs Handy? Einen Wiederherstellungs-Code eingeben.</p>
+            </div>
+          )}
           {err && <p className="rounded-lg border border-red-300 bg-red-50 px-3 py-2 text-sm text-red-700">{err}</p>}
           <button type="submit" disabled={busy} className="flex w-full items-center justify-center gap-2 rounded-xl bg-accent px-6 py-3.5 font-medium text-white transition-colors hover:bg-accent-ink disabled:opacity-60 cursor-pointer">
-            {busy ? <Loader2 className="h-5 w-5 animate-spin" /> : <LogIn className="h-5 w-5" />} Anmelden
+            {busy ? <Loader2 className="h-5 w-5 animate-spin" /> : <LogIn className="h-5 w-5" />} {needTotp ? "Code bestätigen" : "Anmelden"}
           </button>
         </form>
         <p className="mt-4 text-center text-xs text-muted">Erststart: <span className="font-mono">admin</span> / <span className="font-mono">test1234</span></p>
@@ -183,6 +214,7 @@ function Dashboard({ me, onLogout }: { me: User; onLogout: () => void }) {
       items: [
         { id: "chat", label: "Team-Chat", icon: MessageCircle, show: can(me, "chat") },
         { id: "inquiries", label: "Anfragen", icon: Inbox, show: can(me, "inquiries") },
+        { id: "support", label: "Support-Tickets", icon: LifeBuoy, show: can(me, "support") },
         { id: "reviews", label: "Bewertungen", icon: Star, show: can(me, "reviews") },
       ],
     },
@@ -191,6 +223,7 @@ function Dashboard({ me, onLogout }: { me: User; onLogout: () => void }) {
       items: [
         { id: "blog", label: "Blog", icon: FileText, show: can(me, "blog") },
         { id: "cookies", label: "Cookies", icon: Cookie, show: can(me, "cookies") },
+        { id: "legal", label: "Rechtstexte & Kontakt", icon: Scale, show: can(me, "legal") },
       ],
     },
     {
@@ -252,6 +285,8 @@ function Dashboard({ me, onLogout }: { me: User; onLogout: () => void }) {
       {tab === "orders" && can(me, "orders") && <OrdersPanel />}
       {tab === "invoices" && can(me, "invoices") && <InvoicesPanel />}
       {tab === "assistant" && <AssistantPanel />}
+      {tab === "support" && can(me, "support") && <SupportPanel />}
+      {tab === "legal" && can(me, "legal") && <LegalPanel />}
       {tab === "finance" && can(me, "finance") && <FinancePanel />}
       {tab === "chat" && can(me, "chat") && <ChatPanel meId={me.id} isAdmin={me.role === "admin"} />}
       {tab === "activity" && can(me, "activity") && <ActivityPanel isAdmin={me.role === "admin"} />}
@@ -432,12 +467,14 @@ function UserModal({ me, user, onClose, onSaved }: { me: User; user: User | null
 
   return (
     <div className="fixed inset-0 z-[120] grid place-items-center bg-ink/55 p-4 backdrop-blur-sm" onClick={onClose}>
-      <div className="w-full max-w-md rounded-3xl border border-line bg-surface p-6 sm:p-7" onClick={(e) => e.stopPropagation()}>
-        <div className="flex items-center justify-between">
+      {/* Flex-Spalte mit begrenzter Höhe: Kopf bleibt, Formular scrollt —
+          so sind auch die untersten Berechtigungen immer erreichbar. */}
+      <div className="flex max-h-[90dvh] w-full max-w-md flex-col overflow-hidden rounded-3xl border border-line bg-surface" onClick={(e) => e.stopPropagation()}>
+        <div className="flex items-center justify-between border-b border-line p-5 sm:px-7">
           <h3 className="font-display text-xl font-semibold tracking-tight">{isNew ? "Neuer Benutzer" : "Benutzer bearbeiten"}</h3>
           <button onClick={onClose} aria-label="Schließen" className="grid h-9 w-9 place-items-center rounded-full text-muted hover:bg-canvas hover:text-ink cursor-pointer"><X className="h-5 w-5" /></button>
         </div>
-        <form onSubmit={save} className="mt-5 space-y-4">
+        <form onSubmit={save} className="flex-1 space-y-4 overflow-y-auto overscroll-contain p-5 sm:p-7">
           <div><label className={lbl}>Name</label><input value={name} onChange={(e) => setName(e.target.value)} className={field} required /></div>
           <div>
             <label className={lbl}>Benutzername</label>

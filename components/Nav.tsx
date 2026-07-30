@@ -314,6 +314,17 @@ export default function Nav() {
             </div>
 
             <Link
+              href="/support"
+              onMouseEnter={() => setHover("support")}
+              className={`${pill} ${pathname === "/support" ? "text-accent" : "text-ink-soft hover:text-ink"}`}
+            >
+              {hover === "support" && (
+                <motion.span layoutId="nav-pill" className="absolute inset-0 -z-10 rounded-full bg-surface" transition={{ type: "spring", stiffness: 420, damping: 34 }} />
+              )}
+              Support
+            </Link>
+
+            <Link
               href="/blog"
               onMouseEnter={() => setHover("blog")}
               className={`${pill} ${blogActive ? "text-accent" : "text-ink-soft hover:text-ink"}`}
@@ -370,6 +381,9 @@ export default function Nav() {
               ))}
               <Link href="/blog" onClick={() => setOpen(false)} className="rounded-2xl px-3 py-2.5 text-ink-soft transition-colors hover:bg-surface hover:text-ink active:scale-[0.98] cursor-pointer">
                 Blog
+              </Link>
+              <Link href="/support" onClick={() => setOpen(false)} className="rounded-2xl px-3 py-2.5 text-ink-soft transition-colors hover:bg-surface hover:text-ink active:scale-[0.98] cursor-pointer">
+                Support
               </Link>
 
               {/* Dienstleistungen — aufklappbar */}

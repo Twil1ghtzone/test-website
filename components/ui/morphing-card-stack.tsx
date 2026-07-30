@@ -86,7 +86,7 @@ function ReviewModal({ card, onClose }: { card: CardData | null; onClose: () => 
 
             <Stars value={card.rating} size="h-5 w-5" />
             {/* Voller Text — komfortabel lesbar, scrollt bei sehr langen Bewertungen */}
-            <p className="mt-4 max-h-[55vh] overflow-y-auto whitespace-pre-wrap text-lg leading-relaxed text-ink-soft">
+            <p className="mt-4 max-h-[55vh] overflow-y-auto overscroll-contain whitespace-pre-wrap text-lg leading-relaxed text-ink-soft">
               „{card.text}“
             </p>
             <div className="mt-6 border-t border-line pt-4">

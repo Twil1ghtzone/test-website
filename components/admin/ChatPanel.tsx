@@ -69,7 +69,7 @@ export default function ChatPanel({ meId, isAdmin }: { meId: string; isAdmin: bo
       </div>
 
       <div className="overflow-hidden rounded-3xl border border-line bg-surface">
-        <div ref={scrollRef} className="flex max-h-[26rem] min-h-[14rem] flex-col gap-2.5 overflow-y-auto bg-canvas/60 p-4">
+        <div ref={scrollRef} className="flex max-h-[min(26rem,55dvh)] min-h-[14rem] flex-col gap-2.5 overflow-y-auto overscroll-contain bg-canvas/60 p-4">
           {messages.length === 0 && <p className="m-auto text-sm text-muted">Noch keine Nachrichten.</p>}
           {messages.map((m) => {
             const mine = m.userId === meId;

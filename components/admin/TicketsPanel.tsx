@@ -152,7 +152,7 @@ function TicketModal({ ticket, onClose, onSaved }: { ticket: Ticket | null; onCl
           <button onClick={onClose} aria-label="Schließen" className="grid h-9 w-9 place-items-center rounded-full text-muted hover:bg-canvas hover:text-ink cursor-pointer"><X className="h-5 w-5" /></button>
         </div>
 
-        <div className="flex-1 space-y-4 overflow-y-auto p-5">
+        <div className="flex-1 space-y-4 overflow-y-auto overscroll-contain p-5">
           <div><label className={lbl}>Titel</label><input value={title} onChange={(e) => setTitle(e.target.value)} className={field} required /></div>
           <div><label className={lbl}>Beschreibung</label><textarea rows={3} value={description} onChange={(e) => setDescription(e.target.value)} className={`${field} resize-none`} /></div>
           <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">

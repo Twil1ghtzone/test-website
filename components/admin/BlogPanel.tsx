@@ -242,7 +242,7 @@ function PostEditor({ post, onClose, onSaved }: { post: Post | null; onClose: ()
           </div>
         </div>
 
-        <div className="flex-1 overflow-y-auto p-4 sm:p-5">
+        <div className="flex-1 overflow-y-auto overscroll-contain p-4 sm:p-5">
           <div className="grid gap-4 lg:grid-cols-3">
             <div className="lg:col-span-2"><label className={lbl}>Titel</label><input value={title} onChange={(e) => setTitle(e.target.value)} className={field} placeholder="Überschrift des Beitrags" /></div>
             <div><label className={lbl}>URL-Kürzel (optional)</label><input value={slug} onChange={(e) => setSlug(e.target.value)} className={field} placeholder="wird aus Titel erzeugt" /></div>

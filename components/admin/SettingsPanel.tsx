@@ -130,6 +130,22 @@ export default function SettingsPanel() {
         </div>
         <p className="mt-1 text-sm text-muted">OpenAI-kompatibler Endpunkt. Der API-Key bleibt serverseitig und wird nie angezeigt.</p>
 
+        {/* Unmissverständlicher Hinweis, wenn die KI aus ist — sonst denkt man,
+            der Chat sei „kaputt", obwohl er nur den Fallback-Text ausgibt. */}
+        {!ai.enabled && (
+          <div className="mt-4 flex flex-wrap items-center gap-3 rounded-2xl border border-amber-300 bg-amber-50 px-4 py-3">
+            <AlertTriangle className="h-5 w-5 shrink-0 text-amber-600" />
+            <p className="min-w-0 flex-1 text-sm text-amber-900">
+              <b>KI ist derzeit AUS.</b> Support-Chat und Assistent senden <b>keine</b> echte Anfrage und
+              antworten nur mit dem Fallback-Text. Zum Verbinden mit Ollama/LM Studio hier aktivieren, Endpunkt prüfen und speichern.
+            </p>
+            <button type="button" onClick={() => setAi({ ...ai, enabled: true })}
+              className="shrink-0 rounded-full bg-amber-600 px-4 py-2 text-xs font-semibold text-white hover:bg-amber-700 cursor-pointer">
+              KI aktivieren
+            </button>
+          </div>
+        )}
+
         <div className="mt-4 flex flex-wrap gap-2">
           {presets.map((p) => {
             const active = ai.endpoint === p.endpoint;
@@ -266,7 +282,7 @@ export default function SettingsPanel() {
       {/* Bestätigung vor dem Speichern */}
       {confirm && (
         <div className="fixed inset-0 z-[130] grid place-items-center bg-ink/55 p-4 backdrop-blur-sm" onClick={() => setConfirm(false)}>
-          <div className="w-full max-w-sm rounded-3xl border border-line bg-surface p-6" onClick={(e) => e.stopPropagation()}>
+          <div className="max-h-[90dvh] w-full max-w-sm overflow-y-auto overscroll-contain rounded-3xl border border-line bg-surface p-6" onClick={(e) => e.stopPropagation()}>
             <div className="flex items-start justify-between">
               <h3 className="font-display text-lg font-semibold tracking-tight">Änderungen speichern?</h3>
               <button type="button" onClick={() => setConfirm(false)} aria-label="Abbrechen" className="grid h-8 w-8 place-items-center rounded-full text-muted hover:bg-canvas hover:text-ink cursor-pointer"><X className="h-4 w-4" /></button>

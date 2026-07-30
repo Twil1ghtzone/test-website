@@ -73,7 +73,7 @@ export default function AssistantPanel() {
       </div>
 
       <div className="overflow-hidden rounded-3xl border border-line bg-surface">
-        <div ref={scrollRef} className="flex max-h-[26rem] min-h-[16rem] flex-col gap-2.5 overflow-y-auto bg-canvas/60 p-4">
+        <div ref={scrollRef} className="flex max-h-[min(26rem,55dvh)] min-h-[16rem] flex-col gap-2.5 overflow-y-auto overscroll-contain bg-canvas/60 p-4">
           {messages.length === 0 && (
             <div className="m-auto max-w-sm text-center text-sm text-muted">
               Interner Assistent fürs Team — z. B. „Formuliere eine Angebots-E-Mail für eine Kamera-Installation"

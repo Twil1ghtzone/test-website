@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { Loader2, Save, UserRound, KeyRound } from "lucide-react";
+import TwoFactorPanel from "@/components/admin/TwoFactorPanel";
 
 type Me = { id: string; username: string; name: string; email: string; role: string };
 
@@ -58,6 +59,8 @@ export default function AccountPanel({ me, onChanged }: { me: Me; onChanged: () 
           <div><label className={lbl}>Wiederholen</label><input type="password" value={newPassword2} onChange={(e) => setNewPassword2(e.target.value)} className={field} autoComplete="new-password" /></div>
         </div>
       </div>
+
+      <TwoFactorPanel />
 
       {msg && <p className={`rounded-xl border px-4 py-3 text-sm ${msg.ok ? "border-emerald-200 bg-emerald-50 text-emerald-800" : "border-red-300 bg-red-50 text-red-700"}`}>{msg.text}</p>}
       <button type="submit" disabled={busy} className="inline-flex items-center gap-2 rounded-full bg-accent px-6 py-3 font-medium text-white hover:bg-accent-ink disabled:opacity-60 cursor-pointer">

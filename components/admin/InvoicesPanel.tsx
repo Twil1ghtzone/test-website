@@ -227,7 +227,7 @@ function InvoiceModal({ invoice, onClose, onSaved }: { invoice: Invoice | null; 
           <button onClick={onClose} aria-label="Schließen" className="grid h-9 w-9 place-items-center rounded-full text-muted hover:bg-canvas hover:text-ink cursor-pointer"><X className="h-5 w-5" /></button>
         </div>
 
-        <form onSubmit={save} className="flex-1 space-y-4 overflow-y-auto p-5">
+        <form onSubmit={save} className="flex-1 space-y-4 overflow-y-auto overscroll-contain p-5">
           <div className="grid gap-4 sm:grid-cols-2">
             <div><label className={lbl}>Kunde</label><input value={customer} onChange={(e) => setCustomer(e.target.value)} className={field} required /></div>
             {isNew && (

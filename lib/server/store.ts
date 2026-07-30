@@ -57,6 +57,8 @@ export const COLLECTIONS = {
   "audit.json": "Aktivitätslog",
   "invoices.json": "Rechnungen",
   "subscribers.json": "Blog-Abonnenten",
+  "support.json": "Support-Tickets",
+  "legal.json": "Rechtstexte & Kontakt",
   "settings.json": "Einstellungen",
 } as const;
 export type CollectionFile = keyof typeof COLLECTIONS;
@@ -83,10 +85,12 @@ export type Role = "admin" | "editor";
 
 export type Permission =
   | "inquiries" | "users" | "settings" | "blog" | "backup" | "cookies"
-  | "reviews" | "tickets" | "chat" | "orders" | "finance" | "activity" | "database" | "invoices";
+  | "reviews" | "tickets" | "chat" | "orders" | "finance" | "activity" | "database" | "invoices"
+  | "support" | "legal";
 export const ALL_PERMISSIONS: Permission[] = [
   "inquiries", "users", "settings", "blog", "backup", "cookies",
   "reviews", "tickets", "chat", "orders", "finance", "activity", "database", "invoices",
+  "support", "legal",
 ];
 export const PERMISSION_LABELS: Record<Permission, string> = {
   inquiries: "Anfragen",
@@ -103,6 +107,8 @@ export const PERMISSION_LABELS: Record<Permission, string> = {
   activity: "Aktivität",
   database: "Datenbank",
   invoices: "Rechnungen",
+  support: "Support-Tickets",
+  legal: "Rechtstexte & Kontakt",
 };
 export type Permissions = Record<Permission, boolean>;
 export const emptyPermissions = (): Permissions =>
@@ -121,6 +127,12 @@ export interface User {
   active: boolean;
   createdAt: string;
   updatedAt: string;
+  // ── 2FA (TOTP) ──
+  // totpSecret existiert erst nach dem Einrichten; totpEnabled erst nach
+  // erfolgreicher Bestätigung mit einem echten Code (verhindert Aussperren).
+  totpSecret?: string;
+  totpEnabled?: boolean;
+  totpRecovery?: string[]; // SHA-256-Hashes der Wiederherstellungs-Codes
 }
 
 export interface BlogPost {
@@ -251,6 +263,68 @@ export interface Ticket {
 export const readTickets = (): Ticket[] =>
   readJson<Ticket[]>("tickets.json", []).map((t) => ({ ...t, comments: t.comments || [] }));
 export const writeTickets = (t: Ticket[]) => writeJson("tickets.json", t);
+
+// ── Kunden-Support-Tickets (öffentlich erstellbar, per Nummer + Cookie einsehbar) ──
+export type SupportStatus = "offen" | "in_bearbeitung" | "beantwortet" | "geschlossen";
+export const SUPPORT_STATUS_LABELS: Record<SupportStatus, string> = {
+  offen: "Offen",
+  in_bearbeitung: "In Bearbeitung",
+  beantwortet: "Beantwortet",
+  geschlossen: "Geschlossen",
+};
+export interface SupportMessage {
+  id: string;
+  from: "kunde" | "team";
+  text: string;
+  createdAt: string;
+}
+export interface SupportTicket {
+  id: string;
+  number: string; // z. B. TS-2026-001 — öffentlich sichtbar
+  tokenHash: string; // HMAC des geheimen Zugriffs-Tokens (Klartext nie gespeichert)
+  name: string;
+  email: string;
+  subject: string;
+  status: SupportStatus;
+  ipHash: string; // gehasht (Rate-Limit/Missbrauch)
+  messages: SupportMessage[];
+  createdAt: string;
+  updatedAt: string;
+}
+export const readSupport = (): SupportTicket[] =>
+  readJson<SupportTicket[]>("support.json", []).map((t) => ({ ...t, messages: t.messages || [] }));
+export const writeSupport = (t: SupportTicket[]) => writeJson("support.json", t);
+
+// ── Editierbare Seiteninhalte: Kontaktdaten + Rechtstexte ──
+// Kontaktfelder speisen Footer & Kontaktseite; Rechtstexte sind Markdown.
+export interface SiteContent {
+  companyName: string;
+  email: string;
+  phone: string;
+  region: string;
+  address: string; // mehrzeilig erlaubt
+  footerNote: string;
+  impressum: string; // Markdown
+  datenschutz: string; // Markdown
+  agb: string; // Markdown (optional)
+}
+export const DEFAULT_CONTENT: SiteContent = {
+  companyName: "STUDIO//LOKAL",
+  email: "kontakt@studio-lokal.de",
+  phone: "+49 000 000000",
+  region: "Ihre Region",
+  address: "STUDIO//LOKAL\nMusterstraße 1\n00000 Musterstadt",
+  footerNote: "Elektrohandwerk + lokale IT — cloud-frei, abofrei, Daten bleiben im Haus.",
+  impressum:
+    "## Impressum\n\nAngaben gemäß § 5 TMG\n\n**STUDIO//LOKAL**\nMusterstraße 1\n00000 Musterstadt\n\n**Kontakt:** kontakt@studio-lokal.de\n\n_Bitte im Admin-Bereich mit euren echten Angaben ersetzen._",
+  datenschutz:
+    "## Datenschutzerklärung\n\nWir verarbeiten personenbezogene Daten sparsam und lokal. Diese Seite setzt nur ein technisch notwendiges Sitzungs-Cookie im Admin-Bereich sowie — falls genutzt — ein Cookie zur Wiedererkennung eigener Support-Tickets.\n\n_Bitte im Admin-Bereich mit eurer echten Datenschutzerklärung ersetzen._",
+  agb: "",
+};
+export function readContent(): SiteContent {
+  return { ...DEFAULT_CONTENT, ...readJson<Partial<SiteContent>>("legal.json", {}) };
+}
+export const writeContent = (c: SiteContent) => writeJson("legal.json", c);
 
 // ── Team-Chat ──
 export interface ChatMessage {

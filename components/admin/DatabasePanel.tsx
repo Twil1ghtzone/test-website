@@ -101,7 +101,7 @@ export default function DatabasePanel({ isAdmin }: { isAdmin: boolean }) {
 
       {confirm && (
         <div className="fixed inset-0 z-[130] grid place-items-center bg-ink/55 p-4 backdrop-blur-sm" onClick={() => setConfirm(false)}>
-          <div className="w-full max-w-sm rounded-3xl border border-line bg-surface p-6" onClick={(e) => e.stopPropagation()}>
+          <div className="max-h-[90dvh] w-full max-w-sm overflow-y-auto overscroll-contain rounded-3xl border border-line bg-surface p-6" onClick={(e) => e.stopPropagation()}>
             <div className="flex items-start justify-between">
               <span className="grid h-11 w-11 place-items-center rounded-2xl bg-red-100 text-red-600"><AlertTriangle className="h-5 w-5" /></span>
               <button onClick={() => setConfirm(false)} aria-label="Abbrechen" className="grid h-8 w-8 place-items-center rounded-full text-muted hover:bg-canvas hover:text-ink cursor-pointer"><X className="h-4 w-4" /></button>
