@@ -78,7 +78,7 @@ export default async function ServicePage({ params }: { params: Promise<{ slug: 
                 className="mt-4 inline-flex items-center gap-1.5 text-sm text-muted transition-colors hover:text-accent-ink cursor-pointer"
               >
                 <span className="text-accent">⚡</span>
-                Tipp: Sparpotenzial im Strom-Spar-Rechner schätzen
+                Tipp: Sparpotenzial im Energie-Spar-Rechner schätzen
                 <ArrowIcon className="h-4 w-4" />
               </Link>
             )}

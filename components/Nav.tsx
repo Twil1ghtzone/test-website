@@ -300,7 +300,7 @@ export default function Nav() {
                       <div className="flex gap-2 px-0.5 pb-0.5">
                         <Link href="/stromrechner" onClick={() => setServicesOpen(false)} className="flex flex-1 items-center gap-2 rounded-2xl border border-line bg-canvas/60 p-2.5 text-accent-ink transition-colors hover:border-accent/40 hover:bg-accent-soft cursor-pointer">
                           <Zap className="h-4 w-4 shrink-0 text-accent" />
-                          <span className="text-xs font-semibold leading-tight">Strom-Spar-Rechner</span>
+                          <span className="text-xs font-semibold leading-tight">Energie-Spar-Rechner</span>
                         </Link>
                         <Link href="/konfigurator" onClick={() => setServicesOpen(false)} className="flex flex-1 items-center gap-2 rounded-2xl border border-line bg-canvas/60 p-2.5 text-accent-ink transition-colors hover:border-accent/40 hover:bg-accent-soft cursor-pointer">
                           <Boxes className="h-4 w-4 shrink-0 text-accent" />
@@ -414,7 +414,7 @@ export default function Nav() {
                   ))}
                   <Link href="/stromrechner" onClick={() => setOpen(false)} className="flex items-center gap-3 rounded-2xl px-3 py-2.5 font-medium text-accent transition-colors hover:bg-surface active:scale-[0.98] cursor-pointer">
                     <span className="grid h-8 w-8 shrink-0 place-items-center rounded-xl bg-accent-soft"><Zap className="h-4 w-4" /></span>
-                    Strom-Spar-Rechner
+                    Energie-Spar-Rechner
                   </Link>
                   <Link href="/konfigurator" onClick={() => setOpen(false)} className="flex items-center gap-3 rounded-2xl px-3 py-2.5 font-medium text-accent transition-colors hover:bg-surface active:scale-[0.98] cursor-pointer">
                     <span className="grid h-8 w-8 shrink-0 place-items-center rounded-xl bg-accent-soft"><Boxes className="h-4 w-4" /></span>

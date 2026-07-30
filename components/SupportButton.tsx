@@ -127,7 +127,7 @@ export default function SupportButton() {
             </a>
             <Link href="/stromrechner" onClick={() => setOpen(false)} className="flex items-center gap-3 rounded-xl p-3 transition-colors hover:bg-canvas cursor-pointer">
               <Tilt><span className="grid h-9 w-9 place-items-center rounded-lg bg-accent-soft text-accent"><FileQuestion className="h-5 w-5" /></span></Tilt>
-              <span><span className="block text-sm font-medium text-ink">Sparpotenzial?</span><span className="block text-xs text-muted">Strom-Spar-Rechner</span></span>
+              <span><span className="block text-sm font-medium text-ink">Sparpotenzial?</span><span className="block text-xs text-muted">Energie-Spar-Rechner</span></span>
             </Link>
           </motion.div>
         ) : (

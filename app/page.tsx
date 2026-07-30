@@ -118,7 +118,7 @@ export default function Home() {
                 wir über Bord. Ihr Zuhause arbeitet künftig für Sie, nicht für die Konzerne.
                 Wie viel drin ist, zeigt der{" "}
                 <LinkPreview url="/stromrechner" imageSrc="/energie.webp" className="font-semibold">
-                  Strom-Spar-Rechner
+                  Energie-Spar-Rechner
                 </LinkPreview>
                 .
               </p>
