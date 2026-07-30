@@ -385,6 +385,10 @@ export interface AISettings {
   systemPrompt: string; // Core-Prompt / Persönlichkeit
   temperature: number;
   maxTokens: number;
+  // Lokale Reasoning-Modelle denken erst laut nach und antworten dann. Beides
+  // muss in dieses Zeitlimit passen, sonst kappt der Webserver die Leitung
+  // mitten in der Generierung.
+  timeoutMs: number;
   greeting: string; // erste Bot-Nachricht im Chat
   fallback: string; // Antwort, wenn KI aus/nicht erreichbar
 }
@@ -424,7 +428,10 @@ export const DEFAULT_SETTINGS: Settings = {
     systemPrompt:
       "Du bist der freundliche Support-Assistent von STUDIO//LOKAL, einem Betrieb für Elektrohandwerk + lokale IT (cloud-frei, abofrei, Daten bleiben im Haus). Antworte kurz, hilfsbereit und auf Deutsch. Verweise bei konkreten Anfragen auf das Kontaktformular. Erfinde keine Preise — Preise gibt es nur auf Anfrage.",
     temperature: 0.6,
-    maxTokens: 500,
+    // Reasoning-Modelle brauchen Luft: unter ~800 Token geht das Budget fürs
+    // Nachdenken drauf und der Antwortteil bleibt leer.
+    maxTokens: 800,
+    timeoutMs: 120000,
     greeting: "Hallo! 👋 Wie kann ich dir rund um Smart-Home, Server & Energie sparen helfen?",
     fallback: "Danke für deine Nachricht! Wir melden uns persönlich — am schnellsten über das Kontaktformular, per E-Mail oder telefonisch.",
   },

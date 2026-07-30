@@ -22,17 +22,44 @@ export async function POST(req: NextRequest) {
 
   if (!endpoint) return NextResponse.json({ ok: false, detail: "Kein Endpunkt angegeben." }, { status: 200 });
 
-  // Genug Spielraum für Modelle mit interner Reasoning (Denkschritte) —
-  // ein zu kleines Limit lässt die eigentliche Antwort leer erscheinen.
+  // Zeitlimit: das eingestellte, aber mindestens 60 s. Lokale Reasoning-Modelle
+  // denken erst sekundenlang laut nach — ein knappes Test-Limit kappt die
+  // Leitung mitten in der Generierung und sieht dann wie ein Serverfehler aus.
+  const timeoutMs = Math.max(60000, typeof body.timeoutMs === "number" ? body.timeoutMs : cur.ai.timeoutMs);
+  // Großzügiges Budget, damit ein Reasoning-Modell nach dem Nachdenken noch
+  // Platz für die eigentliche Antwort hat.
+  const maxTokens = Math.max(1200, cur.ai.maxTokens);
+
   const result = await callAI(
-    { endpoint, apiKey, model, temperature: 0, maxTokens: 300 },
+    { endpoint, apiKey, model, temperature: 0, maxTokens },
     [
       { role: "system", content: systemPrompt },
-      { role: "user", content: "Antworte nur mit dem Wort: OK" },
+      // Bewusst eine echte, harmlose Frage statt „Antworte nur mit OK": eine
+      // Formatier-Anweisung verleitet Reasoning-Modelle dazu, minutenlang über
+      // die Anweisung selbst nachzudenken, statt einfach zu antworten.
+      { role: "user", content: "Sag bitte in einem kurzen Satz Hallo." },
     ],
-    30000
+    timeoutMs
   );
 
-  if (!result.ok) return NextResponse.json({ ok: false, status: result.status, ms: result.ms, detail: result.detail, endpoint: normalizeEndpoint(endpoint) });
-  return NextResponse.json({ ok: true, status: result.status, ms: result.ms, model, reply: result.reply.slice(0, 120), endpoint: normalizeEndpoint(endpoint) });
+  const gemeinsam = { status: result.status, ms: result.ms, endpoint: normalizeEndpoint(endpoint), model };
+
+  if (!result.ok) {
+    // Sonderfall: Der Server ANTWORTET, das Modell hat aber sein ganzes Budget
+    // ins Nachdenken gesteckt. Die Verbindung steht damit — nur das Modell
+    // passt nicht zur Einstellung. Das ist ein Hinweis, kein Verbindungsfehler.
+    if (result.reasoningOnly) {
+      return NextResponse.json({
+        ...gemeinsam,
+        ok: true,
+        warnung:
+          `Verbindung und Modell antworten — aber „${model}“ ist ein Reasoning-Modell und hat ` +
+          `sein Token-Budget (${result.usedMaxTokens ?? maxTokens}) komplett fürs Nachdenken verbraucht. ` +
+          "Für den Kundenchat bitte „Max. Tokens“ höher setzen oder ein Modell ohne Reasoning wählen.",
+      });
+    }
+    return NextResponse.json({ ...gemeinsam, ok: false, detail: result.detail });
+  }
+
+  return NextResponse.json({ ...gemeinsam, ok: true, reply: result.reply.slice(0, 160) });
 }

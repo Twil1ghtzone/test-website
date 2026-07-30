@@ -49,6 +49,7 @@ export async function POST(req: NextRequest) {
       systemPrompt: typeof ai.systemPrompt === "string" ? ai.systemPrompt : cur.ai.systemPrompt,
       temperature: typeof ai.temperature === "number" ? Math.max(0, Math.min(2, ai.temperature)) : cur.ai.temperature,
       maxTokens: typeof ai.maxTokens === "number" ? Math.max(50, Math.min(4000, Math.round(ai.maxTokens))) : cur.ai.maxTokens,
+      timeoutMs: typeof ai.timeoutMs === "number" ? Math.max(5000, Math.min(600000, Math.round(ai.timeoutMs))) : cur.ai.timeoutMs,
       greeting: typeof ai.greeting === "string" ? ai.greeting : cur.ai.greeting,
       fallback: typeof ai.fallback === "string" ? ai.fallback : cur.ai.fallback,
     },

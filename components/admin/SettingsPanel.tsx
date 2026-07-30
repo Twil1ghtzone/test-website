@@ -5,13 +5,13 @@ import { Sparkles, Save, Loader2, Wifi, Eye, EyeOff, Check, AlertTriangle, X, Pl
 
 type AISettings = {
   enabled: boolean; endpoint: string; model: string; systemPrompt: string;
-  temperature: number; maxTokens: number; greeting: string; fallback: string;
+  temperature: number; maxTokens: number; timeoutMs: number; greeting: string; fallback: string;
   requireApiKey: boolean; apiKeyEnabled: boolean; apiKeySet?: boolean;
 };
 
 type SmtpSettings = { host: string; port: number; user: string; from: string; passSet?: boolean };
 
-type TestResult = { ok: boolean; ms?: number; status?: number; reply?: string; detail?: string; model?: string };
+type TestResult = { ok: boolean; ms?: number; status?: number; reply?: string; detail?: string; warnung?: string; model?: string };
 
 const PROMPT_EXAMPLE =
   "Du bist der freundliche Support-Assistent von STUDIO//LOKAL — einem Betrieb für Elektrohandwerk und lokale IT (cloud-frei, abofrei, Daten bleiben im Haus). " +
@@ -221,7 +221,17 @@ export default function SettingsPanel() {
           <div>
             <label className={lbl}>Max. Tokens</label>
             <input type="number" min={50} max={4000} value={ai.maxTokens} onChange={(e) => setAi({ ...ai, maxTokens: +e.target.value })} className={field} />
-            <p className="mt-1 text-xs text-muted">Reasoning-Modelle (DeepSeek-R1, Qwen-Thinking, gpt-oss …) brauchen mehr Budget fürs „Nachdenken" — bei leeren Antworten hier erhöhen.</p>
+            <p className="mt-1 text-xs text-muted">Reasoning-Modelle (DeepSeek-R1, Qwen-Thinking, Nemotron …) brauchen mehr Budget fürs „Nachdenken" — bei leeren Antworten hier erhöhen. Ein zweiter Versuch mit vierfachem Budget läuft automatisch.</p>
+          </div>
+          <div>
+            <label className={lbl}>Zeitlimit (Sekunden)</label>
+            <input
+              type="number" min={5} max={600}
+              value={Math.round(ai.timeoutMs / 1000)}
+              onChange={(e) => setAi({ ...ai, timeoutMs: Math.max(5, Math.min(600, +e.target.value)) * 1000 })}
+              className={field}
+            />
+            <p className="mt-1 text-xs text-muted">So lange darf das Modell rechnen. Lokale Modelle auf CPU brauchen leicht 60–120 s — ist der Wert zu klein, kappt der Server die Leitung mitten in der Antwort.</p>
           </div>
           <div className="sm:col-span-2">
             <div className="mb-1.5 flex items-center justify-between gap-2">
@@ -241,17 +251,27 @@ export default function SettingsPanel() {
           </button>
           <p className="mt-1.5 text-xs text-muted">Sendet eine echte Test-Anfrage an den oben eingetragenen Endpunkt (auch ungespeichert).</p>
 
-          {test && (
-            <div className={`mt-3 rounded-2xl border p-4 text-sm ${test.ok ? "border-emerald-200 bg-emerald-50" : "border-red-200 bg-red-50"}`}>
-              <div className={`flex items-center gap-2 font-medium ${test.ok ? "text-emerald-700" : "text-red-700"}`}>
-                {test.ok ? <Check className="h-4 w-4" /> : <AlertTriangle className="h-4 w-4" />}
-                {test.ok ? "Verbindung erfolgreich" : "Verbindung fehlgeschlagen"}
-                {typeof test.ms === "number" && <span className="font-normal text-muted">· {test.ms} ms{test.status ? ` · HTTP ${test.status}` : ""}</span>}
+          {test && (() => {
+            // Drei Zustände: erfolgreich · erreichbar mit Hinweis · fehlgeschlagen.
+            const hinweis = test.ok && !!test.warnung;
+            const ton = hinweis
+              ? { rahmen: "border-amber-300 bg-amber-50", text: "text-amber-800", titel: "Verbindung steht — mit Einschränkung" }
+              : test.ok
+                ? { rahmen: "border-emerald-200 bg-emerald-50", text: "text-emerald-700", titel: "Verbindung erfolgreich" }
+                : { rahmen: "border-red-200 bg-red-50", text: "text-red-700", titel: "Verbindung fehlgeschlagen" };
+            return (
+              <div className={`mt-3 rounded-2xl border p-4 text-sm ${ton.rahmen}`}>
+                <div className={`flex items-center gap-2 font-medium ${ton.text}`}>
+                  {test.ok && !hinweis ? <Check className="h-4 w-4" /> : <AlertTriangle className="h-4 w-4" />}
+                  {ton.titel}
+                  {typeof test.ms === "number" && <span className="font-normal text-muted">· {(test.ms / 1000).toFixed(1)} s{test.status ? ` · HTTP ${test.status}` : ""}</span>}
+                </div>
+                {test.reply && <p className="mt-1.5 text-ink-soft">Antwort ({test.model}): „{test.reply}"</p>}
+                {test.warnung && <p className={`mt-1.5 break-words ${ton.text}`}>{test.warnung}</p>}
+                {!test.ok && test.detail && <p className="mt-1.5 break-words text-red-700/90">{test.detail}</p>}
               </div>
-              {test.ok && test.reply && <p className="mt-1.5 text-ink-soft">Antwort ({test.model}): „{test.reply}"</p>}
-              {!test.ok && test.detail && <p className="mt-1.5 break-words text-red-700/90">{test.detail}</p>}
-            </div>
-          )}
+            );
+          })()}
         </div>
       </div>
 
