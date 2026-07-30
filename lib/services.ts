@@ -16,6 +16,13 @@ export const categories: Category[] = [
   { key: "hardware", label: "3D-Druck & Hardware", description: "Passgenaue Lösungen, vor Ort gefertigt." },
 ];
 
+/** Ein Galerie-Bild. `src` optional: ohne Foto bleibt der Platzhalter-Rahmen stehen. */
+export interface GalleryItem {
+  src?: string;
+  caption: string;
+  alt?: string;
+}
+
 export interface Service {
   slug: string;
   no: string;
@@ -26,9 +33,9 @@ export interface Service {
   intro: string;
   points: string[]; // „Das ist dabei"
   outcomes: string[]; // „Ihr Vorteil"
-  imageCaption: string; // Hauptbild (Platzhalter-Text)
-  image?: string; // optionales echtes Hauptbild (/public)
-  gallery: string[]; // weitere Bild-Slots
+  imageCaption: string; // Bildunterschrift des Hauptbilds
+  image?: string; // Hauptbild (/public)
+  gallery: GalleryItem[]; // Eindrücke — Foto + Beschreibung
   icon: ServiceIcon;
 }
 
@@ -55,7 +62,11 @@ export const services: Service[] = [
     ],
     imageCaption: "Hauptbild — Kamera am Gebäude",
     image: "/weg-sicherheit.webp",
-    gallery: ["Foto: saubere PoE-Verkabelung", "Foto: montierte IP-Kamera", "Foto: lokale Live-Ansicht"],
+    gallery: [
+      { src: "/pillar-verkabelung.webp", caption: "Saubere PoE-Verkabelung bis zum Verteiler", alt: "Gebündelte blaue und gelbe Netzwerkkabel unter einer Kellerdecke, geführt zu Wandverteiler und Rack" },
+      { src: "/pillar-halterung.webp", caption: "Montierte IP-Kamera mit eigener Halterung", alt: "Schwarze Überwachungskamera auf 3D-gedruckter Halterung an einer Ziegelwand" },
+      { src: "/technikraum-rack.webp", caption: "Eigenes Netz für die Kameras (VLAN)", alt: "Wandrack mit Patchpanel, Switch, NAS und Mini-PC, sauber verkabelt" },
+    ],
     icon: "camera",
   },
   {
@@ -79,7 +90,11 @@ export const services: Service[] = [
     ],
     imageCaption: "Hauptbild — Thermostat / Steuerung",
     image: "/energie.webp",
-    gallery: ["Foto: smarte Heizungssteuerung", "Foto: Beleuchtungs-Szene", "Foto: Energie-Übersicht"],
+    gallery: [
+      { src: "/licht-szene.webp", caption: "Beleuchtungs-Szene am Abend", alt: "Wohnzimmer am Abend mit indirekter Deckenbeleuchtung, Pendelleuchten und beleuchtetem Regal" },
+      { src: "/energie-dashboard.webp", caption: "Verbrauch jederzeit im Blick", alt: "Tablet zeigt ein Dashboard mit aktuellem Stromverbrauch, Wochenverlauf und geschätzten Kosten" },
+      { src: "/rolle-smarthome.webp", caption: "Smarte Heizungssteuerung", alt: "Hand stellt ein rundes Wandthermostat im Wohnzimmer auf 22 Grad" },
+    ],
     icon: "bolt",
   },
   {
@@ -103,7 +118,11 @@ export const services: Service[] = [
     ],
     imageCaption: "Hauptbild — Heimserver",
     image: "/server.webp",
-    gallery: ["Foto: Server im Schrank", "Foto: Docker-Übersicht", "Foto: Immich-App am Handy"],
+    gallery: [
+      { src: "/server-rack.webp", caption: "Server im Schrank — inklusive USV", alt: "Kompaktes Server-Rack mit Patchpanel, Mini-PCs, Einschub-Server und unterbrechungsfreier Stromversorgung" },
+      { src: "/server-docker.webp", caption: "Alle Dienste getrennt in Docker", alt: "Laptop zeigt ein Container-Dashboard mit laufenden Diensten, Auslastung und Speicherverlauf" },
+      { src: "/server-fotos.webp", caption: "Foto-Backup direkt aufs eigene System", alt: "Smartphone zeigt eine Foto-App, in der alle Bilder auf den eigenen Server gesichert wurden" },
+    ],
     icon: "server",
   },
   {
@@ -126,7 +145,11 @@ export const services: Service[] = [
       "Wirkt auf allen Geräten, ohne Installation pro Gerät.",
     ],
     imageCaption: "Hauptbild — Netzwerk / Filter",
-    gallery: ["Foto: Pi-hole Dashboard", "Foto: Router / Netzwerk", "Foto: werbefreier Smart-TV"],
+    image: "/werbeschutz.webp",
+    gallery: [
+      { src: "/wohnzimmer-netzwerk.webp", caption: "Werbefreier Smart-TV im Wohnzimmer", alt: "Wohnzimmer mit Wand-TV, Router und kleinem Einplatinenrechner auf dem Sideboard" },
+      { src: "/rolle-it.webp", caption: "Der Filter läuft lokal im eigenen Netz", alt: "Wandmontiertes Netzwerk-Rack mit farblich sortierten Patchkabeln, Switch und NAS" },
+    ],
     icon: "shield",
   },
   {
@@ -150,7 +173,11 @@ export const services: Service[] = [
     ],
     imageCaption: "Hauptbild — 3D-gedruckte Halterung",
     image: "/druck.webp",
-    gallery: ["Foto: 3D-Drucker bei der Arbeit", "Foto: fertiges Bauteil", "Foto: montiertes Ergebnis"],
+    gallery: [
+      { src: "/rolle-3ddruck.webp", caption: "3D-Drucker bei der Arbeit", alt: "3D-Drucker fertigt eine blaue Wandhalterung, daneben Filamentrolle und Werkzeug" },
+      { src: "/pillar-halterung.webp", caption: "Montiertes Ergebnis an der Fassade", alt: "Kamera auf passgenau gedruckter Halterung, sauber an einer Ziegelwand verschraubt" },
+      { src: "/about-werkstatt.webp", caption: "Konstruiert und gefertigt in der Werkstatt", alt: "Werkbank mit Werkzeugwand, Kabelrollen und mehreren 3D-gedruckten Halterungen" },
+    ],
     icon: "cube",
   },
 ];

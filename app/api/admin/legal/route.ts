@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { revalidatePath } from "next/cache";
 import { readContent, writeContent, readUsers, type SiteContent } from "@/lib/server/store";
 import { requirePermission, verifyPassword } from "@/lib/server/auth";
 import { logAudit } from "@/lib/server/audit";
@@ -41,6 +42,10 @@ export async function POST(req: NextRequest) {
     agb: str(body.agb, cur.agb),
   };
   writeContent(next);
+  // Der Footer steckt im Root-Layout und wird auf statisch vorgerenderten Seiten
+  // (Start, Kontakt, Konfigurator, Leistungen) zur Build-Zeit eingebacken.
+  // Ohne diese Zeile blieben dort die alten Kontaktdaten bis zum nächsten Build stehen.
+  revalidatePath("/", "layout");
   logAudit(me.name, "Rechtstexte/Kontakt gespeichert", `Kontakt: ${next.email} · ${next.phone}`);
   return NextResponse.json({ ok: true });
 }

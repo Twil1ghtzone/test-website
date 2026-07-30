@@ -57,7 +57,7 @@ export default function Home() {
           <div className="mx-auto max-w-6xl">
             <div className="grid items-center gap-12 lg:grid-cols-2">
               <Reveal>
-                <Placeholder caption={about.imageCaption} ratio="aspect-[5/4]" className="w-full" />
+                <Placeholder src={about.image} alt={about.imageAlt} caption={about.imageCaption} ratio="aspect-[5/4]" className="w-full" sizes="(max-width: 1024px) 100vw, 50vw" />
               </Reveal>
               <Reveal delay={120}>
                 <span className="eyebrow text-accent">{about.eyebrow}</span>
@@ -80,7 +80,7 @@ export default function Home() {
               {about.roles.map((r, i) => (
                 <Reveal key={r.role} delay={i * 100} className="h-full">
                   <GlowCard className="flex h-full flex-col gap-5 rounded-3xl p-5 sm:flex-row sm:p-6">
-                    <Placeholder caption={r.imageCaption} ratio="aspect-square" rounded="rounded-2xl" className="sm:w-40 sm:shrink-0" />
+                    <Placeholder src={r.image} alt={r.imageAlt} caption={r.imageCaption} ratio="aspect-square" rounded="rounded-2xl" className="sm:w-40 sm:shrink-0" sizes="(max-width: 640px) 100vw, 160px" />
                     <div className="flex flex-col justify-center">
                       <span className="eyebrow text-muted">{r.sub}</span>
                       <h3 className="mt-2 font-display text-2xl font-semibold tracking-tight">{r.role}</h3>
@@ -203,7 +203,7 @@ export default function Home() {
                   <Reveal key={pillar.no}>
                     <article className="grid items-center gap-10 lg:grid-cols-2">
                       <div className={flip ? "lg:order-2" : ""}>
-                        <Placeholder caption={pillar.imageCaption} ratio="aspect-[4/3]" className="w-full" />
+                        <Placeholder src={pillar.image} alt={pillar.imageAlt} caption={pillar.imageCaption} ratio="aspect-[4/3]" className="w-full" sizes="(max-width: 1024px) 100vw, 50vw" />
                       </div>
                       <div className={flip ? "lg:order-1" : ""}>
                         <div className="flex items-center gap-4">

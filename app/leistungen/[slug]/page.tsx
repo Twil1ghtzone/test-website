@@ -130,16 +130,20 @@ export default async function ServicePage({ params }: { params: Promise<{ slug: 
         <section className="mt-16">
           <div className="flex items-end justify-between gap-4">
             <h2 className="font-display text-2xl font-semibold tracking-tight">Eindrücke</h2>
-            <span className="text-sm text-muted">Platzhalter — später mit eigenen Fotos füllen</span>
           </div>
           <div className="mt-6 grid grid-cols-2 gap-4 sm:grid-cols-3">
-            {service.gallery.map((caption, i) => (
-              <Placeholder
-                key={i}
-                caption={caption}
-                ratio={i === 0 ? "aspect-[4/3]" : "aspect-square"}
-                className="w-full"
-              />
+            {service.gallery.map((item, i) => (
+              <figure key={item.caption} className="w-full">
+                <Placeholder
+                  src={item.src}
+                  alt={item.alt}
+                  caption={item.caption}
+                  ratio={i === 0 ? "aspect-[4/3]" : "aspect-square"}
+                  className="w-full"
+                  sizes="(max-width: 640px) 50vw, 33vw"
+                />
+                <figcaption className="mt-2 text-xs leading-snug text-muted">{item.caption}</figcaption>
+              </figure>
             ))}
           </div>
         </section>

@@ -40,31 +40,41 @@ export const about = {
   titleTail: "eingespieltes Team.",
   body:
     "Unser Betrieb bündelt mehrere Fachbereiche, die sonst einzeln beauftragt werden müssten: Elektrotechnik, IT-Infrastruktur, Smart-Home-Integration und individuelle Fertigung per 3D-Druck. Für Sie bedeutet das eine durchgängige Betreuung aus einer Hand — von der Planung über die fachgerechte Installation bis zum eingerichteten, dokumentierten System. Klar erklärt, verlässlich umgesetzt.",
-  imageCaption: "Platzhalter — Foto: Werkstatt & Arbeit vor Ort",
+  imageCaption: "Werkstatt: Werkzeug, Material und Technik an einem Ort",
+  image: "/about-werkstatt.webp",
+  imageAlt: "Werkbank mit Werkzeugwand, Kabelrollen, 3D-gedruckten Halterungen und einem Laptop mit Netzwerk-Dashboard",
   roles: [
     {
       role: "Elektrotechnik",
       sub: "Gebäudetechnik & Verkabelung",
       body: "Planung, Verkabelung und fachgerechte Montage — saubere Ausführung nach anerkannten Regeln der Technik.",
-      imageCaption: "Platzhalter — Werkzeug & Verkabelung",
+      imageCaption: "Verdrahtung im Schaltschrank",
+      image: "/rolle-elektro.webp",
+      imageAlt: "Hände mit Arbeitshandschuhen verdrahten Reihenklemmen in einem Schaltschrank mit DGUV-V3-Prüfplakette",
     },
     {
       role: "IT & Netzwerke",
       sub: "Server & Datensicherheit",
       body: "Server, Netzwerk-Trennung und Datensicherheit — sicher konfiguriert, verständlich dokumentiert und langfristig wartbar.",
-      imageCaption: "Platzhalter — Server & Netzwerk",
+      imageCaption: "Netzwerk-Rack, sauber gepatcht",
+      image: "/rolle-it.webp",
+      imageAlt: "Wandmontiertes Netzwerk-Rack mit farblich sortierten Patchkabeln, Switch, NAS und Mini-Server",
     },
     {
       role: "Smart-Home-Integration",
       sub: "Automatisierung im Alltag",
       body: "Lokale Automatisierung für Heizung, Licht und Kameras — spürbar mehr Komfort, ganz ohne Cloud-Anbindung.",
-      imageCaption: "Platzhalter — Smart-Home-Steuerung",
+      imageCaption: "Steuerung, die im Alltag mitdenkt",
+      image: "/rolle-smarthome.webp",
+      imageAlt: "Hand stellt ein rundes Smart-Home-Thermostat an der Wohnzimmerwand auf 22 Grad",
     },
     {
       role: "3D-Druck & Fertigung",
       sub: "Individuelle Lösungen",
       body: "Passgenaue Halterungen, Gehäuse und Adapter — konstruiert und gedruckt für genau Ihre Räume.",
-      imageCaption: "Platzhalter — 3D-Druck in der Werkstatt",
+      imageCaption: "Fertigung in der eigenen Werkstatt",
+      image: "/rolle-3ddruck.webp",
+      imageAlt: "3D-Drucker fertigt eine blaue Wandhalterung, daneben Filamentrolle und Werkzeug",
     },
   ],
 };
@@ -116,7 +126,9 @@ export const pillars = [
       "Absicherung durch ein eigenes, vom Internet getrenntes Netzwerk (VLAN) für die Kameras — Schutz vor Hackerangriffen.",
       "Intelligente Steuerung von Heizung und Beleuchtung, die aktiv Ihre Energiekosten senkt.",
     ],
-    imageCaption: "Platzhalter — Foto: Kamera-Installation",
+    imageCaption: "Saubere PoE-Verlegung bis in den Technikraum",
+    image: "/pillar-verkabelung.webp",
+    imageAlt: "Sorgfältig gebündelte Netzwerkkabel unter einer Kellerdecke führen zu einem Wandverteiler und einem Rack",
   },
   {
     no: "02",
@@ -130,7 +142,9 @@ export const pillars = [
       "Werbe- und Tracker-Blocker fürs ganze Haus (Pi-hole / AdGuard Home) — blockiert Werbung auf allen Geräten, sogar am Smart-TV.",
       "Ausfallsichere Backups, die Ihre Daten dauerhaft vor Verlust schützen.",
     ],
-    imageCaption: "Platzhalter — Foto: Server / Schaltschrank",
+    imageCaption: "Stromsparender Linux-Server im Wandschrank",
+    image: "/pillar-server.webp",
+    imageAlt: "Lüfterloser schwarzer Linux-Server mit grüner Status-LED auf einem Einlegeboden unter einem Patchpanel",
   },
   {
     no: "03",
@@ -143,7 +157,9 @@ export const pillars = [
       "Passgenaue Gehäuse für Server-Komponenten, Schaltschränke oder Steuerungszentralen.",
       "Schnelle Fertigung von Spezial-Adaptern und Problemlösern direkt vor Ort — auch dann, wenn es das im Handel nicht gibt.",
     ],
-    imageCaption: "Platzhalter — Foto: 3D-gedruckte Halterung",
+    imageCaption: "Halterung, gedruckt für genau diese Wand",
+    image: "/pillar-halterung.webp",
+    imageAlt: "Überwachungskamera auf einer passgenau 3D-gedruckten Halterung an einer Ziegelwand",
   },
 ];
 
@@ -158,7 +174,9 @@ export const featured = {
     "Keine monatlichen Cloud-Gebühren mehr.",
     "Ihre Fotos und Daten bleiben sicher im Haus.",
   ],
-  imageCaption: "Platzhalter — Foto: aufgeräumtes Smart-Home / Wohnraum",
+  imageCaption: "Wohnraum am Abend — Licht als Szene statt als Schalter",
+  image: "/licht-szene.webp",
+  imageAlt: "Warm beleuchtetes Wohnzimmer am Abend mit indirekter Deckenbeleuchtung, Pendelleuchten und Regalbeleuchtung",
 };
 
 // Ablauf

@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { readReviews, writeReviews, readSettings, INVOICE_STATUS_LABELS, type Review } from "@/lib/server/store";
 import { sealReview, verifyReview, hashIp, findInvoice, reviewKind, normalizeInvoiceNumber } from "@/lib/server/reviews";
+import { rateLimit } from "@/lib/server/ratelimit";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -28,6 +29,12 @@ export async function GET() {
 
 // Öffentlich: Bewertung abgeben — NUR mit im System registrierter Rechnungsnummer.
 export async function POST(req: NextRequest) {
+  // Grundbremse pro IP (zusätzlich zum fachlichen maxPerDay-Limit weiter unten):
+  // schützt auch den verify-Schritt vor massenhaftem Durchprobieren von Rechnungsnummern.
+  if (!rateLimit(`reviews:${clientIp(req)}`, 30, 60 * 60 * 1000).ok) {
+    return NextResponse.json({ error: "Zu viele Anfragen — bitte später erneut versuchen." }, { status: 429 });
+  }
+
   const { reviews: cfg } = readSettings();
   if (!cfg.enabled) return NextResponse.json({ error: "Bewertungen sind derzeit deaktiviert." }, { status: 403 });
 

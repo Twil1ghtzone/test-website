@@ -1,3 +1,4 @@
+import Image from "next/image";
 import { CameraIcon } from "./icons";
 import { Tilt } from "@/components/ui/motion";
 
@@ -8,11 +9,17 @@ type Props = {
   ratio?: string;
   arch?: boolean;
   rounded?: string;
+  /** Echtes Foto aus /public. Ohne src bleibt der Platzhalter stehen. */
+  src?: string;
+  /** Alt-Text — Pflicht, sobald src gesetzt ist; sonst dient caption als Fallback. */
+  alt?: string;
+  sizes?: string;
+  priority?: boolean;
 };
 
 /**
- * Eleganter Foto-Platzhalter. Später 1:1 durch <Image> ersetzen:
- * dieselbe Größe/Ratio/Rundung beibehalten.
+ * Bild-Slot in einheitlicher Form. Mit `src` wird das Foto gezeigt,
+ * ohne `src` derselbe Rahmen als Platzhalter — Größe/Ratio/Rundung bleiben gleich.
  */
 export default function Placeholder({
   caption,
@@ -20,7 +27,30 @@ export default function Placeholder({
   ratio = "aspect-[4/5]",
   arch = false,
   rounded = "rounded-2xl",
+  src,
+  alt,
+  sizes = "(max-width: 768px) 100vw, 33vw",
+  priority = false,
 }: Props) {
+  if (src) {
+    return (
+      <div
+        className={`group relative overflow-hidden border border-line ${ratio} ${
+          arch ? "arch" : rounded
+        } ${className}`}
+      >
+        <Image
+          src={src}
+          alt={alt || caption || ""}
+          fill
+          sizes={sizes}
+          priority={priority}
+          className="object-cover transition-transform duration-[700ms] ease-[cubic-bezier(0.25,1,0.5,1)] group-hover:scale-105"
+        />
+      </div>
+    );
+  }
+
   return (
     <div
       className={`ph-pattern relative flex items-center justify-center overflow-hidden border border-line-strong ${ratio} ${

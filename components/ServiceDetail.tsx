@@ -31,7 +31,7 @@ export default function ServiceDetail({ service, compact = false }: { service: S
       <p className="mt-3 text-lg text-ink-soft">{service.tagline}</p>
 
       <div className="mt-7">
-        <Placeholder caption={service.imageCaption} ratio={compact ? "aspect-[16/9]" : "aspect-[16/9]"} className="w-full" />
+        <Placeholder src={service.image} alt={service.pageTitle} caption={service.imageCaption} ratio="aspect-[16/9]" className="w-full" sizes="(max-width: 768px) 100vw, 640px" />
       </div>
 
       <p className="mt-7 leading-relaxed text-ink-soft">{service.intro}</p>
