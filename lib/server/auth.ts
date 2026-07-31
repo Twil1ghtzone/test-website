@@ -2,27 +2,10 @@ import crypto from "crypto";
 import bcrypt from "bcryptjs";
 import { cookies } from "next/headers";
 import { readUsers, writeUsers, fullPermissions, type User, type Role, type Permission } from "./store";
+import { serverSecret } from "./secret.ts";
 
 export const SESSION_COOKIE = "sl_session";
 const SESSION_TTL_MS = 1000 * 60 * 60 * 8; // 8 Stunden
-
-// In Produktion ohne gesetztes SESSION_SECRET wird ein zufälliges Prozess-
-// Secret erzeugt: Sessions überleben dann keinen Neustart, sind aber NICHT
-// fälschbar (der alte Dev-Fallback war öffentlich bekannt → Session-Forgery).
-const runtimeSecret = crypto.randomBytes(32).toString("hex");
-let warned = false;
-
-function getSecret(): string {
-  if (process.env.SESSION_SECRET) return process.env.SESSION_SECRET;
-  if (process.env.NODE_ENV === "production") {
-    if (!warned) {
-      console.warn("[Sicherheit] SESSION_SECRET ist nicht gesetzt — es wird ein zufälliges Prozess-Secret verwendet. Sessions enden bei jedem Neustart. Bitte SESSION_SECRET in der Umgebung setzen.");
-      warned = true;
-    }
-    return runtimeSecret;
-  }
-  return "studio-lokal-dev-secret-bitte-aendern";
-}
 
 // ── Passwörter (bcrypt, Kostenfaktor 12 — kein Klartext) ──
 export const hashPassword = (pw: string) => bcrypt.hash(pw, 12);
@@ -30,7 +13,7 @@ export const verifyPassword = (pw: string, hash: string) => bcrypt.compare(pw, h
 
 // ── Session-Cookie: HMAC-signiert (payload.signature) ──
 function sign(payload: string): string {
-  return crypto.createHmac("sha256", getSecret()).update(payload).digest("hex");
+  return crypto.createHmac("sha256", serverSecret()).update(payload).digest("hex");
 }
 
 export function createSessionValue(user: User): string {

@@ -7,6 +7,18 @@ import { logAudit } from "@/lib/server/audit";
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
+// Nur http(s) zulassen — die URL wird im Admin als Link angezeigt, ein
+// "javascript:"-Schema hätte dort dieselbe Wirkung wie bei jedem anderen Link.
+function safeAutomationUrl(raw: unknown, fallback: string): string {
+  if (typeof raw !== "string" || !raw.trim()) return fallback;
+  try {
+    const u = new URL(raw.trim());
+    return ["http:", "https:"].includes(u.protocol) ? u.href.slice(0, 300) : fallback;
+  } catch {
+    return fallback;
+  }
+}
+
 // Liefert Einstellungen — API-Key wird NICHT zurückgegeben (nur ob gesetzt).
 export async function GET() {
   if (!(await requirePermission("settings"))) return NextResponse.json({ error: "Nicht autorisiert" }, { status: 401 });
@@ -26,6 +38,7 @@ export async function POST(req: NextRequest) {
   const ai = body.ai || {};
   const rv = body.reviews || {};
   const sm = body.smtp || {};
+  const au = body.automation || {};
 
   // Sicherheitsstufe: Änderung des KI-Endpunkts nur mit Admin-Passwort.
   const newEndpoint = typeof ai.endpoint === "string" ? ai.endpoint.trim() : cur.ai.endpoint;
@@ -64,6 +77,12 @@ export async function POST(req: NextRequest) {
       user: typeof sm.user === "string" ? sm.user.trim() : cur.smtp.user,
       pass: typeof sm.pass === "string" && sm.pass.length > 0 ? sm.pass : cur.smtp.pass,
       from: typeof sm.from === "string" ? sm.from.trim() : cur.smtp.from,
+    },
+    automation: {
+      // Der Schalter zeigt/versteckt nur den Link im Admin — er startet oder
+      // stoppt keinen Container (siehe AutomationSettings-Kommentar in store.ts).
+      enabled: typeof au.enabled === "boolean" ? au.enabled : cur.automation.enabled,
+      url: safeAutomationUrl(au.url, cur.automation.url),
     },
   };
 

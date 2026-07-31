@@ -359,7 +359,21 @@ export const DEFAULT_CONTENT: SiteContent = {
   impressum:
     "## Impressum\n\nAngaben gemäß § 5 TMG\n\n**STUDIO//LOKAL**\nMusterstraße 1\n00000 Musterstadt\n\n**Kontakt:** kontakt@studio-lokal.de\n\n_Bitte im Admin-Bereich mit euren echten Angaben ersetzen._",
   datenschutz:
-    "## Datenschutzerklärung\n\nWir verarbeiten personenbezogene Daten sparsam und lokal. Diese Seite setzt nur ein technisch notwendiges Sitzungs-Cookie im Admin-Bereich sowie — falls genutzt — ein Cookie zur Wiedererkennung eigener Support-Tickets.\n\n_Bitte im Admin-Bereich mit eurer echten Datenschutzerklärung ersetzen._",
+    "## Datenschutzerklärung\n\n" +
+    "Wir verarbeiten personenbezogene Daten sparsam und lokal. Diese Seite setzt ausschließlich technisch notwendige Cookies — " +
+    "für die Admin-Anmeldung, zur Wiedererkennung eigener Support-Tickets und für den KI-Support-Chat. Eine vollständige Liste " +
+    "mit Zweck, Speicherdauer und Schutzmaßnahmen jedes einzelnen Cookies führt der Admin-Bereich unter „Cookies“.\n\n" +
+    "### KI-Support-Chat\n\n" +
+    "Nachrichten an unseren Chat-Assistenten werden verschlüsselt gespeichert (AES-256) und automatisch nach 7 Tagen " +
+    "Inaktivität gelöscht — oder sofort, wenn Sie im Chat „Neuer Chat“ wählen. Der Zugriff auf einen laufenden Chat läuft " +
+    "über ein signiertes, nur serverseitig lesbares Cookie. Die Verarbeitung dient der Beantwortung Ihrer Anfrage " +
+    "(Art. 6 Abs. 1 lit. f DSGVO, berechtigtes Interesse an funktionierendem Support).\n\n" +
+    "_Hinweis für den Betreiber, bitte vor Veröffentlichung prüfen:_ Läuft die KI über einen lokal betriebenen Server " +
+    "(z. B. Ollama/LM Studio im eigenen Netz), verlassen die Nachrichten diesen Server nicht. Wird stattdessen ein " +
+    "Cloud-Anbieter (z. B. OpenAI) als KI-Endpunkt eingetragen, werden die Nachrichten zur Verarbeitung an diesen Anbieter " +
+    "übermittelt — dann bitte hier den tatsächlich genutzten Anbieter, dessen Sitz und ggf. eine Auftragsverarbeitungs-" +
+    "Vereinbarung ergänzen.\n\n" +
+    "_Bitte im Admin-Bereich mit eurer echten Datenschutzerklärung ersetzen._",
   agb: "",
 };
 export function readContent(): SiteContent {
@@ -448,17 +462,31 @@ export interface SmtpSettings {
   from: string;
 }
 
+/**
+ * Reiner Anzeige-Schalter für den Admin-Bereich — steuert NICHT, ob der
+ * Activepieces-Container läuft. Das entscheidet ausschließlich der Betrieb
+ * per `docker compose --profile automation up/down` (siehe docker-compose.yml).
+ * Ein Web-Toggle mit echter Docker-Kontrolle würde der Next.js-App Zugriff
+ * auf den Docker-Socket geben — praktisch Root-Rechte auf dem ganzen Host.
+ */
+export interface AutomationSettings {
+  enabled: boolean;
+  url: string;
+}
+
 export interface Settings {
   siteName: string;
   ai: AISettings;
   reviews: ReviewSettings;
   smtp: SmtpSettings;
+  automation: AutomationSettings;
 }
 
 export const DEFAULT_SETTINGS: Settings = {
   siteName: "STUDIO//LOKAL",
   reviews: { enabled: true, autoApprove: false, maxPerDay: 3 },
   smtp: { host: "", port: 587, user: "", pass: "", from: "" },
+  automation: { enabled: false, url: "http://localhost:8080" },
   ai: {
     enabled: false,
     endpoint: "https://api.openai.com/v1/chat/completions",
@@ -486,6 +514,7 @@ export function readSettings(): Settings {
     ai: { ...DEFAULT_SETTINGS.ai, ...(s.ai || {}) },
     reviews: { ...DEFAULT_SETTINGS.reviews, ...(s.reviews || {}) },
     smtp: { ...DEFAULT_SETTINGS.smtp, ...(s.smtp || {}) },
+    automation: { ...DEFAULT_SETTINGS.automation, ...(s.automation || {}) },
   };
 }
 export const writeSettings = (s: Settings) => writeJson("settings.json", s);

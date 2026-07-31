@@ -190,6 +190,28 @@
     background-size: 22px 22px;
   }
 
+  /* Dezenter Lichtstreif, der einmal über große, sonst leere Flächen zieht.
+     Läuft rein über `background-position` (kompositiert, kein Repaint) und
+     ist bewusst sehr subtil: ein sehr breiter, weicher Streifen statt eines
+     harten Balkens, seltene Wiederholung statt Dauerschleife. */
+  @keyframes sheen-sweep {
+    0%, 92% { background-position: -60% 0; }
+    100% { background-position: 160% 0; }
+  }
+  .sheen {
+    background-image: linear-gradient(
+      100deg,
+      transparent 42%,
+      color-mix(in oklab, var(--color-accent) 10%, transparent) 50%,
+      transparent 58%
+    );
+    background-size: 220% 100%;
+    animation: sheen-sweep 9s ease-in-out infinite;
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .sheen { animation: none; }
+  }
+
   /* Foto-Platzhalter Diagonal-Muster */
   .ph-pattern {
     background-color: var(--color-surface-2);

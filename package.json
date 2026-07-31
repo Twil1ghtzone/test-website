@@ -9,8 +9,9 @@
     "lint": "next lint",
     "test:rechner": "node --experimental-strip-types --no-warnings lib/sparrechner.test.mjs",
     "test:ai": "node --experimental-strip-types --no-warnings lib/server/ai.test.mjs",
-    "test": "npm run test:rechner && npm run test:ai && npm run test:support",
-    "test:support": "node --experimental-strip-types --no-warnings lib/server/support.test.mjs"
+    "test": "npm run test:rechner && npm run test:ai && npm run test:support && npm run test:aichat",
+    "test:support": "node --experimental-strip-types --no-warnings lib/server/support.test.mjs",
+    "test:aichat": "node --experimental-strip-types --no-warnings lib/server/aiChat.test.mjs"
   },
   "dependencies": {
     "@radix-ui/react-checkbox": "^1.3.4",

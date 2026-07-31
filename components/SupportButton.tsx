@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { AnimatePresence, motion } from "framer-motion";
-import { MessageCircle, X, Mail, Phone, FileQuestion, Bot, Send, ArrowLeft, Sparkles } from "lucide-react";
+import { MessageCircle, X, Mail, Phone, FileQuestion, Bot, Send, ArrowLeft, Sparkles, RotateCcw, ShieldCheck } from "lucide-react";
 import { brand } from "@/lib/data";
 import { pressSpring, Tilt } from "@/components/ui/motion";
 
@@ -17,16 +17,28 @@ export default function SupportButton() {
   const [messages, setMessages] = useState<Msg[]>([{ from: "bot", text: DEFAULT_GREETING }]);
   const [input, setInput] = useState("");
   const [busy, setBusy] = useState(false);
+  const [resetting, setResetting] = useState(false);
   const [aiOn, setAiOn] = useState(false);
+  const [greeting, setGreeting] = useState(DEFAULT_GREETING);
+  const [hadReturningChat, setHadReturningChat] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
 
-  // Begrüßung + KI-Status aus den Einstellungen laden.
+  // Begrüßung + KI-Status laden. Läuft ausschließlich über den HttpOnly-
+  // Cookie: gibt es einen gültigen, noch nicht abgelaufenen Chat, kommt der
+  // gespeicherte (und hier erst entschlüsselte) Verlauf gleich mit zurück —
+  // ganz ohne dass das Frontend irgendetwas selbst gespeichert hätte.
   useEffect(() => {
     fetch("/api/chat")
       .then((r) => r.json())
       .then((d) => {
         setAiOn(!!d?.enabled);
-        if (d?.greeting) setMessages((m) => (m.length === 1 && m[0].from === "bot" ? [{ from: "bot", text: d.greeting }] : m));
+        if (d?.greeting) setGreeting(d.greeting);
+        if (Array.isArray(d?.messages) && d.messages.length > 0) {
+          setMessages(d.messages.map((m: { from: string; text: string }) => ({ from: m.from === "user" ? "user" : "bot", text: m.text })));
+          setHadReturningChat(true);
+        } else if (d?.greeting) {
+          setMessages([{ from: "bot", text: d.greeting }]);
+        }
       })
       .catch(() => {});
   }, []);
@@ -39,23 +51,42 @@ export default function SupportButton() {
     e.preventDefault();
     const t = input.trim();
     if (!t || busy) return;
-    const next: Msg[] = [...messages, { from: "user", text: t }];
-    setMessages(next);
+    setMessages((m) => [...m, { from: "user", text: t }]);
     setInput("");
     setBusy(true);
     try {
+      // Nur die NEUE Nachricht geht raus — der Verlauf lebt serverseitig,
+      // verschlüsselt, hinter dem Sitzungs-Cookie. So kann niemand über die
+      // Entwicklertools erfundene KI-Antworten in den Kontext einschleusen.
       const r = await fetch("/api/chat", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ messages: next.map((m) => ({ role: m.from === "user" ? "user" : "assistant", text: m.text })) }),
+        body: JSON.stringify({ text: t }),
       });
       const d = await r.json();
       setMessages((m) => [...m, { from: "bot", text: d.reply || "Entschuldige, das hat nicht geklappt." }]);
+      setHadReturningChat(true);
     } catch {
       setMessages((m) => [...m, { from: "bot", text: "Verbindungsfehler. Bitte später erneut versuchen." }]);
     } finally {
       setBusy(false);
     }
+  }
+
+  // "Neuer Chat" — löscht den Verlauf serverseitig vollständig und beginnt
+  // sauber neu. Gedacht für: falls man mit der KI nicht weiterkommt, oder
+  // einfach ein neues Thema anfangen möchte.
+  async function startOver() {
+    if (resetting) return;
+    setResetting(true);
+    try {
+      await fetch("/api/chat", { method: "DELETE" });
+    } catch {
+      /* Cookie ist client-seitig ohnehin nicht lesbar — im Zweifel einfach lokal zurücksetzen. */
+    }
+    setMessages([{ from: "bot", text: greeting }]);
+    setHadReturningChat(false);
+    setResetting(false);
   }
 
   return (
@@ -80,7 +111,7 @@ export default function SupportButton() {
           <span className="grid h-9 w-9 place-items-center rounded-lg bg-accent text-white">
             {view === "chat" ? <Bot className="h-5 w-5" /> : <MessageCircle className="h-5 w-5" />}
           </span>
-          <div className="min-w-0">
+          <div className="min-w-0 flex-1">
             <p className="font-display text-base font-semibold leading-tight">
               {view === "chat" ? "Assistent" : "Wie können wir helfen?"}
             </p>
@@ -95,6 +126,21 @@ export default function SupportButton() {
               )}
             </p>
           </div>
+          {/* "Neuer Chat" — löscht den bisherigen Verlauf serverseitig und
+              beginnt sauber neu; hilfreich, falls man mit der KI nicht
+              weiterkommt oder ein neues Thema anfangen möchte. */}
+          {view === "chat" && (hadReturningChat || messages.length > 1) && (
+            <button
+              type="button"
+              onClick={startOver}
+              disabled={resetting}
+              title="Neuer Chat — löscht den bisherigen Verlauf"
+              aria-label="Neuer Chat"
+              className="shrink-0 rounded-lg p-1.5 text-white/60 transition-colors hover:bg-white/10 hover:text-white disabled:opacity-50 cursor-pointer"
+            >
+              <RotateCcw className={`h-4 w-4 ${resetting ? "animate-spin" : ""}`} />
+            </button>
+          )}
         </div>
 
         <AnimatePresence mode="wait" initial={false}>
@@ -171,6 +217,10 @@ export default function SupportButton() {
                 <Send className="h-4 w-4" />
               </button>
             </form>
+            <p className="flex items-center justify-center gap-1.5 pb-2.5 text-center text-[11px] text-muted">
+              <ShieldCheck className="h-3 w-3 shrink-0" />
+              Verschlüsselt gespeichert · löscht sich nach 7 Tagen selbst
+            </p>
             <p className="flex items-center justify-center gap-1 pb-2.5 text-center text-[11px] text-muted">
               <Sparkles className="h-3 w-3" /> {aiOn ? "KI-Assistent aktiv" : "Assistent · KI im Admin aktivierbar"}
             </p>

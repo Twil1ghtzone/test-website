@@ -1,6 +1,7 @@
 import crypto from "crypto";
-import type { NextRequest } from "next/server";
 import type { SupportTicket } from "./store";
+import { serverSecret } from "./secret.ts";
+import { sign, makeToken, hashToken, verifyToken, istHttps, cookieOptions, originOk } from "./security.ts";
 
 /* ════════════════════════════════════════════════════════════════════════
    TICKET-SICHERHEIT
@@ -23,13 +24,6 @@ import type { SupportTicket } from "./store";
    ohne gültigen Code antwortet der Server mit demselben 404 wie bei einer
    Nummer, die es gar nicht gibt.
    ════════════════════════════════════════════════════════════════════════ */
-
-// Prozess-/Env-Secret (wie bei Session & Review-Siegel).
-const runtimeSecret = crypto.randomBytes(32).toString("hex");
-function secret(): string {
-  if (process.env.SESSION_SECRET) return process.env.SESSION_SECRET;
-  return process.env.NODE_ENV === "production" ? runtimeSecret : "studio-lokal-dev-secret-bitte-aendern";
-}
 
 /* ─────────────────────────── Ticketnummer ─────────────────────────── */
 
@@ -68,32 +62,16 @@ export function normalizeNumber(raw: string): string {
 
 /* ─────────────────────────── Zugriffscode ─────────────────────────── */
 
-/** Geheimer Zugriffscode: 24 Byte Zufall, base64url — nie im Klartext gespeichert. */
-export function makeToken(): string {
-  return crypto.randomBytes(24).toString("base64url");
-}
-export function hashToken(token: string): string {
-  return crypto.createHmac("sha256", secret()).update(token).digest("hex");
-}
-export function verifyToken(token: string, hash: string): boolean {
-  try {
-    return crypto.timingSafeEqual(Buffer.from(hashToken(token), "hex"), Buffer.from(hash, "hex"));
-  } catch {
-    return false;
-  }
-}
+// makeToken/hashToken/verifyToken kommen jetzt aus security.ts (dort auch
+// vom Chat-Modul genutzt) — hier nur noch der ticket-spezifische Rest.
 
 export function hashIp(ip: string): string {
-  return crypto.createHmac("sha256", secret()).update(`ip:${ip}`).digest("hex").slice(0, 32);
+  return crypto.createHmac("sha256", serverSecret()).update(`ip:${ip}`).digest("hex").slice(0, 32);
 }
 
 /* ───────────────────── Magic-Link (signiert, befristet) ───────────────────── */
 
 export const MAGIC_GUELTIG_MS = 14 * 24 * 60 * 60 * 1000; // 14 Tage
-
-function sign(daten: string): string {
-  return crypto.createHmac("sha256", secret()).update(daten).digest("base64url");
-}
 
 /**
  * Signierter Link-Token: `<base64url(nummer|code|ablauf)>.<signatur>`.
@@ -164,53 +142,8 @@ export function entpackZugriffe(cookie: string | undefined): Zugriff[] {
   }
 }
 
-/**
- * Cookie-Optionen mit maximalen Schutzflags.
- *
- * `secure` wird nur gesetzt, wenn die Anfrage wirklich über HTTPS kam —
- * sonst würde der Browser den Cookie stillschweigend verwerfen und das
- * Ticketsystem wäre auf einer HTTP-Installation (lokal, Docker ohne
- * Reverse-Proxy) komplett funktionslos.
- *
- * `sameSite: "strict"` blockt CSRF vollständig. Der Preis: beim Klick auf
- * einen Magic-Link aus dem E-Mail-Programm wird der Cookie nicht
- * mitgeschickt — deshalb trägt der Link den signierten Token selbst und
- * setzt den Cookie beim Einlösen neu.
- */
-export function cookieOptionen(req: NextRequest, maxAge: number) {
-  return {
-    httpOnly: true,
-    secure: istHttps(req),
-    sameSite: "strict" as const,
-    path: "/",
-    maxAge,
-  };
-}
-
-export function istHttps(req: NextRequest): boolean {
-  const proto = req.headers.get("x-forwarded-proto");
-  if (proto) return proto.split(",")[0].trim() === "https";
-  try {
-    return new URL(req.url).protocol === "https:";
-  } catch {
-    return false;
-  }
-}
-
-/**
- * Herkunftsprüfung als zweite Verteidigungslinie gegen CSRF — greift auch
- * dann, wenn ein Browser SameSite nicht durchsetzt.
- * Fehlt jeder Header (etwa bei einem curl-Aufruf), wird nicht blockiert:
- * ohne Cookie kommt so eine Anfrage ohnehin nicht weit.
- */
-export function herkunftOk(req: NextRequest): boolean {
-  const host = req.headers.get("host");
-  if (!host) return false;
-  const quelle = req.headers.get("origin") || req.headers.get("referer");
-  if (!quelle) return true;
-  try {
-    return new URL(quelle).host === host;
-  } catch {
-    return false;
-  }
-}
+// Re-Exports unter den bisherigen Namen — beide bestehenden Aufrufer
+// (app/api/support/route.ts, app/support/zugang/route.ts) importieren diese
+// Namen weiterhin von hier; die eigentliche Umsetzung liegt jetzt in security.ts.
+export { istHttps, originOk as herkunftOk, makeToken, hashToken, verifyToken };
+export const cookieOptionen = cookieOptions;

@@ -4,17 +4,107 @@ services:
     container_name: studio-lokal-web
     restart: unless-stopped
     ports:
+      # Bleibt offen für bestehende Setups (eigener Reverse-Proxy, direkter
+      # Zugriff beim Testen). Für echte Transportverschlüsselung nach außen
+      # nutzt man den Caddy-Dienst unten (Port 80/443) — sobald der läuft,
+      # kann man diese Zeile auf "127.0.0.1:3000:3000" einschränken, damit
+      # Port 3000 nur noch lokal und nicht mehr aus dem Internet erreichbar ist.
       - "3000:3000"
     environment:
       - NODE_ENV=production
       - NEXT_TELEMETRY_DISABLED=1
       - DATA_DIR=/app/data
       # WICHTIG: Eigenes, langes Geheimnis setzen (z. B. via .env-Datei).
-      # Signiert die Login-Sessions. Ohne Änderung wird ein Dev-Fallback genutzt.
+      # Signiert Login-Sessions, Ticket-Zugriffscodes und die
+      # Chat-Verschlüsselung. Ohne Änderung wird ein Dev-Fallback genutzt.
       - SESSION_SECRET=${SESSION_SECRET:-bitte-aendern-langes-zufaelliges-geheimnis}
     volumes:
       # Persistente Datenbank (Benutzer-Hashes + Anfragen) bleibt über Updates erhalten.
       - studio-lokal-data:/app/data
 
+  # ── TLS-Terminierung (echte Transportverschlüsselung) ──
+  # Optional, aber empfohlen: siehe Caddyfile für die genaue Funktionsweise.
+  # Ohne eigene Domain (DOMAIN unbenannt) läuft es mit einem selbstsignierten
+  # Zertifikat — auch das ist eine echte, verschlüsselte Verbindung, nur mit
+  # Browser-Warnung. Deaktivieren durch Weglassen beim Start:
+  #   docker compose up -d web        (nur die Website, ohne Caddy)
+  caddy:
+    image: caddy:2-alpine
+    container_name: studio-lokal-caddy
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+    environment:
+      - DOMAIN=${DOMAIN:-localhost}
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy-data:/data
+      - caddy-config:/config
+    depends_on:
+      - web
+
+  # ── Automatisierung: Activepieces (kostenlos, MIT-Lizenz, selbst gehostet) ──
+  # Läuft NUR mit einem der beiden Profile-Flags, ist also standardmäßig AUS:
+  #   Aktivieren:    docker compose --profile automation up -d
+  #   Deaktivieren:  docker compose --profile automation down
+  # Bewusst NICHT von der Website selbst steuerbar: Ein Web-Admin-Knopf, der
+  # Docker-Container startet/stoppt, würde der Next.js-App Zugriff auf den
+  # Docker-Socket geben — das ist praktisch gleichbedeutend mit Root-Rechten
+  # auf dem ganzen Host. Der Admin-Bereich zeigt nur an, OB Activepieces
+  # erreichbar ist, und verlinkt dorthin (siehe Einstellungen → Automatisierung).
+  activepieces:
+    image: activepieces/activepieces:latest
+    container_name: studio-lokal-activepieces
+    restart: unless-stopped
+    profiles: ["automation"]
+    ports:
+      - "8080:80"
+    environment:
+      - AP_ENGINE_EXECUTABLE_PATH=dist/packages/engine/main.js
+      # Beide Werte MÜSSEN vor dem ersten Start in der .env gesetzt werden
+      # (siehe .env.example) — ohne sie startet der Dienst absichtlich nicht.
+      - AP_ENCRYPTION_KEY=${AP_ENCRYPTION_KEY}
+      - AP_JWT_SECRET=${AP_JWT_SECRET}
+      - AP_POSTGRES_DATABASE=activepieces
+      - AP_POSTGRES_HOST=activepieces-postgres
+      - AP_POSTGRES_PASSWORD=${AP_POSTGRES_PASSWORD}
+      - AP_POSTGRES_PORT=5432
+      - AP_POSTGRES_USERNAME=postgres
+      - AP_REDIS_HOST=activepieces-redis
+      - AP_REDIS_PORT=6379
+      - AP_FRONTEND_URL=${AP_FRONTEND_URL:-http://localhost:8080}
+      - AP_TELEMETRY_ENABLED=false
+    depends_on:
+      - activepieces-postgres
+      - activepieces-redis
+    volumes:
+      - activepieces-cache:/root/.activepieces
+
+  activepieces-postgres:
+    image: postgres:16-alpine
+    container_name: studio-lokal-activepieces-db
+    restart: unless-stopped
+    profiles: ["automation"]
+    environment:
+      - POSTGRES_DB=activepieces
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=${AP_POSTGRES_PASSWORD}
+    volumes:
+      - activepieces-db:/var/lib/postgresql/data
+
+  activepieces-redis:
+    image: redis:7-alpine
+    container_name: studio-lokal-activepieces-redis
+    restart: unless-stopped
+    profiles: ["automation"]
+    volumes:
+      - activepieces-redis-data:/data
+
 volumes:
   studio-lokal-data:
+  caddy-data:
+  caddy-config:
+  activepieces-cache:
+  activepieces-db:
+  activepieces-redis-data:

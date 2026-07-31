@@ -1,0 +1,41 @@
+# ════════════════════════════════════════════════════════════════════════
+# TLS-Terminierung für die Website (echte Transportverschlüsselung)
+#
+# Warum das hier passiert und nicht "in der App": HTTPS/TLS ist Sache der
+# Verbindung, nicht der Anwendung — Next.js selbst spricht nur HTTP. Ohne
+# einen vorgeschalteten TLS-Proxy lief diese Website bisher über reines HTTP,
+# und "Chat verschlüsselt übertragen" wäre schlicht nicht wahr gewesen.
+#
+# Verhalten je nach DOMAIN (siehe .env):
+#   DOMAIN unbenannt/= localhost  → Caddy nutzt sein eigenes, INTERNES
+#     Zertifikat (selbstsigniert). Der Browser zeigt eine Warnung, die
+#     Verbindung ist trotzdem TLS-verschlüsselt — genug für einen lokalen
+#     Test oder ein reines Firmennetz ohne öffentliche Domain.
+#   DOMAIN=meine-firma.de        → Caddy holt sich automatisch ein echtes,
+#     von Browsern akzeptiertes Let's-Encrypt-Zertifikat. Voraussetzung:
+#     Port 80 + 443 sind vom Internet aus erreichbar und die Domain zeigt
+#     per DNS auf diesen Server.
+# ════════════════════════════════════════════════════════════════════════
+
+{$DOMAIN:localhost} {
+	# Leitet alles an die Next.js-App weiter — sie selbst bleibt nur im
+	# Docker-internen Netz erreichbar (kein direkter Port-Zugriff mehr).
+	reverse_proxy web:3000
+
+	encode gzip zstd
+
+	# Aktuelle Client-IP korrekt weitergeben — proxy.ts liest X-Forwarded-Proto,
+	# um zu entscheiden, ob es sich um eine echte HTTPS-Verbindung handelt
+	# (steuert u. a. das Secure-Cookie-Flag und HSTS).
+	header {
+		-Server
+	}
+}
+
+# Activepieces (Automatisierung) läuft standardmäßig direkt auf Port 8080 —
+# siehe docker-compose.yml. Wer eine eigene Domain hat und auch dafür ein
+# TLS-Zertifikat möchte, kann hier einen zweiten Block ergänzen, z. B.:
+#
+# automatisierung.meine-firma.de {
+#     reverse_proxy activepieces:80
+# }

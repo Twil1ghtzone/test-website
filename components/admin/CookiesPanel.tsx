@@ -41,11 +41,20 @@ const COOKIES: CookieInfo[] = [
     provider: "Diese Website (First-Party)",
     flags: ["HttpOnly", "SameSite=Strict", "Secure (HTTPS)"],
   },
+  {
+    name: "sl_chat_session",
+    purpose:
+      "KI-Support-Chat: hält die laufende Unterhaltung mit dem Assistenten, damit man die Seite verlassen und später zurückkehren kann. Der Nachrichtentext liegt AES-256-verschlüsselt auf dem Server, nie im Cookie selbst — der Cookie enthält nur einen Sitzungs-Schlüssel. Löscht sich automatisch nach 7 Tagen Inaktivität oder sofort per „Neuer Chat”-Knopf.",
+    category: "Notwendig",
+    duration: "7 Tage, rollierend (verlängert sich mit jeder Nachricht)",
+    provider: "Diese Website (First-Party)",
+    flags: ["HttpOnly", "SameSite=Strict", "Secure (HTTPS)", "signiert"],
+  },
 ];
 
 // Geprüft am 31.07.2026: Die Seite verwendet weder localStorage noch
 // sessionStorage, und kein einziges Cookie wird per JavaScript gesetzt.
-// Alle drei Cookies kommen ausschließlich vom Server und sind HttpOnly.
+// Alle Cookies kommen ausschließlich vom Server und sind HttpOnly.
 // Sollte sich das ändern, gehört der neue Eintrag hierher.
 
 export default function CookiesPanel() {

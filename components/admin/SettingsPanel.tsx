@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import { Sparkles, Save, Loader2, Wifi, Eye, EyeOff, Check, AlertTriangle, X, Plus } from "lucide-react";
+import { Sparkles, Save, Loader2, Wifi, Eye, EyeOff, Check, AlertTriangle, X, Plus, Workflow, ExternalLink, ShieldAlert } from "lucide-react";
 
 type AISettings = {
   enabled: boolean; endpoint: string; model: string; systemPrompt: string;
@@ -10,6 +10,7 @@ type AISettings = {
 };
 
 type SmtpSettings = { host: string; port: number; user: string; from: string; passSet?: boolean };
+type AutomationSettings = { enabled: boolean; url: string };
 
 type TestResult = { ok: boolean; ms?: number; status?: number; reply?: string; detail?: string; warnung?: string; model?: string };
 
@@ -21,6 +22,7 @@ const PROMPT_EXAMPLE =
 export default function SettingsPanel() {
   const [ai, setAi] = useState<AISettings | null>(null);
   const [smtp, setSmtp] = useState<SmtpSettings | null>(null);
+  const [automation, setAutomation] = useState<AutomationSettings | null>(null);
   const [smtpPass, setSmtpPass] = useState("");
   const [savedEndpoint, setSavedEndpoint] = useState("");
   const [adminPassword, setAdminPassword] = useState("");
@@ -41,6 +43,7 @@ export default function SettingsPanel() {
       const d = await r.json();
       setAi(d.settings.ai);
       setSmtp(d.settings.smtp);
+      setAutomation(d.settings.automation);
       setSavedEndpoint(d.settings.ai.endpoint);
       setSiteName(d.settings.siteName);
     }
@@ -62,6 +65,7 @@ export default function SettingsPanel() {
         siteName,
         ai: { ...ai, ...keyField },
         ...smtpField,
+        ...(automation ? { automation } : {}),
         // Endpunkt-Änderung erfordert das Admin-Passwort (Sicherheitsstufe).
         ...(endpointChanged ? { adminPassword } : {}),
       }),
@@ -288,6 +292,61 @@ export default function SettingsPanel() {
               <input type="password" value={smtpPass} onChange={(e) => setSmtpPass(e.target.value)} className={field} placeholder={smtp.passSet ? "•••• (leer = unverändert)" : "SMTP-Passwort"} autoComplete="off" />
             </div>
             <div className="sm:col-span-2"><label className={lbl}>Absender (From)</label><input value={smtp.from} onChange={(e) => setSmtp({ ...smtp, from: e.target.value })} className={field} placeholder='STUDIO//LOKAL <mail@example.de>' /></div>
+          </div>
+        </div>
+      )}
+
+      {automation && (
+        <div className="rounded-3xl border border-line bg-surface p-6">
+          <div className="flex items-center gap-3">
+            <span className="grid h-10 w-10 place-items-center rounded-xl bg-accent-soft text-accent"><Workflow className="h-5 w-5" /></span>
+            <div>
+              <h2 className="font-display text-xl font-semibold tracking-tight">Automatisierung (Activepieces)</h2>
+              <p className="mt-0.5 text-sm text-muted">Kostenloser, selbst gehosteter Workflow-Baukasten — läuft als eigener Dienst neben dieser Website.</p>
+            </div>
+          </div>
+
+          <label className="mt-4 flex items-center gap-2 text-sm font-medium text-ink">
+            <input
+              type="checkbox"
+              checked={automation.enabled}
+              onChange={(e) => setAutomation({ ...automation, enabled: e.target.checked })}
+              className="h-4 w-4 accent-[var(--color-accent)]"
+            />
+            Link im Admin-Bereich anzeigen
+          </label>
+
+          <div className="mt-3">
+            <label className={lbl}>Adresse von Activepieces</label>
+            <input
+              value={automation.url}
+              onChange={(e) => setAutomation({ ...automation, url: e.target.value })}
+              className={field}
+              placeholder="http://localhost:8080"
+            />
+          </div>
+
+          {automation.enabled && automation.url && (
+            <a
+              href={automation.url}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="mt-4 inline-flex items-center gap-2 rounded-full border border-line-strong bg-canvas px-4 py-2 text-sm font-medium text-ink transition-colors hover:border-accent cursor-pointer"
+            >
+              <ExternalLink className="h-4 w-4" /> Activepieces öffnen
+            </a>
+          )}
+
+          <div className="mt-4 flex items-start gap-2.5 rounded-2xl bg-amber-50 p-3.5 text-sm text-amber-900">
+            <ShieldAlert className="mt-0.5 h-4 w-4 shrink-0" />
+            <p className="leading-relaxed">
+              Dieser Schalter zeigt oder versteckt nur den Link hier — er startet und stoppt Activepieces NICHT.
+              Das geschieht bewusst getrennt über die Kommandozeile auf dem Server:{" "}
+              <code className="rounded bg-amber-100 px-1 py-0.5 text-xs">docker compose --profile automation up -d</code>{" "}
+              zum Einschalten, <code className="rounded bg-amber-100 px-1 py-0.5 text-xs">--profile automation down</code> zum
+              Ausschalten. Ein Web-Knopf mit echter Docker-Kontrolle würde dieser Website Zugriff auf den Docker-Socket
+              geben — das entspricht faktisch Root-Rechten auf dem ganzen Server.
+            </p>
           </div>
         </div>
       )}

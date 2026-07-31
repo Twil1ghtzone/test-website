@@ -1,4 +1,4 @@
-# Plug-and-play: nur DIESE Datei auf den Server kopieren und starten:
+# Plug-and-play: nur DIESE Datei (+ Caddyfile, .env) auf den Server kopieren und starten:
 #   docker compose -f docker-compose.prod.yml up -d
 # Voraussetzung: Das GHCR-Paket ist öffentlich (oder vorher `docker login ghcr.io`).
 services:
@@ -8,7 +8,95 @@ services:
     restart: unless-stopped
     pull_policy: always
     ports:
+      # Bleibt offen für bestehende Setups. Für echte Transportverschlüsselung
+      # nach außen: Caddy-Dienst unten nutzen (Port 80/443), danach kann diese
+      # Zeile auf "127.0.0.1:3000:3000" eingeschränkt werden.
       - "3000:3000"
     environment:
       - NODE_ENV=production
       - NEXT_TELEMETRY_DISABLED=1
+      - DATA_DIR=/app/data
+      # WICHTIG: Fehlte in dieser Datei bisher komplett — ohne eigenes
+      # Geheimnis signierte der Server mit einem zufälligen Prozess-Secret,
+      # das bei jedem Neustart alle Sessions/Cookies ungültig macht. Eigenes,
+      # langes Geheimnis in der .env setzen (z. B. `openssl rand -hex 32`).
+      - SESSION_SECRET=${SESSION_SECRET:-bitte-aendern-langes-zufaelliges-geheimnis}
+    volumes:
+      # Fehlte ebenfalls: ohne dieses Volume verliert JEDER Neustart des
+      # Containers die komplette Datenbank (Benutzer, Tickets, Chats, …).
+      - studio-lokal-data:/app/data
+
+  # ── TLS-Terminierung — siehe docker-compose.yml für die ausführliche
+  #    Erklärung; identisches Verhalten hier. ──
+  caddy:
+    image: caddy:2-alpine
+    container_name: studio-lokal-caddy
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+    environment:
+      - DOMAIN=${DOMAIN:-localhost}
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy-data:/data
+      - caddy-config:/config
+    depends_on:
+      - web
+
+  # ── Automatisierung: Activepieces — siehe docker-compose.yml. ──
+  # Aktivieren:   docker compose -f docker-compose.prod.yml --profile automation up -d
+  # Deaktivieren: docker compose -f docker-compose.prod.yml --profile automation down
+  activepieces:
+    image: activepieces/activepieces:latest
+    container_name: studio-lokal-activepieces
+    restart: unless-stopped
+    profiles: ["automation"]
+    ports:
+      - "8080:80"
+    environment:
+      - AP_ENGINE_EXECUTABLE_PATH=dist/packages/engine/main.js
+      - AP_ENCRYPTION_KEY=${AP_ENCRYPTION_KEY}
+      - AP_JWT_SECRET=${AP_JWT_SECRET}
+      - AP_POSTGRES_DATABASE=activepieces
+      - AP_POSTGRES_HOST=activepieces-postgres
+      - AP_POSTGRES_PASSWORD=${AP_POSTGRES_PASSWORD}
+      - AP_POSTGRES_PORT=5432
+      - AP_POSTGRES_USERNAME=postgres
+      - AP_REDIS_HOST=activepieces-redis
+      - AP_REDIS_PORT=6379
+      - AP_FRONTEND_URL=${AP_FRONTEND_URL:-http://localhost:8080}
+      - AP_TELEMETRY_ENABLED=false
+    depends_on:
+      - activepieces-postgres
+      - activepieces-redis
+    volumes:
+      - activepieces-cache:/root/.activepieces
+
+  activepieces-postgres:
+    image: postgres:16-alpine
+    container_name: studio-lokal-activepieces-db
+    restart: unless-stopped
+    profiles: ["automation"]
+    environment:
+      - POSTGRES_DB=activepieces
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=${AP_POSTGRES_PASSWORD}
+    volumes:
+      - activepieces-db:/var/lib/postgresql/data
+
+  activepieces-redis:
+    image: redis:7-alpine
+    container_name: studio-lokal-activepieces-redis
+    restart: unless-stopped
+    profiles: ["automation"]
+    volumes:
+      - activepieces-redis-data:/data
+
+volumes:
+  studio-lokal-data:
+  caddy-data:
+  caddy-config:
+  activepieces-cache:
+  activepieces-db:
+  activepieces-redis-data:

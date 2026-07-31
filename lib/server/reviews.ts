@@ -1,5 +1,6 @@
 import crypto from "crypto";
 import { readInvoices, INVOICE_STATUS_LABELS, type Review, type Invoice } from "./store";
+import { serverSecret } from "./secret.ts";
 
 // Rechnungsnummern normalisieren (Groß-/Kleinschreibung, Leerzeichen).
 export function normalizeInvoiceNumber(n: string): string {
@@ -21,20 +22,12 @@ export function reviewKind(inv: Invoice): "teil" | "end" {
   return inv.status === "abgeschlossen" ? "end" : "teil";
 }
 
-// Prozessweites Zufalls-Secret als Produktions-Fallback (siehe lib/server/auth.ts).
-const runtimeSecret = crypto.randomBytes(32).toString("hex");
-
-function secret(): string {
-  if (process.env.SESSION_SECRET) return process.env.SESSION_SECRET;
-  return process.env.NODE_ENV === "production" ? runtimeSecret : "studio-lokal-dev-secret-bitte-aendern";
-}
-
 // HMAC-Siegel über die unveränderlichen Felder einer Bewertung.
 // Nur der Server kennt das Secret → Einträge können nicht "ausgedacht"
 // oder nachträglich manipuliert werden, ohne dass das Siegel bricht.
 export function sealReview(r: Pick<Review, "id" | "name" | "rating" | "text" | "createdAt" | "invoiceNumber" | "phase" | "kind">): string {
   return crypto
-    .createHmac("sha256", secret())
+    .createHmac("sha256", serverSecret())
     .update(`${r.id}|${r.name}|${r.rating}|${r.text}|${r.createdAt}|${r.invoiceNumber}|${r.phase}|${r.kind}`)
     .digest("hex");
 }
@@ -42,7 +35,7 @@ export function sealReview(r: Pick<Review, "id" | "name" | "rating" | "text" | "
 // Altes Siegel-Format (vor Rechnungs-Pflicht) weiter akzeptieren.
 function sealReviewV1(r: Pick<Review, "id" | "name" | "rating" | "text" | "createdAt">): string {
   return crypto
-    .createHmac("sha256", secret())
+    .createHmac("sha256", serverSecret())
     .update(`${r.id}|${r.name}|${r.rating}|${r.text}|${r.createdAt}`)
     .digest("hex");
 }
@@ -61,5 +54,5 @@ export function verifyReview(r: Review): boolean {
 
 // IP nur gehasht speichern (Datenschutz) — reicht fürs Rate-Limit.
 export function hashIp(ip: string): string {
-  return crypto.createHmac("sha256", secret()).update(`ip:${ip}`).digest("hex").slice(0, 32);
+  return crypto.createHmac("sha256", serverSecret()).update(`ip:${ip}`).digest("hex").slice(0, 32);
 }

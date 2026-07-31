@@ -13,6 +13,15 @@
     "esModuleInterop": true,
     "module": "esnext",
     "moduleResolution": "bundler",
+    // Erlaubt explizite .ts-Endungen bei relativen Importen (z. B.
+    // "./secret.ts"). Next.js/Turbopack lösen das identisch zu extensionless
+    // Importen auf — der eigentliche Grund ist Node selbst: die .test.mjs-
+    // Skripte führen lib/server/*.ts direkt über `node --experimental-strip-
+    // types` aus, und Nodes native ESM-Auflösung verlangt bei relativen
+    // Importen zwingend eine Endung. Betroffen sind nur die neuen, cross-file
+    // Laufzeit-Importe (secret.ts/security.ts) — reine Typ-Importe brauchen
+    // das nicht, weil sie beim Stripping ohnehin verschwinden.
+    "allowImportingTsExtensions": true,
     "resolveJsonModule": true,
     "isolatedModules": true,
     "jsx": "react-jsx",

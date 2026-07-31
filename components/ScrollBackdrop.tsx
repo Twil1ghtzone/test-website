@@ -21,12 +21,19 @@ export default function ScrollBackdrop() {
 
   const blob = "absolute rounded-full blur-[80px] will-change-transform";
 
+  // Feine Korn-Textur über der ganzen Fläche — macht große, sonst einfarbige
+  // Flächen (z. B. lange Formular- oder Rechner-Seiten) fühlbar hochwertiger,
+  // ohne dass es als eigenes "Element" auffällt. Läuft nie als Animation,
+  // kostet also nichts an Performance/Akku.
+  const grain = <div aria-hidden className="grain absolute inset-0 opacity-[0.035]" />;
+
   if (reduced) {
-    // Statische, ruhige Variante ohne Bewegung.
+    // Statische, ruhige Variante ohne Bewegung (auch kein Schimmer).
     return (
       <div aria-hidden className="pointer-events-none fixed inset-0 -z-10 overflow-hidden">
         <div className={`${blob} -right-40 -top-40 h-[36rem] w-[36rem] opacity-80`} style={{ background: "radial-gradient(closest-side, rgba(176,84,58,0.22), transparent 70%)" }} />
         <div className={`${blob} -left-52 top-[40%] h-[42rem] w-[42rem] opacity-90`} style={{ background: "radial-gradient(closest-side, rgba(211,200,181,0.5), transparent 70%)" }} />
+        {grain}
       </div>
     );
   }
@@ -48,6 +55,12 @@ export default function ScrollBackdrop() {
         className={`${blob} -bottom-56 right-[10%] h-[40rem] w-[40rem] opacity-80`}
         style={{ y: y3, rotate: r3, background: "radial-gradient(closest-side, rgba(236,217,207,0.7), transparent 70%)" }}
       />
+      {/* Sehr dezenter Lichtstreif, zieht alle paar Sekunden einmal quer über
+          die Seite — füllt große, sonst leere Canvas-Flächen mit Bewegung,
+          ohne von den eigentlichen Inhalten abzulenken. Reines CSS (kein
+          Framer-Motion-Tick), pausiert automatisch bei reduced motion. */}
+      {grain}
+      <div aria-hidden className="sheen absolute inset-0" />
     </div>
   );
 }
