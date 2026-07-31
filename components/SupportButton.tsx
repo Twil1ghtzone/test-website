@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { AnimatePresence, motion } from "framer-motion";
-import { MessageCircle, X, Mail, Phone, FileQuestion, Bot, Send, ArrowLeft, Sparkles, RotateCcw, ShieldCheck } from "lucide-react";
+import { MessageCircle, X, Mail, Phone, FileQuestion, Bot, Send, ArrowLeft, Sparkles, RotateCcw, ShieldCheck, Maximize2, Minimize2 } from "lucide-react";
 import { brand } from "@/lib/data";
 import { pressSpring, Tilt } from "@/components/ui/motion";
 
@@ -46,6 +46,8 @@ export default function SupportButton() {
    */
   const [timeoutMs, setTimeoutMs] = useState(DEFAULT_TIMEOUT_MS);
   const [hadReturningChat, setHadReturningChat] = useState(false);
+  /** Vergrößerte Ansicht — mehr Platz für lange Antworten, ohne extra Klick auf eine Unterseite. */
+  const [expanded, setExpanded] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
 
   // Begrüßung + KI-Status laden. Läuft ausschließlich über den HttpOnly-
@@ -185,19 +187,22 @@ export default function SupportButton() {
         animate={{ opacity: 1, y: 0, scale: 1 }}
         exit={{ opacity: 0, y: 10, scale: 0.96, transition: { duration: 0.16, ease: "easeIn" } }}
         transition={{ type: "spring", stiffness: 380, damping: 26 }}
-        className="pointer-events-auto flex w-[min(21rem,calc(100vw-2rem))] origin-bottom-right flex-col overflow-hidden rounded-2xl border border-line bg-surface shadow-[0_24px_60px_-20px_rgba(33,28,23,0.35)]"
+        className={`pointer-events-auto flex max-h-[calc(100dvh-2.5rem)] ${
+          expanded ? "w-[min(26rem,calc(100vw-2rem))]" : "w-[min(21rem,calc(100vw-2rem))]"
+        } panel-texture origin-bottom-right flex-col overflow-hidden rounded-2xl border border-line bg-surface shadow-[0_24px_60px_-20px_rgba(33,28,23,0.35)] transition-[width] duration-300 ease-[cubic-bezier(0.22,1,0.36,1)]`}
       >
         {/* Kopf */}
-        <div className="flex items-center gap-3 bg-night px-5 py-4 text-canvas">
+        <div className="relative flex items-center gap-3 bg-night px-5 py-4 text-canvas">
+          <div aria-hidden className="panel-texture-dark pointer-events-none absolute inset-0" />
           {view === "chat" && (
-            <button type="button" onClick={() => setView("menu")} aria-label="Zurück" className="-ml-1 text-white/70 transition-colors hover:text-white cursor-pointer">
+            <button type="button" onClick={() => setView("menu")} aria-label="Zurück" className="relative -ml-1 text-white/70 transition-colors hover:text-white cursor-pointer">
               <ArrowLeft className="h-5 w-5" />
             </button>
           )}
-          <span className="grid h-9 w-9 place-items-center rounded-lg bg-accent text-white">
+          <span className="relative z-10 grid h-9 w-9 place-items-center rounded-lg bg-accent text-white">
             {view === "chat" ? <Bot className="h-5 w-5" /> : <MessageCircle className="h-5 w-5" />}
           </span>
-          <div className="min-w-0 flex-1">
+          <div className="relative z-10 min-w-0 flex-1">
             <p className="font-display text-base font-semibold leading-tight">
               {view === "chat" ? "Assistent" : "Wie können wir helfen?"}
             </p>
@@ -212,6 +217,17 @@ export default function SupportButton() {
               )}
             </p>
           </div>
+          {/* Fenster vergrößern/verkleinern — mehr Platz für lange
+              KI-Antworten, ohne dass man dafür eine Unterseite öffnen muss. */}
+          <button
+            type="button"
+            onClick={() => setExpanded((v) => !v)}
+            title={expanded ? "Fenster verkleinern" : "Fenster vergrößern"}
+            aria-label={expanded ? "Fenster verkleinern" : "Fenster vergrößern"}
+            className="relative z-10 shrink-0 rounded-lg p-1.5 text-white/60 transition-colors hover:bg-white/10 hover:text-white cursor-pointer"
+          >
+            {expanded ? <Minimize2 className="h-4 w-4" /> : <Maximize2 className="h-4 w-4" />}
+          </button>
           {/* "Neuer Chat" — löscht den bisherigen Verlauf serverseitig und
               beginnt sauber neu; hilfreich, falls man mit der KI nicht
               weiterkommt oder ein neues Thema anfangen möchte. */}
@@ -222,7 +238,7 @@ export default function SupportButton() {
               disabled={resetting}
               title="Neuer Chat — löscht den bisherigen Verlauf"
               aria-label="Neuer Chat"
-              className="shrink-0 rounded-lg p-1.5 text-white/60 transition-colors hover:bg-white/10 hover:text-white disabled:opacity-50 cursor-pointer"
+              className="relative z-10 shrink-0 rounded-lg p-1.5 text-white/60 transition-colors hover:bg-white/10 hover:text-white disabled:opacity-50 cursor-pointer"
             >
               <RotateCcw className={`h-4 w-4 ${resetting ? "animate-spin" : ""}`} />
             </button>
@@ -270,7 +286,12 @@ export default function SupportButton() {
             exit={{ opacity: 0, x: 10 }}
             transition={{ duration: 0.15, ease: "easeOut" }}
           >
-            <div ref={scrollRef} className="flex max-h-[min(15rem,40dvh)] min-h-[9rem] flex-col gap-2 overflow-y-auto overscroll-contain bg-canvas/60 p-3">
+            <div
+              ref={scrollRef}
+              className={`panel-texture flex ${
+                expanded ? "max-h-[min(26rem,56dvh)]" : "max-h-[min(15rem,40dvh)]"
+              } min-h-[9rem] flex-col gap-2 overflow-y-auto overscroll-contain bg-canvas/60 p-3 transition-[max-height] duration-300 ease-[cubic-bezier(0.22,1,0.36,1)]`}
+            >
               {messages.map((m, i) => (
                 <div key={i} className={`flex ${m.from === "user" ? "justify-end" : "justify-start"}`}>
                   <span

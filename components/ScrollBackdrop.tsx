@@ -4,8 +4,8 @@ import { motion, useScroll, useSpring, useTransform } from "framer-motion";
 
 /* ════════════════════════════════════════════════════════════════════════
    Parallax-Schicht hinter dem Inhalt: weiche Lichtfelder in den Markentönen,
-   die beim Scrollen ruhig driften, dazu eine feine Korn-Textur und ein sehr
-   dezenter Lichtstreif.
+   die beim Scrollen ruhig driften, dazu eine feine Korn- und Leinen-Textur
+   für ein hochwertiges Papiergefühl statt einer leeren Fläche.
 
    WICHTIG — warum hier NICHT auf prefers-reduced-motion verzweigt wird:
    Vorher stand hier `if (reduced) return (…)` mit einer anderen Struktur als
@@ -18,9 +18,9 @@ import { motion, useScroll, useSpring, useTransform } from "framer-motion";
    Deshalb rendert die Komponente jetzt IMMER dieselbe Struktur. Ob Bewegung
    gezeigt wird, entscheidet ausschließlich CSS (siehe globals.css,
    @media (prefers-reduced-motion: reduce)): dort wird der Drift der Felder
-   mit `transform: none !important` stillgestellt und die Schimmer-Animation
-   abgeschaltet. Eine Regel aus dem Stylesheet gewinnt gegen einen
-   nicht-!important-Inline-Stil — genau das, was Framer Motion schreibt.
+   mit `transform: none !important` stillgestellt. Eine Regel aus dem
+   Stylesheet gewinnt gegen einen nicht-!important-Inline-Stil — genau das,
+   was Framer Motion schreibt.
    ════════════════════════════════════════════════════════════════════════ */
 export default function ScrollBackdrop() {
   const { scrollY } = useScroll();
@@ -56,27 +56,11 @@ export default function ScrollBackdrop() {
       />
       {/* Feine Korn-Textur — statisch, kostet nichts an Performance/Akku. */}
       <div aria-hidden className="grain absolute inset-0 opacity-[0.035]" />
-      {/* Dezenter Lichtstreif, zieht alle paar Sekunden einmal quer über die
-          Seite. Reines CSS, pausiert bei prefers-reduced-motion. */}
-      <div aria-hidden className="sheen absolute inset-0" />
-      {/* Dezente Schimmer-Partikel — winzige Lichtpunkte, die langsam
-          aufsteigen und das Leere zwischen den Blobs etwas lebendiger machen.
-          Feste Positionen (keine Zufallswerte), damit SSR und Client dasselbe
-          rendern. Pausiert bei prefers-reduced-motion (über globals.css). */}
-      <div aria-hidden className="shimmer-field">
-        <span style={{ left: "8%", bottom: "-5%", ["--dur" as string]: "22s", ["--delay" as string]: "0s" } as React.CSSProperties} />
-        <span style={{ left: "18%", bottom: "-12%", ["--dur" as string]: "26s", ["--delay" as string]: "4s" } as React.CSSProperties} />
-        <span style={{ left: "32%", bottom: "-8%", ["--dur" as string]: "19s", ["--delay" as string]: "2s" } as React.CSSProperties} />
-        <span style={{ left: "45%", bottom: "-15%", ["--dur" as string]: "24s", ["--delay" as string]: "7s" } as React.CSSProperties} />
-        <span style={{ left: "58%", bottom: "-3%", ["--dur" as string]: "21s", ["--delay" as string]: "1s" } as React.CSSProperties} />
-        <span style={{ left: "67%", bottom: "-10%", ["--dur" as string]: "28s", ["--delay" as string]: "5s" } as React.CSSProperties} />
-        <span style={{ left: "78%", bottom: "-7%", ["--dur" as string]: "20s", ["--delay" as string]: "3s" } as React.CSSProperties} />
-        <span style={{ left: "88%", bottom: "-14%", ["--dur" as string]: "25s", ["--delay" as string]: "8s" } as React.CSSProperties} />
-        <span style={{ left: "25%", bottom: "-20%", ["--dur" as string]: "30s", ["--delay" as string]: "10s" } as React.CSSProperties} />
-        <span style={{ left: "52%", bottom: "-18%", ["--dur" as string]: "27s", ["--delay" as string]: "6s" } as React.CSSProperties} />
-        <span style={{ left: "72%", bottom: "-22%", ["--dur" as string]: "23s", ["--delay" as string]: "9s" } as React.CSSProperties} />
-        <span style={{ left: "40%", bottom: "-25%", ["--dur" as string]: "32s", ["--delay" as string]: "12s" } as React.CSSProperties} />
-      </div>
+      {/* Feines Leinen-Kreuzmuster, darüber eine sehr sanfte Vignette zu den
+          Rändern. Beides rein statisch (kein Repaint, keine Animation) — gibt
+          der Fläche Tiefe und Materialität, ohne dass es wie Bewegung wirkt. */}
+      <div aria-hidden className="linen absolute inset-0" />
+      <div aria-hidden className="vignette absolute inset-0" />
     </div>
   );
 }

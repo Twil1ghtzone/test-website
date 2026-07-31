@@ -190,59 +190,89 @@
     background-size: 22px 22px;
   }
 
-  /* Dezenter Lichtstreif, der einmal über große, sonst leere Flächen zieht.
-     Läuft rein über `background-position` (kompositiert, kein Repaint) und
-     ist bewusst sehr subtil: ein sehr breiter, weicher Streifen statt eines
-     harten Balkens, seltene Wiederholung statt Dauerschleife. */
-  @keyframes sheen-sweep {
-    0%, 92% { background-position: -60% 0; }
-    100% { background-position: 160% 0; }
+  /* ── Leinen-Textur: zwei sehr feine, gegenläufige Streifenraster
+     überlagert — wie geprägtes Papier oder gewebter Stoff. Rein statisch
+     (keine Animation, kein Repaint), macht die Fläche materiell statt leer,
+     ohne dass es wie Bewegung oder Deko wirkt. */
+  .linen {
+    background-image:
+      repeating-linear-gradient(
+        22deg,
+        color-mix(in oklab, var(--color-ink) 4%, transparent) 0px,
+        color-mix(in oklab, var(--color-ink) 4%, transparent) 1px,
+        transparent 1px,
+        transparent 6px
+      ),
+      repeating-linear-gradient(
+        -68deg,
+        color-mix(in oklab, var(--color-ink) 3%, transparent) 0px,
+        color-mix(in oklab, var(--color-ink) 3%, transparent) 1px,
+        transparent 1px,
+        transparent 6px
+      );
+    opacity: 0.5;
+    mix-blend-mode: multiply;
   }
-  .sheen {
-    background-image: linear-gradient(
-      100deg,
-      transparent 42%,
-      color-mix(in oklab, var(--color-accent) 10%, transparent) 50%,
-      transparent 58%
+
+  /* ── Oberflächen-Textur für Karten/Panels: dasselbe Leinen-Muster, aber
+     direkt als Hintergrund-Layer statt als eigenes Overlay-Element — die
+     Deckkraft steckt schon in den Farben, `opacity` bleibt bei 1, damit
+     Text und Icons IN dem Element nicht mitverblassen. Für helle Flächen
+     (Karten, Chat-Panel) auf Basis der Tinte. */
+  .panel-texture {
+    background-image:
+      repeating-linear-gradient(
+        22deg,
+        color-mix(in oklab, var(--color-ink) 3%, transparent) 0px,
+        color-mix(in oklab, var(--color-ink) 3%, transparent) 1px,
+        transparent 1px,
+        transparent 7px
+      ),
+      repeating-linear-gradient(
+        -68deg,
+        color-mix(in oklab, var(--color-ink) 2%, transparent) 0px,
+        color-mix(in oklab, var(--color-ink) 2%, transparent) 1px,
+        transparent 1px,
+        transparent 7px
+      );
+  }
+  /* Dieselbe Textur, invertiert für dunkle Flächen (Footer, Chat-Kopf). */
+  .panel-texture-dark {
+    background-image:
+      repeating-linear-gradient(
+        22deg,
+        rgba(255, 255, 255, 0.035) 0px,
+        rgba(255, 255, 255, 0.035) 1px,
+        transparent 1px,
+        transparent 7px
+      ),
+      repeating-linear-gradient(
+        -68deg,
+        rgba(255, 255, 255, 0.025) 0px,
+        rgba(255, 255, 255, 0.025) 1px,
+        transparent 1px,
+        transparent 7px
+      );
+  }
+
+  /* ── Vignette: die Ränder werden minimal dunkler/wärmer, die Mitte bleibt
+     hell. Lenkt den Blick sanft zum Inhalt, wie bei geprägtem Karton oder
+     hochwertigem Naturpapier unter seitlichem Licht. */
+  .vignette {
+    background: radial-gradient(
+      ellipse 140% 90% at 50% 15%,
+      transparent 55%,
+      color-mix(in oklab, var(--color-clay-deep) 10%, transparent) 100%
     );
-    background-size: 220% 100%;
-    animation: sheen-sweep 9s ease-in-out infinite;
-  }
-  /* ── Dezente Schimmer-Partikel: Sanft pulsierende, winzige Lichtpunkte,
-     die sich langsam bewegen. Gibt leeren Hintergrundflächen dezent Leben.
-     Rein CSS, GPU-freundlich (nur opacity + transform). */
-  @keyframes shimmer-drift {
-    0%   { transform: translateY(0) translateX(0); opacity: 0; }
-    15%  { opacity: 0.7; }
-    50%  { opacity: 0.3; }
-    85%  { opacity: 0.6; }
-    100% { transform: translateY(-120vh) translateX(30px); opacity: 0; }
-  }
-  .shimmer-field {
-    position: absolute;
-    inset: 0;
-    overflow: hidden;
-  }
-  .shimmer-field span {
-    position: absolute;
-    width: 2px;
-    height: 2px;
-    border-radius: 50%;
-    background: radial-gradient(circle, color-mix(in oklab, var(--color-accent) 35%, #fff) 0%, transparent 70%);
-    animation: shimmer-drift var(--dur, 18s) var(--delay, 0s) linear infinite;
-    will-change: transform, opacity;
-    pointer-events: none;
   }
 
   @media (prefers-reduced-motion: reduce) {
-    .sheen { animation: none; }
     /* Die driftenden Hintergrundfelder stillstellen. `!important` ist hier
        nötig und korrekt: Framer Motion schreibt den Drift als Inline-Stil,
        und nur eine !important-Regel aus dem Stylesheet gewinnt dagegen.
        Alternativ hätte die Komponente je nach Einstellung eine andere
        Struktur rendern müssen — genau das verursachte den Hydration-Fehler. */
     .backdrop-drift { transform: none !important; }
-    .shimmer-field span { animation: none !important; opacity: 0 !important; }
   }
 
   /* Foto-Platzhalter Diagonal-Muster */

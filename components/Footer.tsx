@@ -9,8 +9,9 @@ import Logo from "@/components/Logo";
 export default function Footer() {
   const c = readContent();
   return (
-    <footer className="bg-night px-5 py-16 text-canvas">
-      <div className="mx-auto max-w-6xl">
+    <footer className="relative bg-night px-5 py-16 text-canvas">
+      <div aria-hidden className="panel-texture-dark pointer-events-none absolute inset-0" />
+      <div className="relative mx-auto max-w-6xl">
         <div className="grid gap-10 sm:grid-cols-2 lg:grid-cols-4">
           <div className="sm:col-span-2 lg:col-span-1">
             <Link href="/" aria-label={brand.name} className="inline-block py-2 sm:py-0 cursor-pointer">
