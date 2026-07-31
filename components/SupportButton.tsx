@@ -69,9 +69,20 @@ export default function SupportButton() {
       .catch(() => {});
   }, []);
 
+  // `wartet` gehört mit in die Abhängigkeiten: Der Sekundenzähler wächst
+  // während des Wartens und schiebt den Inhalt nach unten. Ohne ihn blieb das
+  // Fenster stehen und man musste von Hand nachscrollen, um den Hinweis und
+  // den Abbrechen-Knopf überhaupt zu sehen.
   useEffect(() => {
-    if (view === "chat") scrollRef.current?.scrollTo({ top: 9e9, behavior: "smooth" });
-  }, [messages, view, busy]);
+    if (view !== "chat") return;
+    // Kleiner Delay, damit das DOM den neuen Inhalt (Nachricht, Lade-Punkte,
+    // Sekundenzähler) schon eingefügt hat, bevor gescrollt wird. Ohne Delay
+    // springt scrollTo manchmal ins Leere, weil die Höhe noch nicht stimmt.
+    const frame = requestAnimationFrame(() => {
+      scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight, behavior: "smooth" });
+    });
+    return () => cancelAnimationFrame(frame);
+  }, [messages, view, busy, wartet]);
 
   async function send(e: React.FormEvent) {
     e.preventDefault();
@@ -284,13 +295,11 @@ export default function SupportButton() {
                       kommt der Abbrechen-Knopf dazu. */}
                   {wartet >= 3 && (
                     <span className="flex flex-wrap items-center gap-x-2 gap-y-1 pl-1 text-[11px] text-muted">
-                      <span className="tabular-nums">
-                        Das Modell rechnet … {wartet} s
-                        {/* Restzeit bis zum automatischen Abbruch — macht das
-                            eingestellte Zeitlimit im Chat sichtbar. */}
-                        {" von max. "}{Math.round((timeoutMs + TIMEOUT_ZUSCHLAG_MS) / 1000)} s
-                        {wartet >= 25 && " · lokale Modelle brauchen manchmal über eine Minute"}
-                      </span>
+                      {/* Bewusst OHNE Zeitlimit und ohne Hinweis auf lokale
+                          Modelle: Das ist Betriebsinnenleben, das einen Kunden
+                          nichts angeht und nur verunsichert. Nur die
+                          verstrichene Zeit, damit sichtbar ist, dass es läuft. */}
+                      <span className="tabular-nums">Einen Moment … {wartet} s</span>
                       {wartet >= 8 && (
                         <button
                           type="button"

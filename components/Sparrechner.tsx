@@ -12,7 +12,7 @@ import {
   STROM_MASSNAHMEN, STROM_KAPPE, WAERME_MASSNAHMEN, WAERME_KAPPE,
   WAERME_SPEZ, HEIZARTEN, HEIZART_KEYS, JAZ, CO2_STROM, CLOUD, SERVER,
   PV_WP_STANDARD, PV_SPEZ_ERTRAG_STANDARD, PV_EIGENVERBRAUCH_STANDARD,
-  PREISSTEIGERUNG_STANDARD, MONTAGE_ANTEIL, AMORTISATION_ZEIGEN_BIS_JAHRE,
+  PREISSTEIGERUNG_STANDARD, AMORTISATION_ZEIGEN_BIS_JAHRE,
   CO2_BAUM_PRO_JAHR, CO2_AUTO_PRO_KM, CO2_PRO_KOPF_DE,
   type Wohnform, type Heizart, type ServerKey, type Waermequelle,
 } from "@/lib/sparrechner";
@@ -594,9 +594,9 @@ export default function Sparrechner({ kontakt }: { kontakt: Kontakt }) {
                 </table>
               </div>
               <p className="mt-2 text-xs leading-relaxed text-muted">
-                Fachmontage, Inbetriebnahme und Abnahme sind mit {Math.round(MONTAGE_ANTEIL * 100)} % des Materials
-                angesetzt (mindestens 250 €). Diese Position fehlte in der früheren Rechnung — deshalb sah
-                die Amortisation zu gut aus.
+                Richtwerte für Material, Fachmontage und Inbetriebnahme — je nach Gegebenheit vor Ort
+                kann der endgültige Preis variieren. Im persönlichen Gespräch erstellen wir Ihnen
+                ein individuelles Angebot, das genau zu Ihrem Zuhause passt.
               </p>
 
               <div className="mt-5 grid gap-6 sm:grid-cols-2">
@@ -778,22 +778,22 @@ export default function Sparrechner({ kontakt }: { kontakt: Kontakt }) {
           </header>
 
           {/* Ergebnis groß */}
-          <section className="print-keep mt-6 flex items-end justify-between gap-6 rounded-[3mm] border-[0.4mm] border-[#b0543a] bg-[#ecd9cf] px-6 py-5">
-            <div>
-              <p className="text-[8pt] uppercase tracking-[0.22em] text-[#8d4129]">Mögliche Ersparnis</p>
-              <p className="mt-1 font-display text-[28pt] font-semibold leading-none text-[#211c17]">
-                {eur.format(Math.max(0, r.netto))}
-              </p>
-              <p className="mt-1 text-[9pt] text-[#4d453c]">netto im ersten Jahr, nach Abzug des Serverstroms</p>
-            </div>
-            <div className="text-right">
-              <p className="text-[9pt] text-[#4d453c]">Bilanz nach 10 Jahren</p>
-              <p className="font-display text-[15pt] font-semibold tabular-nums text-[#8d4129]">
-                {r.bilanz10 >= 0 ? "+" : ""}{eur.format(r.bilanz10)}
-              </p>
-              {amortisationZeigen && (
-                <p className="mt-1 text-[9pt] font-semibold text-[#211c17]">Trägt sich in {dauerText(r.amortisation!)}</p>
-              )}
+          <section className="print-keep mt-6 rounded-[3mm] border-[0.4mm] border-[#b0543a] bg-[#ecd9cf] px-6 py-5">
+            <div className="flex items-end justify-between gap-6">
+              <div>
+                <p className="text-[8pt] uppercase tracking-[0.22em] text-[#8d4129]">Ihre jährliche Entlastung</p>
+                <p className="mt-1 font-display text-[28pt] font-semibold leading-none text-[#211c17]">
+                  {eur.format(Math.max(0, r.netto))}
+                </p>
+                <p className="mt-1 text-[9pt] text-[#4d453c]">weniger Kosten pro Jahr — Strom, Wärme und Abos zusammen</p>
+              </div>
+              <div className="text-right">
+                <p className="text-[9pt] text-[#4d453c]">CO₂-Einsparung</p>
+                <p className="font-display text-[15pt] font-semibold tabular-nums text-[#8d4129]">
+                  {nf.format(Math.max(0, r.co2))} kg / Jahr
+                </p>
+                <p className="mt-1 text-[9pt] text-[#4d453c]">wie {nf.format(r.co2Vergleich.baeume)} junge Bäume</p>
+              </div>
             </div>
           </section>
 
@@ -864,31 +864,32 @@ export default function Sparrechner({ kontakt }: { kontakt: Kontakt }) {
               </tbody>
             </table>
             <p className="mt-2 text-[8pt] leading-relaxed text-[#8a8076]">
-              Enthält Material, Fachmontage, Inbetriebnahme und Abnahme. Unverbindliche Schätzung —
-              ein verbindliches Angebot entsteht nach der Besichtigung vor Ort.
+              Richtwerte für Material, Fachmontage und Inbetriebnahme — je nach Gegebenheit vor Ort
+              kann der endgültige Preis variieren. Im persönlichen Gespräch erstellen wir Ihnen
+              ein individuelles Angebot, das genau zu Ihrem Zuhause passt.
             </p>
           </section>
 
-          {/* Verlauf als Tabelle — druckt sauberer als ein Diagramm */}
+          {/* Verlauf als Tabelle — zeigt wachsende Ersparnisse */}
           <section className="print-card print-keep mt-5 p-4">
-            <h2 className="font-display text-[11pt] font-semibold text-[#211c17]">Kumulierte Bilanz</h2>
+            <h2 className="font-display text-[11pt] font-semibold text-[#211c17]">Ihre Ersparnis wächst</h2>
             <table className="mt-2 w-full text-[8.5pt]">
               <thead>
                 <tr className="border-b-[0.2mm] border-[#d3c8b5] text-left text-[#8a8076]">
                   <th className="pb-1 font-medium">Jahr</th>
-                  {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map((j) => (
+                  {[1, 3, 5, 7, 10].map((j) => (
                     <th key={j} className="pb-1 text-right font-medium">{j}</th>
                   ))}
                 </tr>
               </thead>
               <tbody>
                 <tr>
-                  <td className="pt-1.5 text-[#4d453c]">Bilanz</td>
-                  {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map((j) => {
-                    const v = r.kumuliert(j);
+                  <td className="pt-1.5 text-[#4d453c]">Gesamtersparnis</td>
+                  {[1, 3, 5, 7, 10].map((j) => {
+                    const kum = r.kumuliert(j) + r.invest;
                     return (
-                      <td key={j} className={`pt-1.5 text-right tabular-nums ${v >= 0 ? "font-semibold text-[#211c17]" : "text-[#8a8076]"}`}>
-                        {eur.format(v)}
+                      <td key={j} className="pt-1.5 text-right tabular-nums font-semibold text-[#211c17]">
+                        {eur.format(kum)}
                       </td>
                     );
                   })}
@@ -896,8 +897,8 @@ export default function Sparrechner({ kontakt }: { kontakt: Kontakt }) {
               </tbody>
             </table>
             <p className="mt-2 text-[8pt] text-[#8a8076]">
-              Kumulierte Ersparnis minus Investition, inklusive {komma(preissteigerung * 100)} % Energiepreissteigerung pro Jahr.
-              Ab dem ersten positiven Wert hat sich das Paket bezahlt.
+              Kumulierte Einsparung über die Jahre, inklusive {komma(preissteigerung * 100)} % Energiepreissteigerung pro Jahr.
+              Die Werte steigen, weil gesparte Energie mit der Zeit immer wertvoller wird.
             </p>
           </section>
 
@@ -920,10 +921,9 @@ export default function Sparrechner({ kontakt }: { kontakt: Kontakt }) {
               </div>
             </div>
             <p className="mt-3 text-[7.5pt] leading-snug text-[#8a8076]">
-              Unverbindliche Schätzung auf Basis Ihrer Angaben. Einsparwerte am unteren Rand üblicher
-              Herstellerangaben; Strom höchstens {Math.round(STROM_KAPPE * 100)} %, Wärme höchstens {Math.round(WAERME_KAPPE * 100)} %.
-              CO₂-Faktoren: {komma(CO2_STROM, 2)} kg/kWh Strom, {komma(HEIZARTEN.gas.co2!, 3)} Erdgas, {komma(HEIZARTEN.oel.co2!, 3)} Heizöl,
-              {" "}{komma(HEIZARTEN.fern.co2!, 2)} Fernwärme. Keine Zusage, keine Rechtsberatung.
+              Grobe Orientierung auf Basis Ihrer Angaben — die tatsächlichen Einsparungen können je
+              nach Situation auch höher ausfallen. Installationskosten variieren je nach örtlichen
+              Gegebenheiten. Wir beraten Sie gerne persönlich und unverbindlich.
             </p>
           </footer>
         </div>

@@ -208,6 +208,32 @@
     background-size: 220% 100%;
     animation: sheen-sweep 9s ease-in-out infinite;
   }
+  /* ── Dezente Schimmer-Partikel: Sanft pulsierende, winzige Lichtpunkte,
+     die sich langsam bewegen. Gibt leeren Hintergrundflächen dezent Leben.
+     Rein CSS, GPU-freundlich (nur opacity + transform). */
+  @keyframes shimmer-drift {
+    0%   { transform: translateY(0) translateX(0); opacity: 0; }
+    15%  { opacity: 0.7; }
+    50%  { opacity: 0.3; }
+    85%  { opacity: 0.6; }
+    100% { transform: translateY(-120vh) translateX(30px); opacity: 0; }
+  }
+  .shimmer-field {
+    position: absolute;
+    inset: 0;
+    overflow: hidden;
+  }
+  .shimmer-field span {
+    position: absolute;
+    width: 2px;
+    height: 2px;
+    border-radius: 50%;
+    background: radial-gradient(circle, color-mix(in oklab, var(--color-accent) 35%, #fff) 0%, transparent 70%);
+    animation: shimmer-drift var(--dur, 18s) var(--delay, 0s) linear infinite;
+    will-change: transform, opacity;
+    pointer-events: none;
+  }
+
   @media (prefers-reduced-motion: reduce) {
     .sheen { animation: none; }
     /* Die driftenden Hintergrundfelder stillstellen. `!important` ist hier
@@ -216,6 +242,7 @@
        Alternativ hätte die Komponente je nach Einstellung eine andere
        Struktur rendern müssen — genau das verursachte den Hydration-Fehler. */
     .backdrop-drift { transform: none !important; }
+    .shimmer-field span { animation: none !important; opacity: 0 !important; }
   }
 
   /* Foto-Platzhalter Diagonal-Muster */

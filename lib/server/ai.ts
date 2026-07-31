@@ -54,6 +54,21 @@ const OHNE_DENKEN = {
   reasoning_effort: "low",                          // neuere LM-Studio-/OpenAI-Versionen
 } as const;
 
+/**
+ * Steuermarke im System-Prompt, mit der hybride Reasoning-Modelle ihr „laut
+ * Nachdenken" abschalten. Nemotron-3 und Qwen3 verstehen sie; Modelle, die sie
+ * nicht kennen, ignorieren die zwei Wörter am Promptende.
+ *
+ * Warum das nötig ist, obwohl OHNE_DENKEN oben schon gesetzt wird: Die
+ * JSON-Felder sind Bitten an den SERVER (llama.cpp, Ollama, vLLM). Nemotron
+ * ignoriert sie — gemessen an einem echten Lauf verbrauchte es alle 500
+ * erlaubten Token im `reasoning_content` und lieferte `content: ""` mit
+ * `finish_reason: "length"`. Bei 10,2 Token/s waren das 49 Sekunden fürs
+ * Nachdenken und danach war kein Budget mehr für die Antwort übrig. Diese
+ * Marke wirkt dagegen im Modell selbst.
+ */
+const NICHT_DENKEN_MARKE = "/no_think";
+
 // Reasoning-Modelle (DeepSeek-R1, Qwen3-Thinking, gpt-oss, Nemotron …) packen
 // ihre Denkschritte in Marker-Tags — die eigentliche Antwort steht danach.
 // Ein GEÖFFNETER, nie geschlossener Block heißt: das Token-Budget ist mitten
@@ -184,6 +199,18 @@ export async function callAI(
     if (ai.apiKey) headers.Authorization = `Bearer ${ai.apiKey}`;
     const lokal = isLocalEndpoint(endpoint);
 
+    // Lokale Reasoning-Modelle (Nemotron, Qwen3): /no_think an den System-Prompt
+    // anhängen, damit das Modell selbst sein Denken unterdrückt. Die JSON-Felder
+    // oben (OHNE_DENKEN) bitten nur den SERVER — Nemotron ignoriert sie komplett
+    // und verbraucht sonst alle Token fürs Nachdenken.
+    const effektiveMessages = lokal
+      ? messages.map((m) =>
+          m.role === "system"
+            ? { ...m, content: m.content.trimEnd() + "\n" + NICHT_DENKEN_MARKE }
+            : m
+        )
+      : messages;
+
     const senden = (maxTokens: number, extras: boolean) =>
       fetch(endpoint, {
         method: "POST",
@@ -193,7 +220,7 @@ export async function callAI(
           model: ai.model,
           temperature: ai.temperature,
           max_tokens: maxTokens,
-          messages,
+          messages: effektiveMessages,
           ...(extras ? OHNE_DENKEN : {}),
         }),
       });
