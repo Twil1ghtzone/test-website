@@ -205,6 +205,47 @@
   /* Bogen oben (arched card) */
   .arch { border-radius: 999px 999px 14px 14px; }
 
+  /* ── Druckausgabe (PDF über den Systemdialog „Als PDF speichern") ──
+     Der Browser rendert echten Text und echte Vektor-Icons, deshalb braucht es
+     keine PDF-Bibliothek: gestochen scharf, kopierbar, und die strenge CSP
+     bleibt unangetastet. `.printonly` erscheint nur im Druck, `.noprint` nie. */
+  .printonly { display: none; }
+
+  @media print {
+    @page {
+      size: A4 portrait;
+      margin: 14mm 13mm;
+    }
+    html, body {
+      background: #fff !important;
+      color: #000;
+      font-size: 10.5pt;
+    }
+    /* Navigation, Footer, Support-Knopf, Hintergrund-Effekte und alle
+       Bedienelemente raus. Alles Fixierte muss weg, sonst klebt es auf
+       jeder Seite des PDFs. */
+    body > header, body > footer, .noprint { display: none !important; }
+    [class*="fixed"] { display: none !important; }
+    .printonly { display: block !important; }
+    main { padding: 0 !important; margin: 0 !important; }
+
+    /* Karten flach drucken — Schatten und Farbflächen fressen nur Toner. */
+    .print-card {
+      border: 0.4mm solid #d3c8b5 !important;
+      border-radius: 3mm;
+      box-shadow: none !important;
+      background: #fff !important;
+      break-inside: avoid;
+      page-break-inside: avoid;
+    }
+    .print-break { break-before: page; page-break-before: always; }
+    .print-keep { break-inside: avoid; page-break-inside: avoid; }
+    h1, h2, h3 { break-after: avoid; page-break-after: avoid; }
+    a { text-decoration: none; color: inherit; }
+    /* Hintergrundfarben der Akzentflächen erhalten (Browser-Standard entfernt sie). */
+    .print-exact { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+  }
+
   /* Bereichsregler im Seitenstil: die Spur ist bis zum Griff im Akzentton
      gefüllt. Der Fortschritt kommt als --p (Prozent) aus dem Markup, weil
      WebKit keine eigene Progress-Pseudoklasse kennt. */
