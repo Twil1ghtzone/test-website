@@ -90,15 +90,26 @@ function printInvoice(inv: Invoice) {
       je nach Projektstand auch schon während der Umsetzung.
     </p>
 
-    <button class="noprint" onclick="window.print()" style="margin-top:24px;background:#b0543a;color:#fff;border:0;padding:12px 24px;border-radius:999px;font-size:14px;cursor:pointer;">Drucken</button>
+    <button id="drucken" class="noprint" style="margin-top:24px;background:#b0543a;color:#fff;border:0;padding:12px 24px;border-radius:999px;font-size:14px;cursor:pointer;">Drucken</button>
   </div>
-  <script>window.addEventListener('load', () => setTimeout(() => window.print(), 300));</script>
 </body></html>`;
 
   const w = window.open("", "_blank", "width=820,height=900");
   if (!w) return;
   w.document.write(html);
   w.document.close();
+
+  // Bewusst KEIN Inline-<script> und kein onclick-Attribut im erzeugten HTML:
+  // Das Popup erbt die Content-Security-Policy dieser Seite, und die erlaubt
+  // nur Skripte mit gültigem Nonce. Attribut-Handler lassen sich per Nonce
+  // grundsätzlich nicht freigeben. Deshalb steuern wir das Fenster von hier
+  // aus über die DOM-API — funktioniert ohne jede CSP-Ausnahme.
+  const start = () => {
+    w.document.getElementById("drucken")?.addEventListener("click", () => w.print());
+    window.setTimeout(() => w.print(), 300);
+  };
+  if (w.document.readyState === "complete") start();
+  else w.addEventListener("load", start, { once: true });
 }
 
 export default function InvoicesPanel() {

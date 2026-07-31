@@ -3,39 +3,36 @@ const nextConfig = {
   reactStrictMode: true,
   // Erzeugt einen schlanken, eigenständigen Server-Build für Docker.
   output: "standalone",
-  // Sicherheits-Header für alle Antworten (Clickjacking, MIME-Sniffing, Referrer, Sensoren).
-  async headers() {
-    // Content-Security-Policy: zweite Verteidigungslinie gegen XSS.
-    // 'unsafe-inline'/'unsafe-eval' bei script-src sind für Next.js nötig
-    // (Hydration-Payload + Dev-HMR). In Produktion entfällt 'unsafe-eval'.
-    // connect-src erlaubt bewusst KEINE fremden Hosts — die KI-Anfragen laufen
-    // serverseitig über /api/chat, nie direkt aus dem Browser.
-    const isDev = process.env.NODE_ENV !== "production";
-    const csp = [
-      "default-src 'self'",
-      `script-src 'self' 'unsafe-inline'${isDev ? " 'unsafe-eval'" : ""}`,
-      "style-src 'self' 'unsafe-inline'",
-      "img-src 'self' data: blob:",
-      "font-src 'self' data:",
-      `connect-src 'self'${isDev ? " ws: http://localhost:*" : ""}`,
-      "object-src 'none'",
-      "base-uri 'self'",
-      "form-action 'self'",
-      "frame-ancestors 'none'",
-      "upgrade-insecure-requests",
-    ].join("; ");
 
+  /*
+   * Die Sicherheits-Header stehen NICHT mehr hier, sondern in proxy.ts.
+   *
+   * Grund: Die Content-Security-Policy enthält jetzt einen Nonce, der pro
+   * Antwort neu erzeugt werden muss. `headers()` wird zur Build-Zeit
+   * ausgewertet und kann nur konstante Werte liefern — ein Nonce von hier
+   * wäre für alle Besucher identisch und damit vollkommen wertlos.
+   *
+   * Zwei Quellen für denselben Header wären außerdem gefährlich: Setzen
+   * Konfiguration UND Proxy `Content-Security-Policy`, gewinnt am Ende
+   * eine von beiden, ohne dass man es im Code sieht. Deshalb liegt die
+   * Header-Hoheit vollständig beim Proxy.
+   *
+   * Hier bleiben nur Header für Pfade, die der Proxy bewusst
+   * überspringt — dort gibt es kein Skript zu schützen.
+   */
+  async headers() {
     return [
       {
-        source: "/:path*",
+        // Gebaute Assets tragen einen Hash im Namen und sind unveränderlich.
+        source: "/_next/static/:path*",
         headers: [
-          { key: "Content-Security-Policy", value: csp },
-          { key: "X-Frame-Options", value: "DENY" },
+          { key: "Cache-Control", value: "public, max-age=31536000, immutable" },
           { key: "X-Content-Type-Options", value: "nosniff" },
-          { key: "Referrer-Policy", value: "strict-origin-when-cross-origin" },
-          { key: "Permissions-Policy", value: "camera=(), microphone=(), geolocation=(), payment=()" },
         ],
       },
+      // Die enge Policy für ausgelieferte Uploads steht in proxy.ts, NICHT hier.
+      // Ein hier gesetzter CSP-Header würde vom Proxy überschrieben werden —
+      // beim ersten Versuch kam die Upload-Policy dadurch nie beim Browser an.
     ];
   },
 };

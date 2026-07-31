@@ -37,6 +37,25 @@ export const viewport: Viewport = {
   viewportFit: "cover",
 };
 
+/*
+ * Pflicht für die Nonce-CSP aus proxy.ts.
+ *
+ * Ein Nonce ist pro Antwort einzigartig. Eine zur Build-Zeit erzeugte
+ * HTML-Datei kann ihn nicht enthalten — gemessen: 0 von 42 <script>-Tags
+ * trugen einen Nonce, solange die Startseite statisch vorgerendert wurde.
+ * Der Browser hätte damit ALLE Skripte blockiert und die Seite wäre nie
+ * interaktiv geworden.
+ *
+ * Mit dynamischem Rendering setzt Next.js den Nonce aus dem Request-Header
+ * in jedes eigene Skript-Tag. Der Preis: kein statischer Seiten-Cache mehr,
+ * jede Anfrage wird gerendert. Für diese Seitengröße ist das vertretbar —
+ * die Daten liegen als JSON lokal, es gibt keine Datenbankrunden.
+ *
+ * Wer den statischen Cache zurückhaben will, muss zurück auf
+ * `script-src 'unsafe-inline'`. Beides gleichzeitig geht technisch nicht.
+ */
+export const dynamic = "force-dynamic";
+
 export default function RootLayout({
   children,
 }: {
