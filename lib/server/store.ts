@@ -265,34 +265,75 @@ export const readTickets = (): Ticket[] =>
 export const writeTickets = (t: Ticket[]) => writeJson("tickets.json", t);
 
 // ── Kunden-Support-Tickets (öffentlich erstellbar, per Nummer + Cookie einsehbar) ──
-export type SupportStatus = "offen" | "in_bearbeitung" | "beantwortet" | "geschlossen";
+export type SupportStatus = "offen" | "in_bearbeitung" | "warten_kunde" | "geloest" | "geschlossen";
 export const SUPPORT_STATUS_LABELS: Record<SupportStatus, string> = {
   offen: "Offen",
   in_bearbeitung: "In Bearbeitung",
-  beantwortet: "Beantwortet",
+  warten_kunde: "Warten auf Rückmeldung",
+  geloest: "Gelöst",
   geschlossen: "Geschlossen",
 };
+export const SUPPORT_STATUS: SupportStatus[] = ["offen", "in_bearbeitung", "warten_kunde", "geloest", "geschlossen"];
+
+export type SupportPrio = "niedrig" | "mittel" | "hoch" | "dringend";
+export const SUPPORT_PRIO_LABELS: Record<SupportPrio, string> = {
+  niedrig: "Niedrig",
+  mittel: "Mittel",
+  hoch: "Hoch",
+  dringend: "Dringend",
+};
+export const SUPPORT_PRIOS: SupportPrio[] = ["niedrig", "mittel", "hoch", "dringend"];
+
+/** Angehängte Datei — der Name ist der gesäuberte Anzeigename, url zeigt auf /api/uploads. */
+export interface SupportAnhang {
+  name: string;
+  url: string;
+  mime: string;
+  size: number;
+}
 export interface SupportMessage {
   id: string;
   from: "kunde" | "team";
   text: string;
   createdAt: string;
+  anhaenge?: SupportAnhang[];
+  /** Interne Notiz: nur im Admin sichtbar, nie im Kundenverlauf. */
+  intern?: boolean;
+}
+/** Verlaufseintrag für die Nachvollziehbarkeit (wer hat wann was geändert). */
+export interface SupportLog {
+  at: string;
+  action: string;
+  by: string;
 }
 export interface SupportTicket {
   id: string;
-  number: string; // z. B. TS-2026-001 — öffentlich sichtbar
-  tokenHash: string; // HMAC des geheimen Zugriffs-Tokens (Klartext nie gespeichert)
+  number: string; // TK-XXXX-XXXX-XXXX — zufällig, öffentlich zeigbar
+  tokenHash: string; // HMAC des geheimen Zugriffscodes (Klartext nie gespeichert)
   name: string;
   email: string;
   subject: string;
   status: SupportStatus;
+  prio: SupportPrio;
+  bearbeiter?: string; // Teammitglied, dem das Ticket zugeordnet ist
   ipHash: string; // gehasht (Rate-Limit/Missbrauch)
   messages: SupportMessage[];
+  log: SupportLog[];
   createdAt: string;
   updatedAt: string;
 }
+
+// Altbestand mitziehen: früher gab es "beantwortet" als Status, keine Prioritäten
+// und kein Verlaufsprotokoll. Beim Lesen wird das aufgefüllt, damit ein
+// bestehendes support.json ohne Migrationsskript weiterläuft.
 export const readSupport = (): SupportTicket[] =>
-  readJson<SupportTicket[]>("support.json", []).map((t) => ({ ...t, messages: t.messages || [] }));
+  readJson<(Omit<SupportTicket, "status"> & { status: string })[]>("support.json", []).map((t) => ({
+    ...t,
+    status: (t.status === "beantwortet" ? "warten_kunde" : t.status) as SupportStatus,
+    prio: t.prio ?? "mittel",
+    messages: (t.messages || []).map((m) => ({ ...m, anhaenge: m.anhaenge || [] })),
+    log: t.log || [],
+  }));
 export const writeSupport = (t: SupportTicket[]) => writeJson("support.json", t);
 
 // ── Editierbare Seiteninhalte: Kontaktdaten + Rechtstexte ──

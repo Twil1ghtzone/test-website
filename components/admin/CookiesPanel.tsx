@@ -12,16 +12,41 @@ type CookieInfo = {
 };
 
 // Vollständige Liste aller Cookies, die diese Website setzt.
+// Alle sind First-Party, technisch notwendig und tracken nichts.
 const COOKIES: CookieInfo[] = [
   {
     name: "sl_session",
-    purpose: "Admin-Sitzung: hält die Anmeldung im geschützten Admin-Bereich aufrecht (HMAC-signiert, kein personenbezogenes Tracking).",
+    purpose:
+      "Admin-Sitzung: hält die Anmeldung im geschützten Admin-Bereich aufrecht (HMAC-signiert, kein personenbezogenes Tracking).",
     category: "Notwendig",
     duration: "8 Stunden",
     provider: "Diese Website (First-Party)",
     flags: ["HttpOnly", "SameSite=Lax", "Secure (HTTPS)", "signiert"],
   },
+  {
+    name: "sl_ticket_auth",
+    purpose:
+      "Support-Tickets: enthält signiert, auf welche Tickets dieser Browser zugreifen darf (Ticketnummer + Zugriffscode). Dadurch bleibt ein Ticket ohne Konto und ohne Passwort geöffnet. Weil der Cookie HttpOnly ist, kann JavaScript ihn nicht auslesen — ein XSS könnte die Zugriffscodes also nicht abgreifen.",
+    category: "Notwendig",
+    duration: "90 Tage",
+    provider: "Diese Website (First-Party)",
+    flags: ["HttpOnly", "SameSite=Strict", "Secure (HTTPS)", "signiert"],
+  },
+  {
+    name: "sl_ticket_session",
+    purpose:
+      "Support-Tickets: merkt sich, welches Ticket zuletzt geöffnet war, damit die Seite direkt dort weitermacht. Enthält ausschließlich die Ticketnummer, kein Geheimnis.",
+    category: "Notwendig",
+    duration: "30 Tage",
+    provider: "Diese Website (First-Party)",
+    flags: ["HttpOnly", "SameSite=Strict", "Secure (HTTPS)"],
+  },
 ];
+
+// Geprüft am 31.07.2026: Die Seite verwendet weder localStorage noch
+// sessionStorage, und kein einziges Cookie wird per JavaScript gesetzt.
+// Alle drei Cookies kommen ausschließlich vom Server und sind HttpOnly.
+// Sollte sich das ändern, gehört der neue Eintrag hierher.
 
 export default function CookiesPanel() {
   const badge: Record<CookieInfo["category"], string> = {

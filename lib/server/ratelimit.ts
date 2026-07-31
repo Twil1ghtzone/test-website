@@ -2,6 +2,14 @@
 // Pro Schlüssel (z. B. "chat:<ip>") maximal `max` Treffer je `windowMs`.
 // In-Memory reicht hier: Einzelprozess-Deployment, Schutzziel ist Missbrauchs-
 // Bremse (LLM-Kosten, Spam), keine exakte Abrechnung.
+//
+// WICHTIG FÜRS DEPLOYMENT: Die Schlüssel enthalten die Client-IP aus dem
+// Header `X-Forwarded-For`. Dieser Header ist frei setzbar — wer ihn bei
+// jeder Anfrage ändert, umgeht jedes Limit. Der Reverse-Proxy (nginx,
+// Caddy, Traefik) MUSS ihn deshalb überschreiben statt anzuhängen:
+//   nginx : proxy_set_header X-Forwarded-For $remote_addr;
+//   Caddy : setzt es standardmäßig korrekt
+// Ohne vorgeschalteten Proxy sind alle Limits dieser Datei wirkungslos.
 
 const hits = new Map<string, { count: number; resetAt: number }>();
 
