@@ -1,12 +1,12 @@
 import { NextRequest, NextResponse } from "next/server";
-import { readSettings } from "@/lib/server/store.ts";
-import { callAI } from "@/lib/server/ai.ts";
-import { rateLimit } from "@/lib/server/ratelimit.ts";
-import { originOk } from "@/lib/server/security.ts";
+import { readSettings } from "@/lib/server/store";
+import { callAI } from "@/lib/server/ai";
+import { rateLimit } from "@/lib/server/ratelimit";
+import { originOk } from "@/lib/server/security";
 import {
   CHAT_COOKIE, MAX_CONTEXT_MESSAGES,
   loadSession, createSession, appendMessage, deleteSession, decryptedHistory, chatCookieOptions,
-} from "@/lib/server/aiChat.ts";
+} from "@/lib/server/aiChat";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";

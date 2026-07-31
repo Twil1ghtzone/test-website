@@ -5,7 +5,7 @@ import {
   ShieldCheck, LogIn, LogOut, Users, Inbox, LayoutDashboard, Plus, Trash2, Pencil, X,
   Eye, EyeOff, Loader2, Check, Mail, Phone, Sparkles, Database, FileText, Cookie,
   Star, Ticket, Hammer, Wallet, MessageCircle, History, HardDrive, UserRound, Menu,
-  Receipt, Bot, LifeBuoy, Scale,
+  Receipt, Bot, LifeBuoy, Scale, KeyRound,
 } from "lucide-react";
 import SettingsPanel from "@/components/admin/SettingsPanel";
 import BackupPanel from "@/components/admin/BackupPanel";
@@ -23,6 +23,7 @@ import InvoicesPanel from "@/components/admin/InvoicesPanel";
 import AssistantPanel from "@/components/admin/AssistantPanel";
 import SupportPanel from "@/components/admin/SupportPanel";
 import LegalPanel from "@/components/admin/LegalPanel";
+import ChatKeysPanel from "@/components/admin/ChatKeysPanel";
 
 type Role = "admin" | "editor";
 type Permission =
@@ -35,7 +36,7 @@ type Inquiry = { id: string; name: string; email: string; phone?: string; topic?
 type Tab =
   | "overview" | "users" | "inquiries" | "blog" | "settings" | "backup" | "cookies"
   | "reviews" | "tickets" | "chat" | "orders" | "finance" | "activity" | "database" | "account"
-  | "invoices" | "assistant" | "support" | "legal";
+  | "invoices" | "assistant" | "support" | "legal" | "chatkeys";
 
 const PERMISSION_LABELS: Record<Permission, string> = {
   inquiries: "Anfragen", users: "Benutzer", settings: "KI & Einstellungen",
@@ -233,6 +234,7 @@ function Dashboard({ me, onLogout }: { me: User; onLogout: () => void }) {
         { id: "activity", label: "Aktivität", icon: History, show: can(me, "activity") },
         { id: "assistant", label: "KI-Assistent", icon: Bot, show: true },
         { id: "settings", label: "KI & Einstellungen", icon: Sparkles, show: can(me, "settings") },
+        { id: "chatkeys", label: "Chat-Verschlüsselung", icon: KeyRound, show: can(me, "settings") },
         { id: "backup", label: "Backup", icon: Database, show: can(me, "backup") },
         { id: "database", label: "Datenbank", icon: HardDrive, show: can(me, "database") },
       ],
@@ -291,6 +293,7 @@ function Dashboard({ me, onLogout }: { me: User; onLogout: () => void }) {
       {tab === "chat" && can(me, "chat") && <ChatPanel meId={me.id} isAdmin={me.role === "admin"} />}
       {tab === "activity" && can(me, "activity") && <ActivityPanel isAdmin={me.role === "admin"} />}
       {tab === "settings" && can(me, "settings") && <SettingsPanel />}
+      {tab === "chatkeys" && can(me, "settings") && <ChatKeysPanel />}
       {tab === "backup" && can(me, "backup") && <BackupPanel />}
       {tab === "database" && can(me, "database") && <DatabasePanel isAdmin={me.role === "admin"} />}
       {tab === "cookies" && can(me, "cookies") && <CookiesPanel />}

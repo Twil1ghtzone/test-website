@@ -44,7 +44,7 @@ const COOKIES: CookieInfo[] = [
   {
     name: "sl_chat_session",
     purpose:
-      "KI-Support-Chat: hält die laufende Unterhaltung mit dem Assistenten, damit man die Seite verlassen und später zurückkehren kann. Der Nachrichtentext liegt AES-256-verschlüsselt auf dem Server, nie im Cookie selbst — der Cookie enthält nur einen Sitzungs-Schlüssel. Löscht sich automatisch nach 7 Tagen Inaktivität oder sofort per „Neuer Chat”-Knopf.",
+      "KI-Support-Chat: hält die laufende Unterhaltung mit dem Assistenten, damit man die Seite verlassen und später zurückkehren kann. Der Cookie enthält nur eine Sitzungs-Kennung und ein Geheimnis, niemals Gesprächsinhalte. Die Nachrichten selbst liegen hüllenverschlüsselt auf dem Server (RSA-2048 über AES-256-GCM, eigenes Schlüsselpaar je Gespräch — Details unter „Chat-Verschlüsselung”). Löscht sich automatisch nach 7 Tagen Inaktivität oder sofort per „Neuer Chat”-Knopf.",
     category: "Notwendig",
     duration: "7 Tage, rollierend (verlängert sich mit jeder Nachricht)",
     provider: "Diese Website (First-Party)",

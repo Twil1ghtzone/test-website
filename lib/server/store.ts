@@ -364,9 +364,11 @@ export const DEFAULT_CONTENT: SiteContent = {
     "für die Admin-Anmeldung, zur Wiedererkennung eigener Support-Tickets und für den KI-Support-Chat. Eine vollständige Liste " +
     "mit Zweck, Speicherdauer und Schutzmaßnahmen jedes einzelnen Cookies führt der Admin-Bereich unter „Cookies“.\n\n" +
     "### KI-Support-Chat\n\n" +
-    "Nachrichten an unseren Chat-Assistenten werden verschlüsselt gespeichert (AES-256) und automatisch nach 7 Tagen " +
-    "Inaktivität gelöscht — oder sofort, wenn Sie im Chat „Neuer Chat“ wählen. Der Zugriff auf einen laufenden Chat läuft " +
-    "über ein signiertes, nur serverseitig lesbares Cookie. Die Verarbeitung dient der Beantwortung Ihrer Anfrage " +
+    "Nachrichten an unseren Chat-Assistenten werden hüllenverschlüsselt gespeichert (RSA-2048 über AES-256-GCM, mit einem " +
+    "eigenen Schlüsselpaar je Gespräch) und automatisch nach 7 Tagen Inaktivität gelöscht — oder sofort, wenn Sie im Chat " +
+    "„Neuer Chat“ wählen. Mit dem Löschen verschwindet auch der zugehörige Schlüssel, die Nachrichten sind danach " +
+    "endgültig nicht mehr lesbar. Der Zugriff auf einen laufenden Chat läuft über ein signiertes, nur serverseitig " +
+    "lesbares Cookie. Die Verarbeitung dient der Beantwortung Ihrer Anfrage " +
     "(Art. 6 Abs. 1 lit. f DSGVO, berechtigtes Interesse an funktionierendem Support).\n\n" +
     "_Hinweis für den Betreiber, bitte vor Veröffentlichung prüfen:_ Läuft die KI über einen lokal betriebenen Server " +
     "(z. B. Ollama/LM Studio im eigenen Netz), verlassen die Nachrichten diesen Server nicht. Wird stattdessen ein " +

@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
-import { Loader2, Database, RotateCcw, AlertTriangle, X, Check, Zap } from "lucide-react";
+import { Loader2, Database, RotateCcw, AlertTriangle, X, Check, Zap, Info } from "lucide-react";
 
 type Col = { file: string; label: string; count: number; bytes: number };
 
@@ -64,6 +64,20 @@ export default function DatabasePanel({ isAdmin }: { isAdmin: boolean }) {
           Alle Lesezugriffe laufen über einen <b>In-Memory-Cache</b> (kein Disk-I/O pro Anfrage), Schreibvorgänge sind
           <b> atomar</b> (temp-Datei + rename) — auch bei vielen parallelen Anfragen entstehen keine halben Dateien.
           Die Daten liegen im Docker-Volume und überleben Container-Neustarts.
+        </p>
+      </div>
+
+      {/* Vollständigkeit für Datenschutz-Auskünfte: Die Chat-Verläufe des
+          KI-Assistenten liegen NICHT in dieser Übersicht, weil sie bewusst
+          nicht in Backups gehören (verschlüsselt, ephemer, 7-Tage-Ablauf).
+          Ohne diesen Hinweis würde man beim Aufräumen glauben, alle Daten
+          gesehen zu haben. */}
+      <div className="flex items-start gap-3 rounded-2xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-900">
+        <Info className="mt-0.5 h-4 w-4 shrink-0" />
+        <p className="leading-relaxed">
+          <b>Nicht in dieser Liste:</b> die Verläufe des KI-Support-Chats. Sie liegen verschlüsselt in einer eigenen
+          Datei, laufen nach 7 Tagen automatisch ab und sind absichtlich nicht Teil der Backups. Ansehen, Master-Schlüssel
+          wechseln oder alles löschen lässt sich unter <b>Chat-Verschlüsselung</b>.
         </p>
       </div>
 
