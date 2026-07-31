@@ -1,7 +1,8 @@
 "use client";
 
 import { useMemo } from "react";
-import { motion, useScroll, useSpring, useTransform, useReducedMotion } from "framer-motion";
+import { motion, useScroll, useSpring, useTransform } from "framer-motion";
+import { useReducedMotionSafe } from "@/components/ui/motion";
 
 // Deterministischer Pseudo-Zufall (mulberry32) — liefert auf Server UND
 // Client exakt dieselbe Folge. Math.random() würde bei der Hydration
@@ -37,7 +38,7 @@ function buildParticles(count: number): Particle[] {
 // und verschieben sich beim Scrollen unterschiedlich schnell (Tiefenwirkung),
 // ganz über GPU-Transforms — kein Canvas, kein rAF-Loop.
 export default function ScrollParticles() {
-  const reduced = useReducedMotion();
+  const reduced = useReducedMotionSafe();
   const { scrollY } = useScroll();
   const s = useSpring(scrollY, { stiffness: 55, damping: 20, restDelta: 1 });
   const particles = useMemo(() => buildParticles(26), []);

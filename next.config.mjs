@@ -21,6 +21,13 @@ const nextConfig = {
    * überspringt — dort gibt es kein Skript zu schützen.
    */
   async headers() {
+    // Das Caching der gebauten Assets gilt NUR in Produktion. Im Dev-Modus
+    // warnte Next.js zu Recht: "Setting a custom Cache-Control header can
+    // break Next.js development behavior" — mit einem Jahr immutable-Cache
+    // holt der Browser geänderte Chunks nicht mehr nach und Hot Reload
+    // liefert veralteten Code aus.
+    if (process.env.NODE_ENV !== "production") return [];
+
     return [
       {
         // Gebaute Assets tragen einen Hash im Namen und sind unveränderlich.

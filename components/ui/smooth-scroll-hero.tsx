@@ -6,8 +6,8 @@ import {
   useMotionTemplate,
   useScroll,
   useTransform,
-  useReducedMotion,
 } from "framer-motion";
+import { useReducedMotionSafe } from "@/components/ui/motion";
 
 interface iISmoothScrollHeroProps {
   /** Height of the scroll section in pixels @default 800 */
@@ -78,7 +78,7 @@ const SmoothScrollHero: React.FC<iISmoothScrollHeroProps> = ({
   initialClipPercentage = 30,
   finalClipPercentage = 70,
 }) => {
-  const reduced = useReducedMotion();
+  const reduced = useReducedMotionSafe();
   const mobile = mobileImage ?? desktopImage;
 
   if (reduced) {

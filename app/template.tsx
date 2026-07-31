@@ -1,13 +1,14 @@
 "use client";
 
 import { usePathname } from "next/navigation";
-import { motion, useReducedMotion } from "framer-motion";
+import { motion } from "framer-motion";
+import { useReducedMotionSafe } from "@/components/ui/motion";
 
 // Template wird bei jeder Navigation neu gemountet → sanfte „Öffnen"-Animation pro Seite.
 // Startseite: NUR Opacity (kein Transform), damit position:sticky im Hero nicht bricht.
 // Unterseiten: zusätzlich ein dezenter Slide-up.
 export default function Template({ children }: { children: React.ReactNode }) {
-  const reduced = useReducedMotion();
+  const reduced = useReducedMotionSafe();
   const pathname = usePathname();
   const isHome = pathname === "/";
 

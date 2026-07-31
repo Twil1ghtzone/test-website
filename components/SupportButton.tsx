@@ -17,6 +17,8 @@ export default function SupportButton() {
   const [messages, setMessages] = useState<Msg[]>([{ from: "bot", text: DEFAULT_GREETING }]);
   const [input, setInput] = useState("");
   const [busy, setBusy] = useState(false);
+  /** Wird nach 8 s Wartezeit true — Hinweis, dass das Modell noch rechnet. */
+  const [dauert, setDauert] = useState(false);
   const [resetting, setResetting] = useState(false);
   const [aiOn, setAiOn] = useState(false);
   const [greeting, setGreeting] = useState(DEFAULT_GREETING);
@@ -54,6 +56,10 @@ export default function SupportButton() {
     setMessages((m) => [...m, { from: "user", text: t }]);
     setInput("");
     setBusy(true);
+    // Lokale Modelle brauchen auf schwächerer Hardware gut und gerne 30–60 s.
+    // Ohne Rückmeldung sieht das aus wie ein Fehler — nach 8 s sagen wir also,
+    // dass noch gerechnet wird.
+    const langsam = window.setTimeout(() => setDauert(true), 8000);
     try {
       // Nur die NEUE Nachricht geht raus — der Verlauf lebt serverseitig,
       // verschlüsselt, hinter dem Sitzungs-Cookie. So kann niemand über die
@@ -63,12 +69,20 @@ export default function SupportButton() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ text: t }),
       });
-      const d = await r.json();
-      setMessages((m) => [...m, { from: "bot", text: d.reply || "Entschuldige, das hat nicht geklappt." }]);
+      const d = await r.json().catch(() => null);
+      // Der Server liefert auf JEDEM Pfad ein `reply` mit. Fehlt es trotzdem,
+      // zeigen wir die echte Server-Meldung statt eines nichtssagenden Satzes —
+      // sonst sucht man den Fehler an der falschen Stelle.
+      const antwort =
+        d?.reply ||
+        (d?.error ? `Es gab ein Problem: ${d.error}` : `Der Server antwortete unerwartet (HTTP ${r.status}).`);
+      setMessages((m) => [...m, { from: "bot", text: antwort }]);
       setHadReturningChat(true);
     } catch {
       setMessages((m) => [...m, { from: "bot", text: "Verbindungsfehler. Bitte später erneut versuchen." }]);
     } finally {
+      window.clearTimeout(langsam);
+      setDauert(false);
       setBusy(false);
     }
   }
@@ -197,12 +211,18 @@ export default function SupportButton() {
                 </div>
               ))}
               {busy && (
-                <div className="flex justify-start">
+                <div className="flex flex-col items-start gap-1">
                   <span className="flex items-center gap-1 rounded-2xl border border-line bg-surface px-3.5 py-2.5">
                     <span className="h-1.5 w-1.5 animate-bounce rounded-full bg-muted [animation-delay:-0.2s]" />
                     <span className="h-1.5 w-1.5 animate-bounce rounded-full bg-muted [animation-delay:-0.1s]" />
                     <span className="h-1.5 w-1.5 animate-bounce rounded-full bg-muted" />
                   </span>
+                  {/* Ein lokales Modell kann auf schwächerer Hardware 30–60 s
+                      brauchen. Ohne diesen Hinweis wirkt die Wartezeit wie ein
+                      Fehler und man tippt nochmal. */}
+                  {dauert && (
+                    <span className="pl-1 text-[11px] text-muted">Das Modell rechnet noch — bei lokalen Modellen kann das etwas dauern.</span>
+                  )}
                 </div>
               )}
             </div>

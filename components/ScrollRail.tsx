@@ -1,14 +1,15 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { motion, useScroll, useSpring, useTransform, useMotionValueEvent, useReducedMotion } from "framer-motion";
+import { motion, useScroll, useSpring, useTransform, useMotionValueEvent } from "framer-motion";
+import { useReducedMotionSafe } from "@/components/ui/motion";
 
 // Dezenter Scroll-Indikator am rechten Rand (nur Desktop, nur Startseite):
 // eine feine Schiene im Hintergrund, deren Füllung gefedert mitwächst,
 // dazu ein leuchtender Punkt und die Prozentzahl — visualisiert die
 // Scroll-Position, ohne vom Inhalt abzulenken.
 export default function ScrollRail() {
-  const reduced = useReducedMotion();
+  const reduced = useReducedMotionSafe();
   const { scrollYProgress } = useScroll();
   const progress = useSpring(scrollYProgress, { stiffness: 90, damping: 24, restDelta: 0.001 });
 

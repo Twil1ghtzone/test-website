@@ -1,13 +1,28 @@
 "use client";
 
-import { motion, useScroll, useSpring, useTransform, useReducedMotion } from "framer-motion";
+import { motion, useScroll, useSpring, useTransform } from "framer-motion";
 
-// Parallax-Schicht hinter dem Inhalt: weiche Lichtfelder in den Markentönen,
-// die beim Scrollen spürbar (aber ruhig) driften und leicht rotieren — damit
-// sofort Bewegung sichtbar ist und die Seite lebendig wirkt.
-// Läuft komplett über GPU-Transforms; respektiert prefers-reduced-motion.
+/* ════════════════════════════════════════════════════════════════════════
+   Parallax-Schicht hinter dem Inhalt: weiche Lichtfelder in den Markentönen,
+   die beim Scrollen ruhig driften, dazu eine feine Korn-Textur und ein sehr
+   dezenter Lichtstreif.
+
+   WICHTIG — warum hier NICHT auf prefers-reduced-motion verzweigt wird:
+   Vorher stand hier `if (reduced) return (…)` mit einer anderen Struktur als
+   im Normalfall. `useReducedMotion()` kann auf dem Server aber nichts messen
+   (kein matchMedia) und liefert dort null, während es im Browser den echten
+   Wert kennt. Ergebnis: Der Server lieferte 5 Kindelemente, ein Client mit
+   aktivierter Bewegungsreduzierung rechnete mit 3 — React meldete einen
+   Hydration-Fehler und verwarf den ganzen Teilbaum.
+
+   Deshalb rendert die Komponente jetzt IMMER dieselbe Struktur. Ob Bewegung
+   gezeigt wird, entscheidet ausschließlich CSS (siehe globals.css,
+   @media (prefers-reduced-motion: reduce)): dort wird der Drift der Felder
+   mit `transform: none !important` stillgestellt und die Schimmer-Animation
+   abgeschaltet. Eine Regel aus dem Stylesheet gewinnt gegen einen
+   nicht-!important-Inline-Stil — genau das, was Framer Motion schreibt.
+   ════════════════════════════════════════════════════════════════════════ */
 export default function ScrollBackdrop() {
-  const reduced = useReducedMotion();
   const { scrollY } = useScroll();
   // Gefederte Scroll-Position → geschmeidige, nachlaufende Bewegung.
   const s = useSpring(scrollY, { stiffness: 60, damping: 22, restDelta: 1 });
@@ -19,24 +34,8 @@ export default function ScrollBackdrop() {
   const y3 = useTransform(s, (v) => v * 0.26);
   const r3 = useTransform(s, (v) => v * -0.018);
 
-  const blob = "absolute rounded-full blur-[80px] will-change-transform";
-
-  // Feine Korn-Textur über der ganzen Fläche — macht große, sonst einfarbige
-  // Flächen (z. B. lange Formular- oder Rechner-Seiten) fühlbar hochwertiger,
-  // ohne dass es als eigenes "Element" auffällt. Läuft nie als Animation,
-  // kostet also nichts an Performance/Akku.
-  const grain = <div aria-hidden className="grain absolute inset-0 opacity-[0.035]" />;
-
-  if (reduced) {
-    // Statische, ruhige Variante ohne Bewegung (auch kein Schimmer).
-    return (
-      <div aria-hidden className="pointer-events-none fixed inset-0 -z-10 overflow-hidden">
-        <div className={`${blob} -right-40 -top-40 h-[36rem] w-[36rem] opacity-80`} style={{ background: "radial-gradient(closest-side, rgba(176,84,58,0.22), transparent 70%)" }} />
-        <div className={`${blob} -left-52 top-[40%] h-[42rem] w-[42rem] opacity-90`} style={{ background: "radial-gradient(closest-side, rgba(211,200,181,0.5), transparent 70%)" }} />
-        {grain}
-      </div>
-    );
-  }
+  // `backdrop-drift` ist der Haken für die Reduzierungs-Regel in globals.css.
+  const blob = "backdrop-drift absolute rounded-full blur-[80px] will-change-transform";
 
   return (
     <div aria-hidden className="pointer-events-none fixed inset-0 -z-10 overflow-hidden">
@@ -55,11 +54,10 @@ export default function ScrollBackdrop() {
         className={`${blob} -bottom-56 right-[10%] h-[40rem] w-[40rem] opacity-80`}
         style={{ y: y3, rotate: r3, background: "radial-gradient(closest-side, rgba(236,217,207,0.7), transparent 70%)" }}
       />
-      {/* Sehr dezenter Lichtstreif, zieht alle paar Sekunden einmal quer über
-          die Seite — füllt große, sonst leere Canvas-Flächen mit Bewegung,
-          ohne von den eigentlichen Inhalten abzulenken. Reines CSS (kein
-          Framer-Motion-Tick), pausiert automatisch bei reduced motion. */}
-      {grain}
+      {/* Feine Korn-Textur — statisch, kostet nichts an Performance/Akku. */}
+      <div aria-hidden className="grain absolute inset-0 opacity-[0.035]" />
+      {/* Dezenter Lichtstreif, zieht alle paar Sekunden einmal quer über die
+          Seite. Reines CSS, pausiert bei prefers-reduced-motion. */}
       <div aria-hidden className="sheen absolute inset-0" />
     </div>
   );

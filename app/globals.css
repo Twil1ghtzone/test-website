@@ -210,6 +210,12 @@
   }
   @media (prefers-reduced-motion: reduce) {
     .sheen { animation: none; }
+    /* Die driftenden Hintergrundfelder stillstellen. `!important` ist hier
+       nötig und korrekt: Framer Motion schreibt den Drift als Inline-Stil,
+       und nur eine !important-Regel aus dem Stylesheet gewinnt dagegen.
+       Alternativ hätte die Komponente je nach Einstellung eine andere
+       Struktur rendern müssen — genau das verursachte den Hydration-Fehler. */
+    .backdrop-drift { transform: none !important; }
   }
 
   /* Foto-Platzhalter Diagonal-Muster */

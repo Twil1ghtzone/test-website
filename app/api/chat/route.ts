@@ -18,6 +18,36 @@ function clientIp(req: NextRequest): string {
 }
 
 /**
+ * Liest die neue Nachricht aus dem Anfrage-Körper.
+ *
+ * Nimmt ZWEI Formate an:
+ *   { text: "…" }                              — aktuell
+ *   { messages: [{ role, text }, …] }          — Format vor der Umstellung
+ *
+ * Warum die Altlast bleibt: Ein Browser-Tab, der noch das vorherige
+ * JavaScript-Bundle hält (offener Tab, Cache, Zurück-Navigation), sendet das
+ * alte Format. Ohne diesen Zweig bekam er „Leere Nachricht." und die
+ * Oberfläche zeigte nur „hat nicht geklappt" — der Chat wirkte kaputt, obwohl
+ * Server und KI einwandfrei liefen. Aus dem alten Format wird ausschließlich
+ * die LETZTE Nutzernachricht übernommen; der Verlauf kommt weiterhin
+ * serverseitig aus der verschlüsselten Sitzung, damit niemand über die
+ * Konsole erfundene KI-Antworten in den Kontext schieben kann.
+ */
+function leseNachricht(body: unknown): string {
+  const b = body as { text?: unknown; messages?: unknown } | null;
+  if (typeof b?.text === "string" && b.text.trim()) return b.text.trim().slice(0, MAX_TEXT_LEN);
+
+  if (Array.isArray(b?.messages)) {
+    const letzte = [...b.messages]
+      .reverse()
+      .find((m) => m && (m.role === "user" || m.from === "user") && typeof (m.text ?? m.content) === "string");
+    const wert = letzte ? String(letzte.text ?? letzte.content).trim() : "";
+    if (wert) return wert.slice(0, MAX_TEXT_LEN);
+  }
+  return "";
+}
+
+/**
  * Status + Verlauf. Läuft NUR über den HttpOnly-Cookie — der Klartext-Zugriffs-
  * Token liegt nie in JavaScript, ein Besucher bekommt seinen Chat also automatisch
  * zurück, wenn er die Seite neu lädt oder später wiederkommt (innerhalb des
@@ -35,7 +65,12 @@ export async function GET(req: NextRequest) {
 }
 
 export async function POST(req: NextRequest) {
-  if (!originOk(req)) return NextResponse.json({ error: "Ungültige Herkunft." }, { status: 403 });
+  if (!originOk(req)) {
+    return NextResponse.json(
+      { reply: "Diese Anfrage kam nicht von unserer Seite und wurde blockiert. Bitte die Seite neu laden.", source: "error", error: "Ungültige Herkunft." },
+      { status: 403 }
+    );
+  }
 
   // Öffentlicher Endpunkt → Missbrauchs-Bremse (LLM-Kosten/-Last).
   const ip = clientIp(req);
@@ -48,8 +83,15 @@ export async function POST(req: NextRequest) {
   }
 
   const body = await req.json().catch(() => null);
-  const text = typeof body?.text === "string" ? body.text.trim().slice(0, MAX_TEXT_LEN) : "";
-  if (!text) return NextResponse.json({ error: "Leere Nachricht." }, { status: 400 });
+  const text = leseNachricht(body);
+  if (!text) {
+    // Auch hier ein `reply` mitgeben: Die Oberfläche zeigt sonst nur ein
+    // nichtssagendes „hat nicht geklappt", weil sie auf `reply` wartet.
+    return NextResponse.json(
+      { reply: "Da war keine Nachricht dabei — bitte einmal neu eingeben.", source: "error", error: "Leere Nachricht." },
+      { status: 400 }
+    );
+  }
 
   // Vorhandene Sitzung übernehmen oder neu anlegen — der Server ist die
   // einzige Quelle für den bisherigen Verlauf. Der Client schickt nur die

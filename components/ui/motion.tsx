@@ -1,8 +1,30 @@
 "use client";
 
-import { useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import { motion, useMotionValue, useSpring, useReducedMotion } from "framer-motion";
 import Link from "next/link";
+
+/**
+ * Hydration-sicherer Ersatz für `useReducedMotion()`.
+ *
+ * Das Problem mit dem Original: Auf dem Server gibt es kein `matchMedia`, es
+ * liefert dort also `null`. Im Browser kennt es den echten Wert. Wer damit die
+ * gerenderte STRUKTUR verzweigt (`if (reduced) return <anderesMarkup/>`),
+ * erzeugt bei jedem Besucher mit aktivierter Bewegungsreduzierung einen
+ * Hydration-Fehler — React verwirft dann den ganzen Teilbaum und baut ihn neu.
+ *
+ * Dieser Hook liefert im ERSTEN Render immer `false`, auf Server und Client
+ * gleichermaßen. Erst nach dem Mounten kommt der echte Wert, und die
+ * Umschaltung ist dann eine gewöhnliche React-Aktualisierung statt eines
+ * Abgleichfehlers. Für Besucher mit reduzierter Bewegung heißt das: einen
+ * Wimpernschlag lang die bewegte Variante, danach die ruhige.
+ */
+export function useReducedMotionSafe(): boolean {
+  const reduced = useReducedMotion();
+  const [mounted, setMounted] = useState(false);
+  useEffect(() => setMounted(true), []);
+  return mounted && !!reduced;
+}
 
 // Einheitliche „snappy" Physik für ALLE Button-Interaktionen der Seite.
 // Leichtes Anheben beim Hover, knackiges Eindrücken beim Klick — Spring-Physik.
@@ -55,7 +77,7 @@ export function Magnetic({
   className?: string;
   strength?: number;
 }) {
-  const reduced = useReducedMotion();
+  const reduced = useReducedMotionSafe();
   const ref = useRef<HTMLSpanElement>(null);
   const x = useMotionValue(0);
   const y = useMotionValue(0);

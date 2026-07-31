@@ -7,15 +7,14 @@ import {
   useMotionTemplate,
   useScroll,
   useTransform,
-  useReducedMotion,
 } from "framer-motion";
 import { hero } from "@/lib/data";
 import { ArrowIcon } from "./icons";
 import { HoverBorderGradient } from "@/components/ui/hover-border-gradient";
-import { MotionLink, Magnetic, pressable } from "@/components/ui/motion";
+import { MotionLink, Magnetic, pressable, useReducedMotionSafe } from "@/components/ui/motion";
 
 export default function Hero() {
-  const reduced = useReducedMotion();
+  const reduced = useReducedMotionSafe();
   const { scrollY } = useScroll();
   const sectionRef = useRef<HTMLElement>(null);
 
