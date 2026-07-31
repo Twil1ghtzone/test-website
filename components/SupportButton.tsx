@@ -11,17 +11,40 @@ type Msg = { from: "bot" | "user"; text: string };
 
 const DEFAULT_GREETING = "Hallo! 👋 Wie kann ich dir rund um Smart-Home, Server & Energie sparen helfen?";
 
+/** Rückfall, solange das echte Limit aus /api/chat noch nicht geladen ist. */
+const DEFAULT_TIMEOUT_MS = 120000;
+/**
+ * Kleiner Zuschlag auf das Server-Zeitlimit, bevor der Browser selbst abbricht.
+ * Damit gewinnt im Normalfall die AUSSAGEKRÄFTIGE Server-Antwort das Rennen
+ * ("Zeitüberschreitung nach X s — Modell war noch nicht fertig") statt eines
+ * blanken Client-Abbruchs. Der Client-Abbruch greift nur, wenn der Server
+ * wirklich nicht antwortet (hängende Verbindung).
+ */
+const TIMEOUT_ZUSCHLAG_MS = 5000;
+
 export default function SupportButton() {
   const [open, setOpen] = useState(false);
   const [view, setView] = useState<"menu" | "chat">("menu");
   const [messages, setMessages] = useState<Msg[]>([{ from: "bot", text: DEFAULT_GREETING }]);
   const [input, setInput] = useState("");
   const [busy, setBusy] = useState(false);
-  /** Wird nach 8 s Wartezeit true — Hinweis, dass das Modell noch rechnet. */
-  const [dauert, setDauert] = useState(false);
+  /**
+   * Vergangene Sekunden der laufenden Anfrage. Ein hochzählender Wert statt
+   * eines starren Hinweises: Vorher stand "Das Modell rechnet noch" bis zu
+   * zwei Minuten unverändert da und sah aus wie ein Absturz.
+   */
+  const [wartet, setWartet] = useState(0);
+  /** Erlaubt das Abbrechen einer laufenden Anfrage — von Hand oder automatisch. */
+  const abbruchRef = useRef<AbortController | null>(null);
   const [resetting, setResetting] = useState(false);
   const [aiOn, setAiOn] = useState(false);
   const [greeting, setGreeting] = useState(DEFAULT_GREETING);
+  /**
+   * Zeitlimit aus den KI-Einstellungen im Admin ("Zeitlimit (Sekunden)").
+   * Der Browser hält sich an denselben Wert wie der Server — vorher wartete er
+   * unbegrenzt weiter, obwohl der Server längst abgebrochen hatte.
+   */
+  const [timeoutMs, setTimeoutMs] = useState(DEFAULT_TIMEOUT_MS);
   const [hadReturningChat, setHadReturningChat] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
 
@@ -35,6 +58,7 @@ export default function SupportButton() {
       .then((d) => {
         setAiOn(!!d?.enabled);
         if (d?.greeting) setGreeting(d.greeting);
+        if (typeof d?.timeoutMs === "number" && d.timeoutMs > 0) setTimeoutMs(d.timeoutMs);
         if (Array.isArray(d?.messages) && d.messages.length > 0) {
           setMessages(d.messages.map((m: { from: string; text: string }) => ({ from: m.from === "user" ? "user" : "bot", text: m.text })));
           setHadReturningChat(true);
@@ -56,10 +80,24 @@ export default function SupportButton() {
     setMessages((m) => [...m, { from: "user", text: t }]);
     setInput("");
     setBusy(true);
-    // Lokale Modelle brauchen auf schwächerer Hardware gut und gerne 30–60 s.
-    // Ohne Rückmeldung sieht das aus wie ein Fehler — nach 8 s sagen wir also,
-    // dass noch gerechnet wird.
-    const langsam = window.setTimeout(() => setDauert(true), 8000);
+    setWartet(0);
+
+    // Sekundenzähler: macht sichtbar, dass die Anfrage lebt.
+    const start = Date.now();
+    const ticker = window.setInterval(() => setWartet(Math.floor((Date.now() - start) / 1000)), 1000);
+
+    const controller = new AbortController();
+    abbruchRef.current = controller;
+
+    // Automatischer Abbruch am eingestellten Zeitlimit (plus Zuschlag, damit
+    // die erklärende Server-Antwort Vorrang hat). Ohne das wartete der Browser
+    // unbegrenzt und der Chat sah dauerhaft "beschäftigt" aus.
+    let zeitlimitErreicht = false;
+    const notbremse = window.setTimeout(() => {
+      zeitlimitErreicht = true;
+      controller.abort();
+    }, timeoutMs + TIMEOUT_ZUSCHLAG_MS);
+
     try {
       // Nur die NEUE Nachricht geht raus — der Verlauf lebt serverseitig,
       // verschlüsselt, hinter dem Sitzungs-Cookie. So kann niemand über die
@@ -68,6 +106,7 @@ export default function SupportButton() {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ text: t }),
+        signal: controller.signal,
       });
       const d = await r.json().catch(() => null);
       // Der Server liefert auf JEDEM Pfad ein `reply` mit. Fehlt es trotzdem,
@@ -78,13 +117,35 @@ export default function SupportButton() {
         (d?.error ? `Es gab ein Problem: ${d.error}` : `Der Server antwortete unerwartet (HTTP ${r.status}).`);
       setMessages((m) => [...m, { from: "bot", text: antwort }]);
       setHadReturningChat(true);
-    } catch {
-      setMessages((m) => [...m, { from: "bot", text: "Verbindungsfehler. Bitte später erneut versuchen." }]);
+    } catch (e) {
+      // Drei Fälle klar auseinanderhalten — sonst rätselt man, warum keine
+      // Antwort kam: selbst abgebrochen, Zeitlimit erreicht, Netzfehler.
+      const abgebrochen = e instanceof DOMException && e.name === "AbortError";
+      const sekunden = Math.round((timeoutMs + TIMEOUT_ZUSCHLAG_MS) / 1000);
+      setMessages((m) => [
+        ...m,
+        {
+          from: "bot",
+          text: !abgebrochen
+            ? "Verbindungsfehler. Bitte später erneut versuchen."
+            : zeitlimitErreicht
+              ? `Das Zeitlimit von ${sekunden} s ist erreicht — das Modell hat nicht rechtzeitig geantwortet. ` +
+                "Schreib uns gern direkt, dann antwortet ein Mensch."
+              : "Abgebrochen. Du kannst die Frage neu stellen — oder uns direkt schreiben, dann antwortet ein Mensch.",
+        },
+      ]);
     } finally {
-      window.clearTimeout(langsam);
-      setDauert(false);
+      window.clearInterval(ticker);
+      window.clearTimeout(notbremse);
+      abbruchRef.current = null;
+      setWartet(0);
       setBusy(false);
     }
+  }
+
+  /** Bricht die laufende Anfrage ab (der Server rechnet ggf. noch fertig). */
+  function abbrechen() {
+    abbruchRef.current?.abort();
   }
 
   // "Neuer Chat" — löscht den Verlauf serverseitig vollständig und beginnt
@@ -211,17 +272,35 @@ export default function SupportButton() {
                 </div>
               ))}
               {busy && (
-                <div className="flex flex-col items-start gap-1">
+                <div className="flex flex-col items-start gap-1.5">
                   <span className="flex items-center gap-1 rounded-2xl border border-line bg-surface px-3.5 py-2.5">
                     <span className="h-1.5 w-1.5 animate-bounce rounded-full bg-muted [animation-delay:-0.2s]" />
                     <span className="h-1.5 w-1.5 animate-bounce rounded-full bg-muted [animation-delay:-0.1s]" />
                     <span className="h-1.5 w-1.5 animate-bounce rounded-full bg-muted" />
                   </span>
-                  {/* Ein lokales Modell kann auf schwächerer Hardware 30–60 s
-                      brauchen. Ohne diesen Hinweis wirkt die Wartezeit wie ein
-                      Fehler und man tippt nochmal. */}
-                  {dauert && (
-                    <span className="pl-1 text-[11px] text-muted">Das Modell rechnet noch — bei lokalen Modellen kann das etwas dauern.</span>
+                  {/* Ein lokales Modell kann 30–120 s brauchen. Statt eines
+                      starren Hinweises laufen hier Sekunden hoch — so ist
+                      sichtbar, dass die Anfrage lebt und nicht hängt. Ab 8 s
+                      kommt der Abbrechen-Knopf dazu. */}
+                  {wartet >= 3 && (
+                    <span className="flex flex-wrap items-center gap-x-2 gap-y-1 pl-1 text-[11px] text-muted">
+                      <span className="tabular-nums">
+                        Das Modell rechnet … {wartet} s
+                        {/* Restzeit bis zum automatischen Abbruch — macht das
+                            eingestellte Zeitlimit im Chat sichtbar. */}
+                        {" von max. "}{Math.round((timeoutMs + TIMEOUT_ZUSCHLAG_MS) / 1000)} s
+                        {wartet >= 25 && " · lokale Modelle brauchen manchmal über eine Minute"}
+                      </span>
+                      {wartet >= 8 && (
+                        <button
+                          type="button"
+                          onClick={abbrechen}
+                          className="rounded-full border border-line px-2 py-0.5 font-medium text-ink-soft transition-colors hover:border-accent hover:text-accent-ink cursor-pointer"
+                        >
+                          Abbrechen
+                        </button>
+                      )}
+                    </span>
                   )}
                 </div>
               )}

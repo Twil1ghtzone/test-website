@@ -47,5 +47,7 @@ export async function GET() {
   return NextResponse.json({
     configured: ai.enabled && !!ai.endpoint && !(ai.requireApiKey && !effectiveKey),
     model: ai.model,
+    // Damit sich das Panel an dasselbe Zeitlimit hält wie der Server.
+    timeoutMs: ai.timeoutMs,
   });
 }

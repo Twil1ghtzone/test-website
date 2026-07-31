@@ -22,10 +22,22 @@ export async function POST(req: NextRequest) {
 
   if (!endpoint) return NextResponse.json({ ok: false, detail: "Kein Endpunkt angegeben." }, { status: 200 });
 
-  // Zeitlimit: das eingestellte, aber mindestens 60 s. Lokale Reasoning-Modelle
-  // denken erst sekundenlang laut nach — ein knappes Test-Limit kappt die
-  // Leitung mitten in der Generierung und sieht dann wie ein Serverfehler aus.
-  const timeoutMs = Math.max(60000, typeof body.timeoutMs === "number" ? body.timeoutMs : cur.ai.timeoutMs);
+  /*
+   * Zeitlimit: genau das im Admin eingestellte („Zeitlimit (Sekunden)").
+   *
+   * Vorher stand hier `Math.max(60000, …)` — der Test wartete also immer
+   * mindestens 60 s, selbst wenn jemand 10 s eingestellt hatte. Das war gut
+   * gemeint (Reasoning-Modelle brauchen Zeit), hat aber die Einstellung
+   * ausgehebelt: Der Test bestand mit Werten, unter denen der echte Chat
+   * anschließend scheiterte — also genau die falsche Aussage.
+   *
+   * Jetzt misst der Test unter denselben Bedingungen wie der Betrieb. Ist das
+   * Limit zu knapp, schlägt der Test fehl — und das ist die richtige, ehrliche
+   * Rückmeldung. Der Boden von 5 s entspricht der Untergrenze des Feldes im
+   * Admin und verhindert nur einen Wert von 0.
+   */
+  const eingestellt = typeof body.timeoutMs === "number" ? body.timeoutMs : cur.ai.timeoutMs;
+  const timeoutMs = Math.max(5000, eingestellt);
   // Großzügiges Budget, damit ein Reasoning-Modell nach dem Nachdenken noch
   // Platz für die eigentliche Antwort hat.
   const maxTokens = Math.max(1200, cur.ai.maxTokens);

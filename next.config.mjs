@@ -5,43 +5,53 @@ const nextConfig = {
   output: "standalone",
 
   /*
-   * Die Sicherheits-Header stehen NICHT mehr hier, sondern in proxy.ts.
+   * Was NICHT in den Standalone-Build gehört.
    *
-   * Grund: Die Content-Security-Policy enthält jetzt einen Nonce, der pro
-   * Antwort neu erzeugt werden muss. `headers()` wird zur Build-Zeit
-   * ausgewertet und kann nur konstante Werte liefern — ein Nonce von hier
-   * wäre für alle Besucher identisch und damit vollkommen wertlos.
+   * Der Store liest seine Dateien über `path.join(DATA_DIR, name)` — also mit
+   * einem erst zur Laufzeit bekannten Namen. Turbopack kann daraus nicht
+   * ableiten, welche Dateien wirklich gebraucht werden, verfolgt deshalb
+   * vorsichtshalber das ganze Projekt und warnt beim Build ("Encountered
+   * unexpected file in NFT list").
    *
-   * Zwei Quellen für denselben Header wären außerdem gefährlich: Setzen
-   * Konfiguration UND Proxy `Content-Security-Policy`, gewinnt am Ende
-   * eine von beiden, ohne dass man es im Code sieht. Deshalb liegt die
-   * Header-Hoheit vollständig beim Proxy.
+   * Gemessen landeten dadurch im Ergebnis: `data/` (295 KB — mit
+   * Passwort-Hashes, Tickets, Chat-Sitzungen und Chat-Schlüsseln!), der
+   * Referenzordner `erklärung-und-funktionen/` und ein verwaistes Test1.png.
    *
-   * Hier bleiben nur Header für Pfade, die der Proxy bewusst
-   * überspringt — dort gibt es kein Skript zu schützen.
+   * Im Docker-Build fällt das nicht auf, weil `.dockerignore` diese Pfade
+   * schon aus dem Build-Kontext nimmt. Wer aber `.next/standalone` von Hand
+   * auf einen Server kopiert, hätte die lokale Datenbank mitverteilt.
+   * Deshalb hier zusätzlich und unabhängig von Docker ausgeschlossen.
    */
-  async headers() {
-    // Das Caching der gebauten Assets gilt NUR in Produktion. Im Dev-Modus
-    // warnte Next.js zu Recht: "Setting a custom Cache-Control header can
-    // break Next.js development behavior" — mit einem Jahr immutable-Cache
-    // holt der Browser geänderte Chunks nicht mehr nach und Hot Reload
-    // liefert veralteten Code aus.
-    if (process.env.NODE_ENV !== "production") return [];
-
-    return [
-      {
-        // Gebaute Assets tragen einen Hash im Namen und sind unveränderlich.
-        source: "/_next/static/:path*",
-        headers: [
-          { key: "Cache-Control", value: "public, max-age=31536000, immutable" },
-          { key: "X-Content-Type-Options", value: "nosniff" },
-        ],
-      },
-      // Die enge Policy für ausgelieferte Uploads steht in proxy.ts, NICHT hier.
-      // Ein hier gesetzter CSP-Header würde vom Proxy überschrieben werden —
-      // beim ersten Versuch kam die Upload-Policy dadurch nie beim Browser an.
-    ];
+  outputFileTracingExcludes: {
+    "*": [
+      "./data/**",
+      "./erklärung-und-funktionen/**",
+      "./Test1.png",
+      "./.git/**",
+      // Testdateien und Skripte laufen nie im Server.
+      "./**/*.test.mjs",
+    ],
   },
+
+  /*
+   * Hier stehen bewusst KEINE Header.
+   *
+   * 1. Die Sicherheits-Header (inkl. Content-Security-Policy mit Nonce) setzt
+   *    proxy.ts. Ein Nonce muss pro Antwort neu sein — `headers()` wird zur
+   *    Build-Zeit ausgewertet und könnte nur einen konstanten, für alle
+   *    Besucher identischen und damit wertlosen Nonce liefern. Zwei Quellen
+   *    für denselben Header wären außerdem gefährlich: Am Ende gewinnt eine,
+   *    ohne dass man es im Code sieht. Genau das passierte einmal mit der
+   *    engen Policy für Uploads — sie kam nie beim Browser an.
+   *
+   * 2. Ein eigener `Cache-Control`-Header für /_next/static stand hier
+   *    ebenfalls und war überflüssig: Nachgemessen setzt Next.js von sich aus
+   *    `public, max-age=31536000, immutable` für diese Pfade. Der eigene
+   *    Header war die einzige Ursache der Build- und Dev-Warnung "Setting a
+   *    custom Cache-Control header can break Next.js development behavior" —
+   *    im Dev-Modus hätte ein Jahr immutable-Cache Hot Reload veralteten Code
+   *    ausliefern lassen.
+   */
 };
 
 export default nextConfig;

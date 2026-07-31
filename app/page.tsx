@@ -1,4 +1,3 @@
-import Link from "next/link";
 import Image from "next/image";
 import Reveal from "@/components/Reveal";
 import Placeholder from "@/components/Placeholder";

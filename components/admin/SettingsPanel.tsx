@@ -88,16 +88,32 @@ export default function SettingsPanel() {
   async function runTest() {
     if (!ai) return;
     setTesting(true); setTest(null);
+
+    // Dieselbe Grenze wie der Server (das eingestellte Zeitlimit), plus
+    // Zuschlag, damit die erklärende Server-Antwort Vorrang hat. Ohne diese
+    // Grenze drehte der Knopf bei einem hängenden Endpunkt endlos weiter.
+    const grenzeMs = Math.max(5000, ai.timeoutMs) + 5000;
+    const controller = new AbortController();
+    let zeitlimitErreicht = false;
+    const notbremse = window.setTimeout(() => { zeitlimitErreicht = true; controller.abort(); }, grenzeMs);
+
     try {
       const r = await fetch("/api/admin/settings/test", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ endpoint: ai.endpoint, model: ai.model, systemPrompt: ai.systemPrompt, ...(apiKey ? { apiKey } : {}) }),
+        signal: controller.signal,
       });
       setTest(await r.json());
     } catch {
-      setTest({ ok: false, detail: "Anfrage fehlgeschlagen." });
+      setTest({
+        ok: false,
+        detail: zeitlimitErreicht
+          ? `Keine Antwort innerhalb von ${Math.round(grenzeMs / 1000)} s. Der Endpunkt ist erreichbar, antwortet aber nicht rechtzeitig — „Zeitlimit" erhöhen oder ein schnelleres Modell wählen.`
+          : "Anfrage fehlgeschlagen.",
+      });
     } finally {
+      window.clearTimeout(notbremse);
       setTesting(false);
     }
   }
@@ -235,7 +251,12 @@ export default function SettingsPanel() {
               onChange={(e) => setAi({ ...ai, timeoutMs: Math.max(5, Math.min(600, +e.target.value)) * 1000 })}
               className={field}
             />
-            <p className="mt-1 text-xs text-muted">So lange darf das Modell rechnen. Lokale Modelle auf CPU brauchen leicht 60–120 s — ist der Wert zu klein, kappt der Server die Leitung mitten in der Antwort.</p>
+            <p className="mt-1 text-xs text-muted">
+              So lange darf das Modell rechnen. Lokale Modelle auf CPU brauchen leicht 60–120 s — ist der Wert zu
+              klein, kappt der Server die Leitung mitten in der Antwort. Dieses Limit gilt überall gleich:
+              Kundenchat, Assistent, Verbindungstest — und auch im Browser, der die Anfrage danach
+              selbst abbricht statt endlos zu warten.
+            </p>
           </div>
           <div className="sm:col-span-2">
             <div className="mb-1.5 flex items-center justify-between gap-2">
@@ -253,7 +274,11 @@ export default function SettingsPanel() {
           <button type="button" onClick={runTest} disabled={testing} className="inline-flex items-center gap-2 rounded-full border border-line-strong bg-surface px-5 py-2.5 text-sm font-medium text-ink transition-colors hover:border-ink disabled:opacity-60 cursor-pointer">
             {testing ? <Loader2 className="h-4 w-4 animate-spin" /> : <Wifi className="h-4 w-4" />} Verbindung testen
           </button>
-          <p className="mt-1.5 text-xs text-muted">Sendet eine echte Test-Anfrage an den oben eingetragenen Endpunkt (auch ungespeichert).</p>
+          <p className="mt-1.5 text-xs text-muted">
+            Sendet eine echte Test-Anfrage an den oben eingetragenen Endpunkt (auch ungespeichert) —
+            unter demselben Zeitlimit, das auch im Betrieb gilt. Schlägt der Test wegen Zeitüberschreitung
+            fehl, ist das Limit für dieses Modell zu knapp.
+          </p>
 
           {test && (() => {
             // Drei Zustände: erfolgreich · erreichbar mit Hinweis · fehlgeschlagen.

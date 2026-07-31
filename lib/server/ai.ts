@@ -216,7 +216,9 @@ export async function callAI(
     };
 
     let budget = ai.maxTokens;
+    const vorErstemVersuch = Date.now();
     let a = await versuch(budget);
+    const dauerErsterVersuch = Date.now() - vorErstemVersuch;
     if (a.art === "fehler") {
       clearTimeout(t);
       return { ok: false, detail: a.detail, ms: Date.now() - started, status: a.status };
@@ -225,13 +227,44 @@ export async function callAI(
     // Reasoning-Modelle (Nemotron, DeepSeek-R1, Qwen3-Thinking …) verbrauchen ihr
     // Budget komplett fürs Nachdenken und liefern dann content: "". Statt den
     // Nutzer zum Schrauben an „Max. Tokens“ zu schicken, versuchen wir es EINMAL
-    // automatisch mit dem vierfachen Budget — sofern noch Zeit übrig ist.
+    // automatisch mit einem größeren Budget.
     const restzeit = () => timeoutMs - (Date.now() - started);
     const budgetAufgebraucht = !a.reply && (!!a.raw || a.finish === "length");
-    if (budgetAufgebraucht && budget < BUDGET_DECKE && restzeit() > MIN_RESTZEIT_MS) {
+
+    // Der zweite Versuch bekommt das Vierfache an Tokens und braucht damit
+    // ungefähr die vierfache Zeit. Vorher genügte hier "bleiben noch 15 s?" —
+    // das war zu naiv: Ein erster Versuch von 40 s hätte einen zweiten von
+    // ~160 s nach sich gezogen, der nach dem Zeitlimit abgebrochen worden wäre.
+    // Der Nutzer hätte die volle Wartezeit abgesessen und trotzdem nichts
+    // bekommen. Deshalb wird jetzt aus der GEMESSENEN Dauer des ersten
+    // Versuchs geschätzt, ob der zweite überhaupt hineinpasst.
+    const geschaetzteDauer = Math.max(dauerErsterVersuch * 4, MIN_RESTZEIT_MS);
+    const zweiterVersuchPasst = restzeit() > geschaetzteDauer;
+
+    if (budgetAufgebraucht && budget < BUDGET_DECKE && zweiterVersuchPasst) {
       budget = Math.min(BUDGET_DECKE, budget * 4);
       const b = await versuch(budget);
       if (b.art === "antwort" && b.reply) a = b;
+    } else if (budgetAufgebraucht && !zweiterVersuchPasst) {
+      // Nicht still schlucken: Der Grund gehört in die Meldung, sonst sucht man
+      // das Problem beim Modell statt beim Zeitlimit.
+      clearTimeout(t);
+      return {
+        ok: false,
+        detail:
+          `Das Modell hat sein Token-Budget (${budget}) fürs Nachdenken verbraucht. ` +
+          `Ein zweiter Versuch mit größerem Budget wurde übersprungen: Der erste dauerte ` +
+          `${Math.round(dauerErsterVersuch / 1000)} s, der zweite bräuchte geschätzt ` +
+          `${Math.round(geschaetzteDauer / 1000)} s und würde am Zeitlimit ` +
+          `(${Math.round(timeoutMs / 1000)} s) scheitern. Bitte „Max. Tokens“ erhöhen, ` +
+          `das Zeitlimit anheben oder ein Modell ohne Reasoning wählen.`,
+        ms: Date.now() - started,
+        status: a.status,
+        finish: a.finish,
+        usage: a.usage,
+        reasoningOnly: true,
+        usedMaxTokens: budget,
+      };
     }
 
     clearTimeout(t);

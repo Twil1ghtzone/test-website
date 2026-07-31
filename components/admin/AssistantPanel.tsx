@@ -9,7 +9,10 @@ export default function AssistantPanel() {
   const [messages, setMessages] = useState<Msg[]>([]);
   const [input, setInput] = useState("");
   const [busy, setBusy] = useState(false);
-  const [status, setStatus] = useState<{ configured: boolean; model?: string } | null>(null);
+  const [status, setStatus] = useState<{ configured: boolean; model?: string; timeoutMs?: number } | null>(null);
+  /** Vergangene Sekunden + Abbruchmoeglichkeit der laufenden Anfrage. */
+  const [wartet, setWartet] = useState(0);
+  const abbruchRef = useRef<AbortController | null>(null);
   const [checking, setChecking] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
 
@@ -34,18 +37,48 @@ export default function AssistantPanel() {
     setMessages(next);
     setInput("");
     setBusy(true);
+    setWartet(0);
+
+    // Dasselbe Zeitlimit wie der Server ("Zeitlimit (Sekunden)" im Admin),
+    // plus kleiner Zuschlag, damit die erklaerende Server-Meldung Vorrang hat.
+    // Ohne das wartete das Panel unbegrenzt weiter.
+    const grenzeMs = (status?.timeoutMs ?? 120000) + 5000;
+    const start = Date.now();
+    const ticker = window.setInterval(() => setWartet(Math.floor((Date.now() - start) / 1000)), 1000);
+    const controller = new AbortController();
+    abbruchRef.current = controller;
+    let zeitlimitErreicht = false;
+    const notbremse = window.setTimeout(() => { zeitlimitErreicht = true; controller.abort(); }, grenzeMs);
+
     try {
       const r = await fetch("/api/admin/assistant", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ messages: next }),
+        signal: controller.signal,
       });
-      const d = await r.json();
-      setMessages((m) => [...m, { role: "assistant", text: r.ok ? d.reply : `⚠ ${d.error || "Fehler"}` }]);
-    } catch {
-      setMessages((m) => [...m, { role: "assistant", text: "⚠ Verbindungsfehler." }]);
+      const d = await r.json().catch(() => null);
+      setMessages((m) => [...m, {
+        role: "assistant",
+        text: r.ok && d?.reply ? d.reply : `⚠ ${d?.error || `Unerwartete Antwort (HTTP ${r.status})`}`,
+      }]);
+    } catch (e) {
+      const abgebrochen = e instanceof DOMException && e.name === "AbortError";
+      setMessages((m) => [...m, {
+        role: "assistant",
+        text: !abgebrochen
+          ? "⚠ Verbindungsfehler."
+          : zeitlimitErreicht
+            ? `⚠ Zeitlimit von ${Math.round(grenzeMs / 1000)} s erreicht — das Modell hat nicht rechtzeitig geantwortet.`
+            : "⚠ Abgebrochen.",
+      }]);
+    } finally {
+      window.clearInterval(ticker);
+      window.clearTimeout(notbremse);
+      abbruchRef.current = null;
+      setWartet(0);
+      setBusy(false);
     }
-    setBusy(false);
   }
 
   return (
@@ -86,12 +119,30 @@ export default function AssistantPanel() {
             </div>
           ))}
           {busy && (
-            <div className="flex justify-start">
+            <div className="flex flex-col items-start gap-1.5">
               <span className="flex items-center gap-1 rounded-2xl border border-line bg-surface px-3.5 py-2.5">
                 <span className="h-1.5 w-1.5 animate-bounce rounded-full bg-muted [animation-delay:-0.2s]" />
                 <span className="h-1.5 w-1.5 animate-bounce rounded-full bg-muted [animation-delay:-0.1s]" />
                 <span className="h-1.5 w-1.5 animate-bounce rounded-full bg-muted" />
               </span>
+              {/* Laufende Sekunden gegen das eingestellte Zeitlimit — so ist
+                  sichtbar, dass gerechnet wird und wann automatisch Schluss ist. */}
+              {wartet >= 3 && (
+                <span className="flex flex-wrap items-center gap-x-2 gap-y-1 pl-1 text-[11px] text-muted">
+                  <span className="tabular-nums">
+                    rechnet … {wartet} s von max. {Math.round(((status?.timeoutMs ?? 120000) + 5000) / 1000)} s
+                  </span>
+                  {wartet >= 8 && (
+                    <button
+                      type="button"
+                      onClick={() => abbruchRef.current?.abort()}
+                      className="rounded-full border border-line px-2 py-0.5 font-medium text-ink-soft transition-colors hover:border-accent hover:text-accent-ink cursor-pointer"
+                    >
+                      Abbrechen
+                    </button>
+                  )}
+                </span>
+              )}
             </div>
           )}
         </div>

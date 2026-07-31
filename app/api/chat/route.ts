@@ -61,7 +61,17 @@ export async function GET(req: NextRequest) {
   const session = loadSession(req.cookies.get(CHAT_COOKIE)?.value);
   const messages = session ? decryptedHistory(session).map((m) => ({ from: m.from, text: m.text })) : [];
 
-  return NextResponse.json({ enabled, greeting: ai.greeting, messages, hasSession: !!session });
+  return NextResponse.json({
+    enabled,
+    greeting: ai.greeting,
+    messages,
+    hasSession: !!session,
+    // Das im Admin eingestellte Zeitlimit ("Zeitlimit (Sekunden)") wird an den
+    // Browser durchgereicht, damit dort dieselbe Grenze gilt. Vorher wartete
+    // der Chat unbegrenzt, während der Server längst abgebrochen hatte —
+    // die Seite hing dann scheinbar für immer.
+    timeoutMs: ai.timeoutMs,
+  });
 }
 
 export async function POST(req: NextRequest) {

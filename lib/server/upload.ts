@@ -117,13 +117,10 @@ export function pruefeUpload(
     return { ok: false, fehler: `${typ.toUpperCase()} ist hier nicht erlaubt.`, status: 415 };
   }
 
-  // Anzeigename säubern (nur für die Darstellung), Speichername komplett neu bilden.
-  const basis = angegebenerName
-    .replace(/\\/g, "/")
-    .split("/").pop()!            // Pfadanteile entfernen (../../etc/passwd)
-    .replace(/[^\w.\- ]+/g, "_")  // alles Exotische raus
-    .slice(0, 60) || "datei";
-
+  // Der vom Nutzer geschickte Name wird hier bewusst GAR NICHT verwendet —
+  // auch nicht gesäubert. Der Speichername entsteht vollständig neu, damit
+  // Pfadanteile wie "../../etc/passwd" nie ins Dateisystem gelangen können.
+  // Für die Anzeige gibt es separat anzeigeName(), das die Aufrufer nutzen.
   const zufall = Math.random().toString(36).slice(2, 10);
   return {
     ok: true,
