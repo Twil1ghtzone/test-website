@@ -22,7 +22,14 @@ const DEFAULT_TIMEOUT_MS = 120000;
  */
 const TIMEOUT_ZUSCHLAG_MS = 5000;
 
-export default function SupportButton() {
+export default function SupportButton({
+  email = brand.email,
+  phone = brand.phone,
+}: {
+  /** Kommen serverseitig aus dem Admin ("Rechtstexte & Kontakt") — brand.* nur als Rückfall. */
+  email?: string;
+  phone?: string;
+}) {
   const [open, setOpen] = useState(false);
   const [view, setView] = useState<"menu" | "chat">("menu");
   const [messages, setMessages] = useState<Msg[]>([{ from: "bot", text: DEFAULT_GREETING }]);
@@ -265,13 +272,13 @@ export default function SupportButton() {
               <Tilt><span className="grid h-9 w-9 place-items-center rounded-lg bg-accent-soft text-accent"><MessageCircle className="h-5 w-5" /></span></Tilt>
               <span><span className="block text-sm font-medium text-ink">Anfrage stellen</span><span className="block text-xs text-muted">Formular & Pakete</span></span>
             </Link>
-            <a href={`mailto:${brand.email}`} className="flex items-center gap-3 rounded-xl p-3 transition-colors hover:bg-canvas cursor-pointer">
+            <a href={`mailto:${email}`} className="flex items-center gap-3 rounded-xl p-3 transition-colors hover:bg-canvas cursor-pointer">
               <Tilt><span className="grid h-9 w-9 place-items-center rounded-lg bg-accent-soft text-accent"><Mail className="h-5 w-5" /></span></Tilt>
-              <span><span className="block text-sm font-medium text-ink">E-Mail</span><span className="block text-xs text-muted">{brand.email}</span></span>
+              <span><span className="block text-sm font-medium text-ink">E-Mail</span><span className="block text-xs text-muted">{email}</span></span>
             </a>
-            <a href={`tel:${brand.phone.replace(/\s/g, "")}`} className="flex items-center gap-3 rounded-xl p-3 transition-colors hover:bg-canvas cursor-pointer">
+            <a href={`tel:${phone.replace(/\s/g, "")}`} className="flex items-center gap-3 rounded-xl p-3 transition-colors hover:bg-canvas cursor-pointer">
               <Tilt><span className="grid h-9 w-9 place-items-center rounded-lg bg-accent-soft text-accent"><Phone className="h-5 w-5" /></span></Tilt>
-              <span><span className="block text-sm font-medium text-ink">Anrufen</span><span className="block text-xs text-muted">{brand.phone}</span></span>
+              <span><span className="block text-sm font-medium text-ink">Anrufen</span><span className="block text-xs text-muted">{phone}</span></span>
             </a>
             <Link href="/stromrechner" onClick={() => setOpen(false)} className="flex items-center gap-3 rounded-xl p-3 transition-colors hover:bg-canvas cursor-pointer">
               <Tilt><span className="grid h-9 w-9 place-items-center rounded-lg bg-accent-soft text-accent"><FileQuestion className="h-5 w-5" /></span></Tilt>

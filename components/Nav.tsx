@@ -22,8 +22,11 @@ const iconMap = { camera: CameraIcon, server: ServerIcon, cube: CubeIcon, bolt: 
 const serviceGroups = servicesByCategory();
 
 // In-Page-Sektionen (Reihenfolge = Scroll-Reihenfolge der Startseite).
+// "Über uns" ist bewusst NICHT mehr dabei: Es gibt jetzt eine eigene Seite
+// /ueber-uns — bei einem kleinen Betrieb ist "wer steckt dahinter" der
+// stärkste Vertrauenshebel und sollte verlinkbar sein, statt im Scroll
+// der Startseite zu verschwinden.
 const sectionLinks = [
-  { id: "ueber-uns", label: "Über uns" },
   { id: "warum", label: "Warum lokal" },
   { id: "ablauf", label: "Ablauf" },
   { id: "bewertungen", label: "Bewertungen" },
@@ -41,6 +44,8 @@ export default function Nav() {
     pathname.startsWith("/leistungen") || pathname.startsWith("/konfigurator") || pathname.startsWith("/stromrechner");
   const blogActive = pathname.startsWith("/blog");
   const kontaktActive = pathname.startsWith("/kontakt");
+  const ueberUnsActive = pathname.startsWith("/ueber-uns");
+  const faqActive = pathname.startsWith("/faq");
   const [active, setActive] = useState<string>("");
   const closeTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -106,8 +111,11 @@ export default function Nav() {
   }
 
   // Eine Nav-Pille mit gleitendem Hover-Hintergrund (geteiltes layoutId).
+  // Enger Innenabstand ab lg, voller erst ab xl: Mit "Über uns" und "FAQ" sind
+  // es acht Einträge — bei 1024 px reichte der Platz sonst nicht und der
+  // CTA-Knopf wurde aus der Leiste gedrückt.
   const pill =
-    "relative z-10 flex items-center gap-1 whitespace-nowrap rounded-full px-3.5 py-2 text-sm font-medium transition-colors cursor-pointer";
+    "relative z-10 flex items-center gap-1 whitespace-nowrap rounded-full px-2.5 py-2 text-[13px] font-medium transition-colors cursor-pointer xl:px-3.5 xl:text-sm";
 
   return (
     <header className="fixed inset-x-0 top-0 z-50">
@@ -123,8 +131,21 @@ export default function Nav() {
             <Logo />
           </Link>
 
-          {/* Desktop-Links — Pillen-Gruppe */}
-          <div className="hidden items-center lg:flex" onMouseLeave={() => setHover(null)}>
+          {/* Desktop-Links — Pillen-Gruppe.
+              `min-w-0` ist wichtig: Ohne das kann die Gruppe nicht schrumpfen
+              und schiebt den CTA-Knopf aus der abgerundeten Leiste heraus. */}
+          <div className="hidden min-w-0 items-center lg:flex" onMouseLeave={() => setHover(null)}>
+            <Link
+              href="/ueber-uns"
+              onMouseEnter={() => setHover("ueber-uns")}
+              className={`${pill} ${ueberUnsActive ? "text-accent" : "text-ink-soft hover:text-ink"}`}
+            >
+              {hover === "ueber-uns" && (
+                <motion.span layoutId="nav-pill" className="absolute inset-0 -z-10 rounded-full bg-surface" transition={{ type: "spring", stiffness: 420, damping: 34 }} />
+              )}
+              Über uns
+            </Link>
+
             {sectionLinks.map((l) => (
               <Link
                 key={l.id}
@@ -314,6 +335,17 @@ export default function Nav() {
             </div>
 
             <Link
+              href="/faq"
+              onMouseEnter={() => setHover("faq")}
+              className={`${pill} ${faqActive ? "text-accent" : "text-ink-soft hover:text-ink"}`}
+            >
+              {hover === "faq" && (
+                <motion.span layoutId="nav-pill" className="absolute inset-0 -z-10 rounded-full bg-surface" transition={{ type: "spring", stiffness: 420, damping: 34 }} />
+              )}
+              FAQ
+            </Link>
+
+            <Link
               href="/support"
               onMouseEnter={() => setHover("support")}
               className={`${pill} ${pathname === "/support" ? "text-accent" : "text-ink-soft hover:text-ink"}`}
@@ -338,10 +370,17 @@ export default function Nav() {
 
           {/* CTA + Mobile-Button */}
           <div className="flex shrink-0 items-center gap-2">
+            {/*
+              `inline-flex` + feste Höhe statt `inline-block`: Als Inline-Block
+              richtet sich der Knopf an der Textgrundlinie aus und wird durch
+              den Unterlängen-Raum höher als die Leiste — er ragte sichtbar
+              oben und unten heraus. Mit derselben Höhe wie der Menü-Knopf
+              (h-10) sitzen beide exakt in der Pille.
+            */}
             <MotionLink
               href="/kontakt"
               {...pressable}
-              className={`hidden rounded-full bg-accent px-5 py-2.5 text-sm font-medium text-white shadow-[0_6px_18px_-8px_rgba(176,84,58,0.45)] transition-colors hover:bg-accent-ink sm:inline-block cursor-pointer ${kontaktActive ? "ring-2 ring-accent/40 ring-offset-2 ring-offset-canvas" : ""}`}
+              className={`hidden h-10 shrink-0 items-center rounded-full bg-accent px-4 text-sm font-medium whitespace-nowrap text-white shadow-[0_6px_18px_-8px_rgba(176,84,58,0.45)] transition-colors hover:bg-accent-ink sm:inline-flex xl:px-5 cursor-pointer ${kontaktActive ? "ring-2 ring-accent/40 ring-offset-2 ring-offset-canvas" : ""}`}
             >
               Anfrage stellen
             </MotionLink>
@@ -374,11 +413,17 @@ export default function Nav() {
           >
             <div className="flex flex-col gap-1 p-2">
               <span className="px-2 pb-1 eyebrow text-muted">Entdecken</span>
+              <Link href="/ueber-uns" onClick={() => setOpen(false)} className="rounded-2xl px-3 py-2.5 text-ink-soft transition-colors hover:bg-surface hover:text-ink active:scale-[0.98] cursor-pointer">
+                Über uns
+              </Link>
               {sectionLinks.map((l) => (
                 <Link key={l.id} href={`/#${l.id}`} onClick={() => setOpen(false)} className="rounded-2xl px-3 py-2.5 text-ink-soft transition-colors hover:bg-surface hover:text-ink active:scale-[0.98] cursor-pointer">
                   {l.label}
                 </Link>
               ))}
+              <Link href="/faq" onClick={() => setOpen(false)} className="rounded-2xl px-3 py-2.5 text-ink-soft transition-colors hover:bg-surface hover:text-ink active:scale-[0.98] cursor-pointer">
+                Häufige Fragen
+              </Link>
               <Link href="/blog" onClick={() => setOpen(false)} className="rounded-2xl px-3 py-2.5 text-ink-soft transition-colors hover:bg-surface hover:text-ink active:scale-[0.98] cursor-pointer">
                 Blog
               </Link>

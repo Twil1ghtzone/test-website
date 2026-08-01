@@ -588,15 +588,16 @@ export default function Sparrechner({ kontakt }: { kontakt: Kontakt }) {
                     ))}
                     <tr className="bg-surface-2/60">
                       <td className="px-4 py-3 font-medium text-ink">Gesamtinvestition</td>
-                      <td className="px-4 py-3 text-right font-display font-semibold tabular-nums text-accent-ink">{eur.format(r.investVorschlag)}</td>
+                      <td className="px-4 py-3 text-right font-display font-semibold tabular-nums text-accent-ink">{eur.format(r.invest)}</td>
                     </tr>
                   </tbody>
                 </table>
               </div>
               <p className="mt-2 text-xs leading-relaxed text-muted">
-                Richtwerte für Material, Fachmontage und Inbetriebnahme — je nach Gegebenheit vor Ort
-                kann der endgültige Preis variieren. Im persönlichen Gespräch erstellen wir Ihnen
-                ein individuelles Angebot, das genau zu Ihrem Zuhause passt.
+                <strong className="font-medium text-ink-soft">Unverbindlich:</strong> Diese Posten sind eine
+                grobe, preisliche Einschätzung für Material, Fachmontage und Inbetriebnahme — je nach
+                Gegebenheit vor Ort kann der endgültige Preis abweichen. Im persönlichen Gespräch erstellen
+                wir Ihnen ein individuelles, verbindliches Angebot.
               </p>
 
               <div className="mt-5 grid gap-6 sm:grid-cols-2">
@@ -677,10 +678,10 @@ export default function Sparrechner({ kontakt }: { kontakt: Kontakt }) {
                       <Sparkles className="mt-0.5 h-5 w-5 shrink-0 text-accent" />
                       <div className="min-w-0 flex-1">
                         <p className="font-display text-lg font-semibold leading-tight text-canvas">
-                          Trägt sich in {dauerText(r.amortisation!)}
+                          Trägt sich voraussichtlich in {dauerText(r.amortisation!)}
                         </p>
                         <p className="mt-1 text-xs leading-relaxed text-white/70">
-                          Danach ist jede eingesparte Kilowattstunde reiner Gewinn.
+                          Grobe Schätzung auf Basis Ihrer Angaben — danach wäre jede eingesparte Kilowattstunde reiner Gewinn.
                         </p>
                       </div>
                       <button
@@ -781,7 +782,7 @@ export default function Sparrechner({ kontakt }: { kontakt: Kontakt }) {
           <section className="print-keep mt-6 rounded-[3mm] border-[0.4mm] border-[#b0543a] bg-[#ecd9cf] px-6 py-5">
             <div className="flex items-end justify-between gap-6">
               <div>
-                <p className="text-[8pt] uppercase tracking-[0.22em] text-[#8d4129]">Ihre jährliche Entlastung</p>
+                <p className="text-[8pt] uppercase tracking-[0.22em] text-[#8d4129]">Ihre jährliche Entlastung (unverbindliche Schätzung)</p>
                 <p className="mt-1 font-display text-[28pt] font-semibold leading-none text-[#211c17]">
                   {eur.format(Math.max(0, r.netto))}
                 </p>
@@ -864,9 +865,9 @@ export default function Sparrechner({ kontakt }: { kontakt: Kontakt }) {
               </tbody>
             </table>
             <p className="mt-2 text-[8pt] leading-relaxed text-[#8a8076]">
-              Richtwerte für Material, Fachmontage und Inbetriebnahme — je nach Gegebenheit vor Ort
-              kann der endgültige Preis variieren. Im persönlichen Gespräch erstellen wir Ihnen
-              ein individuelles Angebot, das genau zu Ihrem Zuhause passt.
+              Unverbindlich: grobe, preisliche Einschätzung für Material, Fachmontage und Inbetriebnahme —
+              je nach Gegebenheit vor Ort kann der endgültige Preis abweichen. Im persönlichen Gespräch
+              erstellen wir Ihnen ein individuelles, verbindliches Angebot.
             </p>
           </section>
 

@@ -123,8 +123,16 @@ export default function Testimonials() {
       <div className="mx-auto max-w-6xl">
         <div className="mx-auto max-w-2xl text-center">
           <span className="eyebrow text-accent">Kundenstimmen</span>
+          {/* Ohne eine einzige Bewertung wäre "Das sagen unsere Kunden" eine
+              leere Behauptung. Dann rückt stattdessen das in den Mittelpunkt,
+              was auch ohne Stimmen überprüfbar ist: dass hier gar keine
+              gekauften oder erfundenen Bewertungen stehen KÖNNEN. */}
           <h2 className="mt-4 font-display text-4xl font-semibold leading-[1.1] tracking-tight sm:text-[3rem]">
-            Das sagen unsere <span className="emph">Kunden.</span>
+            {count > 0 ? (
+              <>Das sagen unsere <span className="emph">Kunden.</span></>
+            ) : (
+              <>Bewertungen, die <span className="emph">niemand kaufen kann.</span></>
+            )}
           </h2>
           {count > 0 ? (
             <p className="mt-4 inline-flex items-center gap-2 text-lg leading-relaxed text-ink-soft">
@@ -135,10 +143,32 @@ export default function Testimonials() {
             </p>
           ) : (
             <p className="mt-4 text-lg leading-relaxed text-ink-soft">
-              Bewertungen sind nur mit gültiger Rechnungsnummer möglich — echte Stimmen aus echten Projekten.
+              Hier steht erst etwas, wenn ein echter Kunde es geschrieben hat. Jede Bewertung
+              braucht eine gültige Rechnungsnummer aus unserem System und wird serverseitig
+              versiegelt — anonyme Fantasie-Stimmen sind technisch ausgeschlossen.
             </p>
           )}
         </div>
+
+        {/* Solange es keine Stimmen gibt: die drei Zusagen, die auch ohne
+            Bewertungen gelten und nachprüfbar sind. */}
+        {loaded && count === 0 && (
+          <div className="mx-auto mt-10 grid max-w-3xl gap-3 sm:grid-cols-3">
+            {[
+              { titel: "Rechnung erforderlich", text: "Ohne registrierte Rechnungsnummer lässt sich keine Bewertung abgeben." },
+              { titel: "Serverseitig versiegelt", text: "Jeder Eintrag bekommt eine Signatur — nachträglich unveränderbar." },
+              { titel: "Auch kritische bleiben", text: "Wir löschen keine schlechten Bewertungen, sondern antworten darauf." },
+            ].map((k) => (
+              <div key={k.titel} className="rounded-2xl border border-line bg-surface p-5 text-left">
+                <p className="flex items-center gap-2 font-medium text-ink">
+                  <ShieldCheck className="h-4 w-4 shrink-0 text-accent" />
+                  {k.titel}
+                </p>
+                <p className="mt-1.5 text-sm leading-relaxed text-muted">{k.text}</p>
+              </div>
+            ))}
+          </div>
+        )}
 
         {reviews.length > 0 && (
           <div className="mt-14">

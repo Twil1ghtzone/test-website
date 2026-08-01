@@ -21,10 +21,23 @@ services:
       # das bei jedem Neustart alle Sessions/Cookies ungültig macht. Eigenes,
       # langes Geheimnis in der .env setzen (z. B. `openssl rand -hex 32`).
       - SESSION_SECRET=${SESSION_SECRET:-bitte-aendern-langes-zufaelliges-geheimnis}
+      # Öffentliche Adresse der Seite. Wird für sitemap.xml, robots.txt und die
+      # Vorschaubilder beim Teilen (Open Graph) gebraucht — dort MÜSSEN absolute
+      # URLs stehen. WICHTIG: Auf die echte Domain setzen, sonst zeigen geteilte
+      # Links auf localhost und die Vorschau bleibt leer.
+      - SITE_URL=${SITE_URL:-https://${DOMAIN:-localhost}}
+      # Optional: zweiter Speicherort für den "RAID-Schutz" im Admin-Backup —
+      # dasselbe verschlüsselte Backup landet zusätzlich hier (eigenes Volume
+      # unten). Leer lassen, wenn nur eine Kopie gewünscht ist.
+      - BACKUP_MIRROR_DIR=/app/backup-mirror
     volumes:
       # Fehlte ebenfalls: ohne dieses Volume verliert JEDER Neustart des
       # Containers die komplette Datenbank (Benutzer, Tickets, Chats, …).
       - studio-lokal-data:/app/data
+      # Zweites, unabhängiges Volume für die gespiegelte Sicherung. Docker
+      # legt beide i. d. R. auf demselben Host-Dateisystem an — für echten
+      # RAID-Schutz auf ein anderes Laufwerk/NAS mounten (siehe README).
+      - studio-lokal-backup-mirror:/app/backup-mirror
 
   # ── TLS-Terminierung — siehe docker-compose.yml für die ausführliche
   #    Erklärung; identisches Verhalten hier. ──
@@ -95,6 +108,7 @@ services:
 
 volumes:
   studio-lokal-data:
+  studio-lokal-backup-mirror:
   caddy-data:
   caddy-config:
   activepieces-cache:

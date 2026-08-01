@@ -11,6 +11,35 @@ export const dynamic = "force-dynamic";
 
 const DATA_DIR = process.env.DATA_DIR || path.join(process.cwd(), "data");
 const UPLOAD_DIR = path.join(DATA_DIR, "uploads");
+const SNAPSHOT_DIRNAME = "backups";
+
+/*
+ * ── RAID-Schutz (gespiegelte Sicherung) ──
+ *
+ * Echtes RAID entsteht auf Platten-/Volume-Ebene und ist Sache des Betriebs
+ * (z. B. ein gespiegeltes Docker-Volume) — das kann eine Next.js-App nicht
+ * herstellen. Was die App beitragen kann: bei jeder Sicherung automatisch
+ * ZWEI unabhängige Kopien schreiben, damit der Ausfall EINES Datenträgers
+ * (Festplattendefekt, versehentlich gelöschtes Volume) nicht die einzige
+ * Sicherung mitreißt — genau das Prinzip hinter RAID 1 (Spiegelung),
+ * hier nur auf Anwendungsebene nachgebildet.
+ *
+ * BACKUP_MIRROR_DIR zeigt auf ein zweites Verzeichnis — im Idealfall ein
+ * eigenes Volume/eine eigene Platte. Ist die Variable nicht gesetzt, läuft
+ * die App wie zuvor mit nur einer Kopie.
+ */
+const MIRROR_DIR = process.env.BACKUP_MIRROR_DIR || "";
+
+function listSnapshots(dir: string): { name: string; bytes: number; createdAt: string }[] {
+  if (!fs.existsSync(dir)) return [];
+  return fs.readdirSync(dir)
+    .filter((n) => /^snapshot-.+\.slbak$/.test(n))
+    .map((n) => {
+      const st = fs.statSync(path.join(dir, n));
+      return { name: n, bytes: st.size, createdAt: st.mtime.toISOString() };
+    })
+    .sort((a, b) => b.createdAt.localeCompare(a.createdAt));
+}
 
 function encrypt(plain: string, passphrase: string) {
   const salt = crypto.randomBytes(16);
@@ -42,7 +71,18 @@ export async function GET() {
   const uploads = fs.existsSync(UPLOAD_DIR)
     ? fs.readdirSync(UPLOAD_DIR).filter((n) => /^[a-z0-9._-]+$/i.test(n)).length
     : 0;
-  return NextResponse.json({ collections: collectionStats(), uploads });
+  const primaryDir = path.join(DATA_DIR, SNAPSHOT_DIRNAME);
+  const mirrorReachable = !!MIRROR_DIR && fs.existsSync(path.dirname(MIRROR_DIR) || MIRROR_DIR);
+  return NextResponse.json({
+    collections: collectionStats(),
+    uploads,
+    raid: {
+      mirrorConfigured: !!MIRROR_DIR,
+      mirrorReachable,
+      snapshots: listSnapshots(primaryDir),
+      mirrorSnapshots: MIRROR_DIR ? listSnapshots(path.join(MIRROR_DIR, SNAPSHOT_DIRNAME)) : [],
+    },
+  });
 }
 
 export async function POST(req: NextRequest) {
@@ -55,44 +95,104 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "Passphrase muss mindestens 8 Zeichen lang sein." }, { status: 400 });
   }
 
-  /* ── EXPORT: frei wählbarer Umfang ── */
-  if (action === "export") {
-    // Auswahl: welche Sammlungen? (leer/fehlend = alle)
-    const wanted: CollectionFile[] = Array.isArray(body.collections) && body.collections.length > 0
-      ? body.collections.filter((f: string): f is CollectionFile => f in COLLECTIONS)
-      : (Object.keys(COLLECTIONS) as CollectionFile[]);
-    const withUploads = body.includeUploads !== false;
+  /* ── EXPORT: frei wählbarer Umfang ──
+     Läuft in einem try/catch: schlägt z. B. das Lesen eines Uploads fehl
+     (kaputte Datei, Rechteproblem im Docker-Volume), gäbe es sonst eine
+     rohe HTML-Fehlerseite statt JSON zurück — der Client kann die nicht
+     lesen und der Export sah aus, als würde "nichts passieren".
+  */
+  if (action === "export" || action === "snapshot") {
+    try {
+      // Auswahl: welche Sammlungen? (leer/fehlend = alle)
+      const wanted: CollectionFile[] = Array.isArray(body.collections) && body.collections.length > 0
+        ? body.collections.filter((f: string): f is CollectionFile => f in COLLECTIONS)
+        : (Object.keys(COLLECTIONS) as CollectionFile[]);
+      const withUploads = body.includeUploads !== false;
 
-    const collections: Record<string, unknown> = {};
-    for (const file of wanted) {
-      const raw = readJson<unknown>(file, null);
-      if (raw !== null) collections[file] = raw;
-    }
-
-    const uploads: Record<string, string> = {};
-    if (withUploads && fs.existsSync(UPLOAD_DIR)) {
-      for (const name of fs.readdirSync(UPLOAD_DIR)) {
-        if (!/^[a-z0-9._-]+$/i.test(name)) continue;
-        const p = path.join(UPLOAD_DIR, name);
-        if (fs.statSync(p).isFile()) uploads[name] = fs.readFileSync(p).toString("base64");
+      const collections: Record<string, unknown> = {};
+      for (const file of wanted) {
+        const raw = readJson<unknown>(file, null);
+        if (raw !== null) collections[file] = raw;
       }
-    }
 
-    const payload = JSON.stringify({
-      format: "studio-lokal-backup",
-      version: 3,
-      exportedAt: new Date().toISOString(),
-      // Manifest: was steckt drin? (Panel zeigt das beim Import an)
-      manifest: {
-        collections: Object.keys(collections),
-        counts: Object.fromEntries(Object.entries(collections).map(([k, v]) => [k, Array.isArray(v) ? v.length : 1])),
-        uploads: Object.keys(uploads).length,
-      },
-      collections,
-      uploads,
-    });
-    logAudit(me.name, "Backup exportiert", `${Object.keys(collections).length} Sammlungen, ${Object.keys(uploads).length} Dateien`);
-    return NextResponse.json({ backup: encrypt(payload, passphrase) });
+      const uploads: Record<string, string> = {};
+      if (withUploads && fs.existsSync(UPLOAD_DIR)) {
+        for (const name of fs.readdirSync(UPLOAD_DIR)) {
+          if (!/^[a-z0-9._-]+$/i.test(name)) continue;
+          const p = path.join(UPLOAD_DIR, name);
+          if (fs.statSync(p).isFile()) uploads[name] = fs.readFileSync(p).toString("base64");
+        }
+      }
+
+      const payload = JSON.stringify({
+        format: "studio-lokal-backup",
+        version: 3,
+        exportedAt: new Date().toISOString(),
+        // Manifest: was steckt drin? (Panel zeigt das beim Import an)
+        manifest: {
+          collections: Object.keys(collections),
+          counts: Object.fromEntries(Object.entries(collections).map(([k, v]) => [k, Array.isArray(v) ? v.length : 1])),
+          uploads: Object.keys(uploads).length,
+        },
+        collections,
+        uploads,
+      });
+      const encrypted = encrypt(payload, passphrase);
+
+      if (action === "export") {
+        logAudit(me.name, "Backup exportiert", `${Object.keys(collections).length} Sammlungen, ${Object.keys(uploads).length} Dateien`);
+        return NextResponse.json({ backup: encrypted });
+      }
+
+      // ── SNAPSHOT: dieselbe Sicherung, aber auf dem Server abgelegt —
+      // primär UND (falls konfiguriert) gespiegelt in BACKUP_MIRROR_DIR.
+      const name = `snapshot-${new Date().toISOString().replace(/[:.]/g, "-")}.slbak`;
+      const json = JSON.stringify(encrypted);
+
+      const primaryDir = path.join(DATA_DIR, SNAPSHOT_DIRNAME);
+      let primaryOk = false;
+      let primaryError = "";
+      try {
+        fs.mkdirSync(primaryDir, { recursive: true });
+        fs.writeFileSync(path.join(primaryDir, name), json, "utf-8");
+        primaryOk = true;
+      } catch (e) {
+        primaryError = e instanceof Error ? e.message : "unbekannter Fehler";
+      }
+
+      let mirrorOk = false;
+      let mirrorError = "";
+      if (MIRROR_DIR) {
+        try {
+          const mirrorDir = path.join(MIRROR_DIR, SNAPSHOT_DIRNAME);
+          fs.mkdirSync(mirrorDir, { recursive: true });
+          fs.writeFileSync(path.join(mirrorDir, name), json, "utf-8");
+          mirrorOk = true;
+        } catch (e) {
+          mirrorError = e instanceof Error ? e.message : "unbekannter Fehler";
+        }
+      }
+
+      logAudit(
+        me.name,
+        "Gespiegelte Sicherung erstellt",
+        `${name} — primär ${primaryOk ? "ok" : "fehlgeschlagen"}${MIRROR_DIR ? `, Spiegel ${mirrorOk ? "ok" : "fehlgeschlagen"}` : " (kein Spiegel konfiguriert)"}`
+      );
+
+      if (!primaryOk) {
+        return NextResponse.json({ error: `Sicherung fehlgeschlagen: ${primaryError}` }, { status: 500 });
+      }
+      return NextResponse.json({
+        ok: true,
+        name,
+        primaryOk,
+        mirrorConfigured: !!MIRROR_DIR,
+        mirrorOk,
+        mirrorError: mirrorOk ? undefined : mirrorError || undefined,
+      });
+    } catch (e) {
+      return NextResponse.json({ error: `${action === "export" ? "Export" : "Sicherung"} fehlgeschlagen: ${e instanceof Error ? e.message : "unbekannter Fehler"}` }, { status: 500 });
+    }
   }
 
   /* ── INSPECT: Backup nur entschlüsseln und Inhalt anzeigen (kein Schreiben) ── */

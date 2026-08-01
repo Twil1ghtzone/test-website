@@ -269,6 +269,14 @@ export function berechne(e: Eingaben) {
 
   const investVorschlag = Math.round((material + montage) / 50) * 50;
   const invest = e.investEigen ?? investVorschlag;
+  // Weicht die von Hand eingestellte Investition von der Aufstellung ab,
+  // bekommt die Tabelle eine eigene Zeile dafür — sonst würden Posten und
+  // Gesamtsumme nicht mehr zusammenpassen (genau das sah wie ein Rechenfehler
+  // aus, v. a. im Ausdruck, wo Kunden die Posten nachrechnen).
+  const investAnpassung = invest - investVorschlag;
+  if (investAnpassung !== 0) {
+    posten.push({ label: "Eigene Anpassung", betrag: investAnpassung });
+  }
 
   /* ── CO₂ ── */
   const co2 = stromKwh * CO2_STROM + waermeCo2 + pvCo2 - serverKwh * CO2_STROM;

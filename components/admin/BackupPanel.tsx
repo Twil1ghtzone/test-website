@@ -1,13 +1,15 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
-import { Database, Download, Upload, Loader2, Check, AlertTriangle, ShieldAlert, FileArchive, Image as ImageIcon } from "lucide-react";
+import { Database, Download, Upload, Loader2, Check, AlertTriangle, ShieldAlert, FileArchive, Image as ImageIcon, ShieldCheck, HardDrive, Copy } from "lucide-react";
 
 type Col = { file: string; label: string; count: number; bytes: number };
 type Inspect = {
   version: number; exportedAt: string | null; collections: string[];
   counts: Record<string, number>; uploads: number; labels: Record<string, string>;
 };
+type Snapshot = { name: string; bytes: number; createdAt: string };
+type Raid = { mirrorConfigured: boolean; mirrorReachable: boolean; snapshots: Snapshot[]; mirrorSnapshots: Snapshot[] };
 
 function fmtBytes(b: number) {
   if (b < 1024) return `${b} B`;
@@ -21,6 +23,8 @@ export default function BackupPanel() {
   const [pass, setPass] = useState("");
   const [busy, setBusy] = useState(false);
   const [msg, setMsg] = useState<{ ok: boolean; text: string } | null>(null);
+  const [raid, setRaid] = useState<Raid | null>(null);
+  const [snapBusy, setSnapBusy] = useState(false);
 
   // Export-Auswahl
   const [selected, setSelected] = useState<string[]>([]);
@@ -41,9 +45,32 @@ export default function BackupPanel() {
       setCols(d.collections);
       setUploadCount(d.uploads);
       setSelected(d.collections.map((c: Col) => c.file)); // Standard: alles
+      setRaid(d.raid);
     }
   }, []);
   useEffect(() => { load(); }, [load]);
+
+  // Gespiegelte Sicherung: dieselbe verschlüsselte Sicherung wie beim Export,
+  // aber vom Server selbst auf zwei Verzeichnisse geschrieben statt nur
+  // heruntergeladen — schützt gegen den Ausfall EINES Datenträgers.
+  async function snapshotBackup() {
+    if (pass.length < 8) { setMsg({ ok: false, text: "Passphrase: mindestens 8 Zeichen." }); return; }
+    setSnapBusy(true); setMsg(null);
+    const r = await fetch("/api/admin/backup", {
+      method: "POST", headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ action: "snapshot", passphrase: pass, collections: selected, includeUploads: withUploads }),
+    });
+    const d = await r.json().catch(() => ({}));
+    setSnapBusy(false);
+    if (!r.ok) { setMsg({ ok: false, text: d.error || "Gespiegelte Sicherung fehlgeschlagen." }); return; }
+    setMsg({
+      ok: true,
+      text: `Gespiegelte Sicherung erstellt ✓ — primär ${d.primaryOk ? "gesichert" : "fehlgeschlagen"}${
+        d.mirrorConfigured ? `, Spiegel ${d.mirrorOk ? "gesichert" : `fehlgeschlagen (${d.mirrorError || "unbekannt"})`}` : " (kein zweiter Speicherort eingerichtet)"
+      }.`,
+    });
+    load();
+  }
 
   const toggle = (list: string[], set: (v: string[]) => void, f: string) =>
     set(list.includes(f) ? list.filter((x) => x !== f) : [...list, f]);
@@ -168,6 +195,53 @@ export default function BackupPanel() {
         <button onClick={exportBackup} disabled={busy} className="mt-5 inline-flex items-center gap-2 rounded-full bg-accent px-6 py-3 font-medium text-white transition-colors hover:bg-accent-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2 disabled:opacity-60 cursor-pointer">
           {busy ? <Loader2 className="h-5 w-5 animate-spin" /> : <Download className="h-5 w-5" />} Backup herunterladen
         </button>
+      </div>
+
+      {/* ── RAID-Schutz: gespiegelte Sicherung auf dem Server ── */}
+      <div className="rounded-3xl border border-line bg-surface p-6 sm:p-7">
+        <h3 className="flex items-center gap-2 font-display text-lg font-semibold tracking-tight"><ShieldCheck className="h-5 w-5 text-accent" /> RAID-Schutz (gespiegelte Sicherung)</h3>
+        <p className="mt-1 text-sm leading-relaxed text-muted">
+          Echtes RAID entsteht auf Platten-/Volume-Ebene — das kann diese App nicht herstellen. Was sie kann:
+          bei jedem Klick dieselbe verschlüsselte Sicherung automatisch auf <b>zwei unabhängige Speicherorte</b> schreiben,
+          damit der Ausfall eines Datenträgers nicht die einzige Kopie mitreißt.
+        </p>
+
+        <div className="mt-4 grid gap-2 sm:grid-cols-2">
+          <div className="flex items-center gap-3 rounded-xl border border-line bg-canvas px-3.5 py-2.5 text-sm">
+            <HardDrive className="h-4 w-4 shrink-0 text-accent" />
+            <span className="min-w-0 flex-1 font-medium text-ink">Primärer Speicherort</span>
+            <span className="shrink-0 text-xs text-muted">{raid?.snapshots.length ?? 0} Sicherung{raid?.snapshots.length === 1 ? "" : "en"}</span>
+          </div>
+          <div className={`flex items-center gap-3 rounded-xl border px-3.5 py-2.5 text-sm ${raid?.mirrorConfigured ? "border-emerald-300 bg-emerald-50" : "border-amber-300 bg-amber-50"}`}>
+            <Copy className={`h-4 w-4 shrink-0 ${raid?.mirrorConfigured ? "text-emerald-600" : "text-amber-600"}`} />
+            <span className="min-w-0 flex-1 font-medium text-ink">Gespiegelter Speicherort</span>
+            <span className="shrink-0 text-xs text-muted">
+              {raid?.mirrorConfigured ? `${raid.mirrorSnapshots.length} Sicherung${raid.mirrorSnapshots.length === 1 ? "" : "en"}` : "nicht eingerichtet"}
+            </span>
+          </div>
+        </div>
+        {!raid?.mirrorConfigured && (
+          <p className="mt-2 flex items-start gap-2 text-xs leading-relaxed text-amber-700">
+            <AlertTriangle className="mt-0.5 h-3.5 w-3.5 shrink-0" />
+            Kein zweiter Speicherort eingerichtet — die Umgebungsvariable <code className="rounded bg-canvas px-1">BACKUP_MIRROR_DIR</code> zeigt
+            auf ein zweites Verzeichnis (idealerweise ein eigenes Volume/eine eigene Platte). Ohne sie läuft die Sicherung nur einfach.
+          </p>
+        )}
+
+        <button onClick={snapshotBackup} disabled={snapBusy} className="mt-4 inline-flex items-center gap-2 rounded-full border border-accent px-6 py-3 font-medium text-accent-ink transition-colors hover:bg-accent-soft/40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2 disabled:opacity-60 cursor-pointer">
+          {snapBusy ? <Loader2 className="h-5 w-5 animate-spin" /> : <ShieldCheck className="h-5 w-5" />} Jetzt gespiegelt sichern
+        </button>
+
+        {raid && raid.snapshots.length > 0 && (
+          <div className="mt-4 max-h-40 space-y-1 overflow-y-auto rounded-xl border border-line bg-canvas p-3 text-xs">
+            {raid.snapshots.slice(0, 8).map((s) => (
+              <div key={s.name} className="flex items-center justify-between gap-3 text-ink-soft">
+                <span className="truncate">{new Date(s.createdAt).toLocaleString("de-DE")}</span>
+                <span className="shrink-0 tabular-nums text-muted">{fmtBytes(s.bytes)}</span>
+              </div>
+            ))}
+          </div>
+        )}
       </div>
 
       {/* ── IMPORT mit Prüfung, Auswahl und Modus ── */}

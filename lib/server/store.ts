@@ -1,5 +1,9 @@
 import fs from "fs";
 import path from "path";
+import {
+  IMPRESSUM_VORLAGE, DATENSCHUTZ_VORLAGE, AGB_VORLAGE,
+  ALT_IMPRESSUM, ALT_DATENSCHUTZ,
+} from "./legalTexts.ts";
 
 // JSON-Datei-Store (wie novum). Liegt in DATA_DIR (Docker-Volume) oder ./data.
 const DATA_DIR = process.env.DATA_DIR || path.join(process.cwd(), "data");
@@ -356,30 +360,28 @@ export const DEFAULT_CONTENT: SiteContent = {
   region: "Ihre Region",
   address: "STUDIO//LOKAL\nMusterstraße 1\n00000 Musterstadt",
   footerNote: "Elektrohandwerk + lokale IT — cloud-frei, abofrei, Daten bleiben im Haus.",
-  impressum:
-    "## Impressum\n\nAngaben gemäß § 5 TMG\n\n**STUDIO//LOKAL**\nMusterstraße 1\n00000 Musterstadt\n\n**Kontakt:** kontakt@studio-lokal.de\n\n_Bitte im Admin-Bereich mit euren echten Angaben ersetzen._",
-  datenschutz:
-    "## Datenschutzerklärung\n\n" +
-    "Wir verarbeiten personenbezogene Daten sparsam und lokal. Diese Seite setzt ausschließlich technisch notwendige Cookies — " +
-    "für die Admin-Anmeldung, zur Wiedererkennung eigener Support-Tickets und für den KI-Support-Chat. Eine vollständige Liste " +
-    "mit Zweck, Speicherdauer und Schutzmaßnahmen jedes einzelnen Cookies führt der Admin-Bereich unter „Cookies“.\n\n" +
-    "### KI-Support-Chat\n\n" +
-    "Nachrichten an unseren Chat-Assistenten werden hüllenverschlüsselt gespeichert (RSA-2048 über AES-256-GCM, mit einem " +
-    "eigenen Schlüsselpaar je Gespräch) und automatisch nach 7 Tagen Inaktivität gelöscht — oder sofort, wenn Sie im Chat " +
-    "„Neuer Chat“ wählen. Mit dem Löschen verschwindet auch der zugehörige Schlüssel, die Nachrichten sind danach " +
-    "endgültig nicht mehr lesbar. Der Zugriff auf einen laufenden Chat läuft über ein signiertes, nur serverseitig " +
-    "lesbares Cookie. Die Verarbeitung dient der Beantwortung Ihrer Anfrage " +
-    "(Art. 6 Abs. 1 lit. f DSGVO, berechtigtes Interesse an funktionierendem Support).\n\n" +
-    "_Hinweis für den Betreiber, bitte vor Veröffentlichung prüfen:_ Läuft die KI über einen lokal betriebenen Server " +
-    "(z. B. Ollama/LM Studio im eigenen Netz), verlassen die Nachrichten diesen Server nicht. Wird stattdessen ein " +
-    "Cloud-Anbieter (z. B. OpenAI) als KI-Endpunkt eingetragen, werden die Nachrichten zur Verarbeitung an diesen Anbieter " +
-    "übermittelt — dann bitte hier den tatsächlich genutzten Anbieter, dessen Sitz und ggf. eine Auftragsverarbeitungs-" +
-    "Vereinbarung ergänzen.\n\n" +
-    "_Bitte im Admin-Bereich mit eurer echten Datenschutzerklärung ersetzen._",
-  agb: "",
+  impressum: IMPRESSUM_VORLAGE,
+  datenschutz: DATENSCHUTZ_VORLAGE,
+  agb: AGB_VORLAGE,
 };
 export function readContent(): SiteContent {
-  return { ...DEFAULT_CONTENT, ...readJson<Partial<SiteContent>>("legal.json", {}) };
+  const gespeichert = readJson<Partial<SiteContent>>("legal.json", {});
+  const c: SiteContent = { ...DEFAULT_CONTENT, ...gespeichert };
+
+  /*
+   * Migration auf die ausführlichen Rechtstext-Vorlagen.
+   *
+   * Ein vorhandenes legal.json gewinnt gegen DEFAULT_CONTENT — bestehende
+   * Installationen hätten sonst weiter die alten Kurzfassungen angezeigt.
+   * Ersetzt wird ausschließlich, was NIE bearbeitet wurde: Der gespeicherte
+   * Text muss zeichengenau der alten Vorlage entsprechen (oder leer sein).
+   * Sobald jemand etwas Eigenes geschrieben hat, bleibt es unverändert.
+   */
+  if (!c.impressum.trim() || c.impressum === ALT_IMPRESSUM) c.impressum = IMPRESSUM_VORLAGE;
+  if (!c.datenschutz.trim() || c.datenschutz === ALT_DATENSCHUTZ) c.datenschutz = DATENSCHUTZ_VORLAGE;
+  if (!c.agb.trim()) c.agb = AGB_VORLAGE;
+
+  return c;
 }
 export const writeContent = (c: SiteContent) => writeJson("legal.json", c);
 

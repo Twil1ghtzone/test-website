@@ -53,7 +53,13 @@ export default function SupportPanel() {
     const r = await fetch("/api/admin/support", { cache: "no-store" });
     if (r.ok) setTickets((await r.json()).tickets);
   }, []);
-  useEffect(() => { load(); }, [load]);
+  // Initial laden + alle 5 s auf neue Kundennachrichten prüfen (Polling) —
+  // vorher blieb ein offenes Ticket stehen, bis man die Seite neu lud.
+  useEffect(() => {
+    load();
+    const iv = setInterval(load, 5000);
+    return () => clearInterval(iv);
+  }, [load]);
   useEffect(() => { scrollRef.current?.scrollTo({ top: 9e9 }); }, [openId, tickets]);
 
   // Beim Wechsel des Tickets angefangene Eingaben verwerfen — sonst landete

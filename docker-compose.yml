@@ -18,9 +18,19 @@ services:
       # Signiert Login-Sessions, Ticket-Zugriffscodes und die
       # Chat-Verschlüsselung. Ohne Änderung wird ein Dev-Fallback genutzt.
       - SESSION_SECRET=${SESSION_SECRET:-bitte-aendern-langes-zufaelliges-geheimnis}
+      # Öffentliche Adresse der Seite. Wird für sitemap.xml, robots.txt und die
+      # Vorschaubilder beim Teilen (Open Graph) gebraucht — dort MÜSSEN absolute
+      # URLs stehen. Sobald die echte Domain feststeht, hier eintragen.
+      - SITE_URL=${SITE_URL:-http://localhost:3000}
+      # Optional: zweiter Speicherort für den "RAID-Schutz" im Admin-Backup —
+      # dasselbe verschlüsselte Backup landet zusätzlich hier (eigenes Volume
+      # unten). Leer lassen, wenn nur eine Kopie gewünscht ist.
+      - BACKUP_MIRROR_DIR=/app/backup-mirror
     volumes:
       # Persistente Datenbank (Benutzer-Hashes + Anfragen) bleibt über Updates erhalten.
       - studio-lokal-data:/app/data
+      # Zweites, unabhängiges Volume für die gespiegelte Sicherung.
+      - studio-lokal-backup-mirror:/app/backup-mirror
 
   # ── TLS-Terminierung (echte Transportverschlüsselung) ──
   # Optional, aber empfohlen: siehe Caddyfile für die genaue Funktionsweise.
@@ -103,6 +113,7 @@ services:
 
 volumes:
   studio-lokal-data:
+  studio-lokal-backup-mirror:
   caddy-data:
   caddy-config:
   activepieces-cache:

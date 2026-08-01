@@ -1,6 +1,8 @@
 import type { Metadata, Viewport } from "next";
 import { Inter, Fraunces } from "next/font/google";
 import { brand } from "@/lib/data";
+import { readContent } from "@/lib/server/store";
+import { siteUrl } from "@/lib/site";
 import Nav from "@/components/Nav";
 import ScrollProgress from "@/components/ScrollProgress";
 import ScrollBackdrop from "@/components/ScrollBackdrop";
@@ -23,11 +25,45 @@ const fraunces = Fraunces({
   style: ["normal", "italic"],
 });
 
-export const metadata: Metadata = {
-  title: `${brand.name} — Energie sparen. Unabhängig werden.`,
-  description:
-    "Elektrohandwerk und moderne IT aus einer Hand: cloud-freie Sicherheit & Smart Home, ein eigener sparsamer Server und maßgeschneiderter 3D-Druck. Energie sparen, unabhängig werden, ganz ohne monatliche Gebühren.",
-};
+const BESCHREIBUNG =
+  "Elektrohandwerk und moderne IT aus einer Hand: cloud-freie Sicherheit & Smart Home, ein eigener sparsamer Server und maßgeschneiderter 3D-Druck. Energie sparen, unabhängig werden, ganz ohne monatliche Gebühren.";
+
+/*
+ * Metadaten werden zur Laufzeit gebildet, damit der im Admin gepflegte
+ * Firmenname überall ankommt (Titel, Vorschaukarte) statt des Platzhalters.
+ *
+ * Open Graph + Twitter Card: Ohne diese Angaben zeigt ein geteilter Link in
+ * WhatsApp, LinkedIn oder Slack nur die nackte URL — kein Bild, kein Titel.
+ * Für einen Betrieb, der über Empfehlungen wächst, ist das verschenkte
+ * Reichweite. `metadataBase` macht aus dem relativen Bildpfad eine absolute
+ * URL; ohne sie ignorieren die Netzwerke das Bild.
+ */
+export async function generateMetadata(): Promise<Metadata> {
+  const c = readContent();
+  const name = c.companyName || brand.name;
+  const titel = `${name} — Energie sparen. Unabhängig werden.`;
+  return {
+    metadataBase: new URL(siteUrl()),
+    title: titel,
+    description: BESCHREIBUNG,
+    applicationName: name,
+    openGraph: {
+      type: "website",
+      locale: "de_DE",
+      siteName: name,
+      title: titel,
+      description: BESCHREIBUNG,
+      url: "/",
+      images: [{ url: "/technikraum-rack.webp", width: 1200, height: 630, alt: `${name} — Technikraum mit lokalem Server und sauber gepatchtem Netzwerk-Rack` }],
+    },
+    twitter: {
+      card: "summary_large_image",
+      title: titel,
+      description: BESCHREIBUNG,
+      images: ["/technikraum-rack.webp"],
+    },
+  };
+}
 
 export const viewport: Viewport = {
   width: "device-width",
@@ -61,9 +97,36 @@ export default function RootLayout({
 }: {
   children: React.ReactNode;
 }) {
+  // Serverseitig gelesen, damit der Support-Widget-Menüpunkt "E-Mail"/"Anrufen"
+  // dieselben Kontaktdaten zeigt wie Footer und Kontaktseite — vorher stand
+  // dort der feste Platzhalter aus lib/data.ts, unabhängig vom Admin.
+  const c = readContent();
+
+  /*
+   * Strukturierte Daten (LocalBusiness) für Suchmaschinen.
+   *
+   * Sagt Google explizit: Das ist ein Handwerksbetrieb mit diesen
+   * Kontaktdaten in diesem Einsatzgebiet — Grundlage dafür, überhaupt bei
+   * lokalen Suchen ("Smart Home Installateur in der Nähe") aufzutauchen.
+   * Alle Werte kommen aus dem Admin, es wird nichts erfunden.
+   */
+  const geschaeft = {
+    "@context": "https://schema.org",
+    "@type": "LocalBusiness",
+    name: c.companyName || brand.name,
+    description: BESCHREIBUNG,
+    url: siteUrl(),
+    email: c.email,
+    telephone: c.phone,
+    areaServed: c.region,
+    image: `${siteUrl()}/technikraum-rack.webp`,
+    priceRange: "€€",
+  };
+
   return (
     <html lang="de" data-scroll-behavior="smooth" className={`${inter.variable} ${fraunces.variable}`}>
       <body>
+        <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(geschaeft) }} />
         <SiteChrome>
           <ScrollBackdrop />
           <ScrollProgress />
@@ -72,7 +135,7 @@ export default function RootLayout({
         {children}
         <SiteChrome>
           <Footer />
-          <SupportButton />
+          <SupportButton email={c.email} phone={c.phone} />
         </SiteChrome>
       </body>
     </html>

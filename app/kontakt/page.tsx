@@ -3,20 +3,23 @@ import Link from "next/link";
 import { Mail, Phone, MapPin, Clock, Tag, ListChecks } from "lucide-react";
 import ContactForm from "@/components/ContactForm";
 import { Tilt } from "@/components/ui/motion";
-import { brand, contact } from "@/lib/data";
+import { contact } from "@/lib/data";
+import { readContent } from "@/lib/server/store";
 
-export const metadata: Metadata = {
-  title: `Kontakt — ${brand.name}`,
-  description:
-    "Sprechen Sie mit uns über Ihr Zuhause. Unverbindliche Anfrage — Preis individuell, weil jedes Haus anders ist.",
-};
+// Serverseitig, damit die im Admin unter "Rechtstexte & Kontakt" gepflegten
+// Kontaktdaten hier ankommen. Vorher stand hier der feste Platzhalter aus
+// lib/data.ts — eine Änderung im Admin wurde auf dieser Seite nie sichtbar,
+// obwohl das Panel selbst "Kontaktseite" als Ziel nennt.
+export const dynamic = "force-dynamic";
 
-const info = [
-  { icon: Mail, label: "E-Mail", value: brand.email, href: `mailto:${brand.email}` },
-  { icon: Phone, label: "Telefon", value: brand.phone, href: `tel:${brand.phone.replace(/\s/g, "")}` },
-  { icon: MapPin, label: "Einsatzgebiet", value: brand.region },
-  { icon: Clock, label: "Antwort", value: "In der Regel innerhalb von 1–2 Tagen" },
-];
+export async function generateMetadata(): Promise<Metadata> {
+  const c = readContent();
+  return {
+    title: `Kontakt — ${c.companyName}`,
+    description:
+      "Sprechen Sie mit uns über Ihr Zuhause. Unverbindliche Anfrage — Preis individuell, weil jedes Haus anders ist.",
+  };
+}
 
 const goodToKnow = [
   { icon: Tag, title: "Preis auf Anfrage", body: "Jedes Haus und Netzwerk ist anders — feste Pakete gibt es deshalb nicht. Sie bekommen ein individuelles, unverbindliches Angebot." },
@@ -24,6 +27,13 @@ const goodToKnow = [
 ];
 
 export default function KontaktPage() {
+  const c = readContent();
+  const info = [
+    { icon: Mail, label: "E-Mail", value: c.email, href: `mailto:${c.email}` },
+    { icon: Phone, label: "Telefon", value: c.phone, href: `tel:${c.phone.replace(/\s/g, "")}` },
+    { icon: MapPin, label: "Einsatzgebiet", value: c.region },
+    { icon: Clock, label: "Antwort", value: "In der Regel innerhalb von 1–2 Tagen" },
+  ];
   return (
     <main className="px-5 pt-28 pb-20 sm:pt-40 sm:pb-24">
       <div className="mx-auto max-w-6xl">

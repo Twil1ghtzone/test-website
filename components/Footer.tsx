@@ -25,7 +25,8 @@ export default function Footer() {
           <FooterCol
             title="Navigation"
             links={[
-              { label: "Über uns", href: "/#ueber-uns" },
+              { label: "Über uns", href: "/ueber-uns" },
+              { label: "Häufige Fragen", href: "/faq" },
               { label: "Warum lokal", href: "/#warum" },
               { label: "Bewertungen", href: "/#bewertungen" },
               { label: "Ablauf", href: "/#ablauf" },
@@ -38,6 +39,7 @@ export default function Footer() {
             links={[
               ...services.map((s) => ({ label: s.title, href: `/leistungen/${s.slug}` })),
               { label: "Konfigurator", href: "/konfigurator" },
+              { label: "Energie-Spar-Rechner", href: "/stromrechner" },
             ]}
           />
           <div>
