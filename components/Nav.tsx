@@ -111,11 +111,10 @@ export default function Nav() {
   }
 
   // Eine Nav-Pille mit gleitendem Hover-Hintergrund (geteiltes layoutId).
-  // Enger Innenabstand ab lg, voller erst ab xl: Mit "Über uns" und "FAQ" sind
-  // es acht Einträge — bei 1024 px reichte der Platz sonst nicht und der
-  // CTA-Knopf wurde aus der Leiste gedrückt.
+  // Kompakter Innenabstand, damit die acht Einträge plus CTA auch bei genau
+  // 1280 px noch mit Luft in die Leiste passen.
   const pill =
-    "relative z-10 flex items-center gap-1 whitespace-nowrap rounded-full px-2.5 py-2 text-[13px] font-medium transition-colors cursor-pointer xl:px-3.5 xl:text-sm";
+    "relative z-10 flex items-center gap-1 whitespace-nowrap rounded-full px-2.5 py-2 text-[13px] font-medium transition-colors cursor-pointer";
 
   return (
     <header className="fixed inset-x-0 top-0 z-50">
@@ -132,9 +131,16 @@ export default function Nav() {
           </Link>
 
           {/* Desktop-Links — Pillen-Gruppe.
-              `min-w-0` ist wichtig: Ohne das kann die Gruppe nicht schrumpfen
-              und schiebt den CTA-Knopf aus der abgerundeten Leiste heraus. */}
-          <div className="hidden min-w-0 items-center lg:flex" onMouseLeave={() => setHover(null)}>
+
+              Erst ab xl (1280 px) sichtbar, davor übernimmt das Menü.
+              Grund: Mit acht Einträgen plus CTA passt die Reihe bei 1024 px
+              nicht mehr. Ein vorheriger Versuch mit `min-w-0` machte es
+              schlimmer — die Gruppe durfte dadurch unter ihre Inhaltsbreite
+              schrumpfen, der Text bricht wegen `whitespace-nowrap` aber nicht
+              um und lief deshalb sichtbar UNTER den CTA-Knopf ("Blog" und
+              "Anfrage stellen" überlappten). Kein Schrumpfen, kein Überlauf:
+              Ab hier gilt entweder ganz oder gar nicht. */}
+          <div className="hidden shrink-0 items-center xl:flex" onMouseLeave={() => setHover(null)}>
             <Link
               href="/ueber-uns"
               onMouseEnter={() => setHover("ueber-uns")}
@@ -389,7 +395,7 @@ export default function Nav() {
               aria-label="Menü"
               aria-expanded={open}
               onClick={() => setOpen((v) => !v)}
-              className="grid h-10 w-10 place-items-center rounded-full border border-line-strong bg-surface transition-colors hover:border-ink active:scale-95 lg:hidden cursor-pointer"
+              className="grid h-10 w-10 place-items-center rounded-full border border-line-strong bg-surface transition-colors hover:border-ink active:scale-95 xl:hidden cursor-pointer"
             >
               <span className="relative block h-3 w-4">
                 <span className={`absolute left-0 h-0.5 w-4 rounded-full bg-ink transition-all duration-300 ${open ? "top-1.5 rotate-45" : "top-0"}`} />
@@ -409,7 +415,7 @@ export default function Nav() {
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -8 }}
             transition={{ duration: 0.22, ease: [0.22, 1, 0.36, 1] }}
-            className="mx-3 mt-2 max-h-[80vh] overflow-y-auto overscroll-contain rounded-3xl border border-line bg-canvas/95 p-2 pb-safe shadow-[0_24px_60px_-24px_rgba(33,28,23,0.32)] backdrop-blur-xl lg:hidden"
+            className="mx-3 mt-2 max-h-[80vh] overflow-y-auto overscroll-contain rounded-3xl border border-line bg-canvas/95 p-2 pb-safe shadow-[0_24px_60px_-24px_rgba(33,28,23,0.32)] backdrop-blur-xl xl:hidden"
           >
             <div className="flex flex-col gap-1 p-2">
               <span className="px-2 pb-1 eyebrow text-muted">Entdecken</span>

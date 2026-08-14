@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { Star, Trash2, Check, X, ShieldCheck, ShieldAlert, Loader2, Save } from "lucide-react";
 
+import ZahlFeld from "@/components/admin/ZahlFeld";
 type Review = { id: string; name: string; rating: number; text: string; status: "offen" | "freigegeben" | "abgelehnt"; createdAt: string; verified: boolean; invoiceNumber: string; phase: string; kind: "teil" | "end" };
 
 const PHASE_LABEL: Record<string, string> = { geplant: "Geplant", in_arbeit: "In Arbeit mit der Umsetzung", abgeschlossen: "Abgeschlossen" };
@@ -84,7 +85,7 @@ export default function ReviewsPanel({ canSettings }: { canSettings: boolean }) 
             </label>
             <label className="inline-flex items-center gap-2 text-sm">
               max./Tag pro IP
-              <input type="number" min={1} max={20} value={cfg.maxPerDay} onChange={(e) => setCfg({ ...cfg, maxPerDay: +e.target.value })} className="w-16 rounded-lg border border-line bg-canvas px-2 py-1 text-ink outline-none focus:border-accent" />
+              <ZahlFeld min={1} max={20} value={cfg.maxPerDay} onChange={(n) => setCfg({ ...cfg, maxPerDay: n })} className="w-16 rounded-lg border border-line bg-canvas px-2 py-1 text-ink outline-none focus:border-accent" />
             </label>
             <button onClick={saveCfg} className="inline-flex items-center gap-1.5 rounded-full bg-accent px-4 py-2 text-xs font-medium text-white hover:bg-accent-ink cursor-pointer"><Save className="h-3.5 w-3.5" /> Speichern</button>
             {msg && <span className="text-sm text-emerald-600">{msg}</span>}

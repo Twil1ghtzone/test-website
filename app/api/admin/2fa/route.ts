@@ -37,6 +37,21 @@ export async function POST(req: NextRequest) {
 
   /* 1) Einrichtung starten: Secret + QR-URI zurückgeben (noch NICHT aktiv) */
   if (action === "setup") {
+    /*
+     * Läuft 2FA bereits, ist "setup" gesperrt.
+     *
+     * Vorher setzte diese Aktion bedingungslos `totpEnabled = false` und legte
+     * ein neues Geheimnis an — ohne Passwort, ohne aktuellen Code. Wer eine
+     * fremde Sitzung übernommen hatte, konnte damit die Zwei-Faktor-Anmeldung
+     * einfach abschalten, obwohl "disable" dafür ausdrücklich Passwort UND
+     * Code verlangt. Die zusätzliche Hürde war damit wirkungslos.
+     */
+    if (u.totpEnabled) {
+      return NextResponse.json(
+        { error: "2FA ist bereits aktiv. Zum Wechseln bitte zuerst deaktivieren — dafür sind Passwort und aktueller Code nötig." },
+        { status: 409 }
+      );
+    }
     u.totpSecret = generateSecret();
     u.totpEnabled = false;
     u.updatedAt = new Date().toISOString();

@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { readUsers, writeUsers, emptyPermissions, fullPermissions, ALL_PERMISSIONS, type User, type Role, type Permissions } from "@/lib/server/store";
 import { requirePermission, hashPassword, publicUser } from "@/lib/server/auth";
+import { rechteBeimAnlegen, rolleBeimAnlegen } from "@/lib/server/benutzerRechte";
 import { logAudit } from "@/lib/server/audit";
 
 export const runtime = "nodejs";
@@ -29,7 +30,7 @@ export async function POST(req: NextRequest) {
   const name = (body.name || "").trim();
   const email = (body.email || "").trim();
   // Nur echte Admins dürfen die Admin-Rolle vergeben.
-  const role: Role = body.role === "admin" && me.role === "admin" ? "admin" : "editor";
+  const role: Role = rolleBeimAnlegen(me, body.role);
   const password = body.password || "";
 
   if (!username || !name || password.length < 6) {
@@ -39,6 +40,16 @@ export async function POST(req: NextRequest) {
   if (users.some((u) => u.username.toLowerCase() === username)) {
     return NextResponse.json({ error: "Benutzername bereits vergeben." }, { status: 409 });
   }
+  /*
+   * Rechte beim Anlegen vergibt nur die Admin-Rolle.
+   *
+   * Sonst wäre die Rollenschranke oben wertlos: Ein Redakteur mit
+   * "users"-Recht hätte einfach ein zweites Redakteurs-Konto mit sämtlichen
+   * Berechtigungen angelegt und sich dort angemeldet — dasselbe Ergebnis wie
+   * eine Admin-Rolle, nur über einen Umweg.
+   */
+  const rechte = rechteBeimAnlegen(me, role, sanitizePerms(body.permissions));
+
   const now = new Date().toISOString();
   const newUser: User = {
     id: `u-${Date.now()}`,
@@ -46,7 +57,7 @@ export async function POST(req: NextRequest) {
     name,
     email,
     role,
-    permissions: role === "admin" ? fullPermissions() : sanitizePerms(body.permissions),
+    permissions: rechte,
     passwordHash: await hashPassword(password),
     active: true,
     createdAt: now,

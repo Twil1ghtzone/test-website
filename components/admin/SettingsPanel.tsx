@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { Sparkles, Save, Loader2, Wifi, Eye, EyeOff, Check, AlertTriangle, X, Plus, Workflow, ExternalLink, ShieldAlert } from "lucide-react";
 
+import ZahlFeld from "@/components/admin/ZahlFeld";
 type AISettings = {
   enabled: boolean; endpoint: string; model: string; systemPrompt: string;
   temperature: number; maxTokens: number; timeoutMs: number; greeting: string; fallback: string;
@@ -240,15 +241,15 @@ export default function SettingsPanel() {
           <div><label className={lbl}>Temperatur ({ai.temperature.toFixed(1)})</label><input type="range" min={0} max={2} step={0.1} value={ai.temperature} onChange={(e) => setAi({ ...ai, temperature: +e.target.value })} className="mt-3 w-full accent-[var(--color-accent)]" /></div>
           <div>
             <label className={lbl}>Max. Tokens</label>
-            <input type="number" min={50} max={4000} value={ai.maxTokens} onChange={(e) => setAi({ ...ai, maxTokens: +e.target.value })} className={field} />
+            <ZahlFeld min={50} max={4000} value={ai.maxTokens} onChange={(n) => setAi({ ...ai, maxTokens: n })} className={field} />
             <p className="mt-1 text-xs text-muted">Reasoning-Modelle (DeepSeek-R1, Qwen-Thinking, Nemotron …) brauchen mehr Budget fürs „Nachdenken" — bei leeren Antworten hier erhöhen. Ein zweiter Versuch mit vierfachem Budget läuft automatisch.</p>
           </div>
           <div>
             <label className={lbl}>Zeitlimit (Sekunden)</label>
-            <input
-              type="number" min={5} max={600}
+            <ZahlFeld
+              min={5} max={600}
               value={Math.round(ai.timeoutMs / 1000)}
-              onChange={(e) => setAi({ ...ai, timeoutMs: Math.max(5, Math.min(600, +e.target.value)) * 1000 })}
+              onChange={(s) => setAi({ ...ai, timeoutMs: s * 1000 })}
               className={field}
             />
             <p className="mt-1 text-xs text-muted">
@@ -310,7 +311,7 @@ export default function SettingsPanel() {
           <p className="mt-1 text-sm text-muted">Für Blog-Abo-Bestätigungen und Newsletter. Leer lassen = Abos funktionieren ohne E-Mail-Bestätigung.</p>
           <div className="mt-4 grid gap-4 sm:grid-cols-2">
             <div><label className={lbl}>SMTP-Host</label><input value={smtp.host} onChange={(e) => setSmtp({ ...smtp, host: e.target.value })} className={field} placeholder="smtp.example.de" /></div>
-            <div><label className={lbl}>Port</label><input type="number" min={1} max={65535} value={smtp.port} onChange={(e) => setSmtp({ ...smtp, port: +e.target.value })} className={field} /></div>
+            <div><label className={lbl}>Port</label><ZahlFeld min={1} max={65535} value={smtp.port} onChange={(n) => setSmtp({ ...smtp, port: n })} className={field} /></div>
             <div><label className={lbl}>Benutzer</label><input value={smtp.user} onChange={(e) => setSmtp({ ...smtp, user: e.target.value })} className={field} placeholder="mail@example.de" autoComplete="off" /></div>
             <div>
               <label className={lbl}>Passwort {smtp.passSet && <span className="normal-case text-emerald-600">· gesetzt</span>}</label>

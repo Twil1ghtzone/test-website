@@ -2,6 +2,7 @@ import crypto from "crypto";
 import bcrypt from "bcryptjs";
 import { cookies } from "next/headers";
 import { readUsers, writeUsers, fullPermissions, type User, type Role, type Permission } from "./store";
+import { hatBerechtigung } from "../permissions.ts";
 import { serverSecret } from "./secret.ts";
 
 export const SESSION_COOKIE = "sl_session";
@@ -58,11 +59,13 @@ export async function seedAdminIfEmpty(): Promise<void> {
   writeUsers(users);
 }
 
-// Admin hat immer alle Rechte; sonst die einzeln gesetzte Berechtigung.
-export function userHasPermission(u: { role: Role; permissions?: Partial<Record<Permission, boolean>> } | null, perm: Permission): boolean {
-  if (!u) return false;
-  return u.role === "admin" || !!u.permissions?.[perm];
-}
+/**
+ * Admin hat immer alle Rechte; sonst die einzeln gesetzte Berechtigung.
+ * Die Regel selbst steht in lib/permissions.ts, damit Server und Admin-Panel
+ * garantiert dieselbe verwenden. Hier nur unter dem bisherigen Namen
+ * weitergereicht, damit bestehende Aufrufer unverändert bleiben.
+ */
+export const userHasPermission = hatBerechtigung;
 
 export async function requirePermission(perm: Permission): Promise<Omit<User, "passwordHash"> | null> {
   const u = await getCurrentUser();

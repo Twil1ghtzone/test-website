@@ -1,7 +1,8 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { HelpCircle, ArrowRight, ChevronDown, Zap, ShieldCheck } from "lucide-react";
+import { HelpCircle, ArrowRight, Zap, ShieldCheck } from "lucide-react";
 import Reveal from "@/components/Reveal";
+import FaqSuche from "@/components/FaqSuche";
 import { MotionLink, Magnetic, Tilt, pressable } from "@/components/ui/motion";
 import { faqGruppen, alleFragen } from "@/lib/faq";
 import { readContent } from "@/lib/server/store";
@@ -69,27 +70,9 @@ export default function FaqPage() {
           </p>
         </Reveal>
 
-        <div className="mt-12 space-y-10">
-          {faqGruppen.map((g, gi) => (
-            <Reveal key={g.key} delay={gi * 80} as="section" className="block">
-              <h2 className="font-display text-xl font-semibold tracking-tight">{g.titel}</h2>
-              <div className="mt-4 space-y-2.5">
-                {g.fragen.map((f) => (
-                  <details
-                    key={f.frage}
-                    className="group rounded-2xl border border-line bg-surface px-5 transition-all duration-300 hover:border-line-strong hover:shadow-[0_14px_36px_-26px_rgba(33,28,23,0.35)]"
-                  >
-                    <summary className="flex cursor-pointer list-none items-center justify-between gap-4 py-4 text-left">
-                      <span className="font-medium leading-snug text-ink transition-colors group-open:text-accent-ink">{f.frage}</span>
-                      <ChevronDown className="h-5 w-5 shrink-0 text-muted transition-transform duration-300 group-open:rotate-180" />
-                    </summary>
-                    <p className="pb-4 pr-9 leading-relaxed text-ink-soft">{f.antwort}</p>
-                  </details>
-                ))}
-              </div>
-            </Reveal>
-          ))}
-        </div>
+        <Reveal className="mt-12 block">
+          <FaqSuche gruppen={faqGruppen} />
+        </Reveal>
 
         {/* Weiterführend statt Sackgasse */}
         <div className="mt-12 grid gap-3 sm:grid-cols-2">

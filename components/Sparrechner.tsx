@@ -12,7 +12,7 @@ import {
   STROM_MASSNAHMEN, STROM_KAPPE, WAERME_MASSNAHMEN, WAERME_KAPPE,
   WAERME_SPEZ, HEIZARTEN, HEIZART_KEYS, JAZ, CO2_STROM, CLOUD, SERVER,
   PV_WP_STANDARD, PV_SPEZ_ERTRAG_STANDARD, PV_EIGENVERBRAUCH_STANDARD,
-  PREISSTEIGERUNG_STANDARD, AMORTISATION_ZEIGEN_BIS_JAHRE,
+  PREISSTEIGERUNG_STANDARD, AMORTISATION_ZEIGEN_BIS_JAHRE, PV_LASTVERSCHIEBUNG_BONUS,
   CO2_BAUM_PRO_JAHR, CO2_AUTO_PRO_KM, CO2_PRO_KOPF_DE,
   type Wohnform, type Heizart, type ServerKey, type Waermequelle,
 } from "@/lib/sparrechner";
@@ -110,8 +110,17 @@ function OptionCard({
   return (
     <button
       type="button" onClick={onClick} aria-pressed={on}
-      className={`flex items-start gap-3 rounded-2xl border p-3.5 text-left transition-colors cursor-pointer ${
-        on ? "border-accent bg-accent-soft/45" : "border-line bg-canvas hover:border-line-strong"
+      /*
+       * Ausgewählte Karten bekommen einen weichen Akzent-Schein statt nur
+       * einer Rahmenfarbe. Auf dem Handy fehlt der Hover-Zustand komplett —
+       * ohne diesen Schein war nach dem Antippen kaum zu erkennen, was
+       * gerade aktiv ist. `active:` gibt zusätzlich sofortiges Feedback im
+       * Moment der Berührung, noch bevor der Zustand umschaltet.
+       */
+      className={`flex items-start gap-3 rounded-2xl border p-3.5 text-left transition-all duration-300 active:scale-[0.98] cursor-pointer ${
+        on
+          ? "border-accent bg-accent-soft/45 shadow-[0_0_0_3px_color-mix(in_oklab,var(--color-accent)_18%,transparent),0_10px_28px_-14px_color-mix(in_oklab,var(--color-accent)_65%,transparent)]"
+          : "border-line bg-canvas hover:border-line-strong active:border-accent/60"
       }`}
     >
       <span className={`mt-0.5 grid h-5 w-5 shrink-0 place-items-center rounded-md border transition-colors ${
@@ -147,29 +156,92 @@ function Step({ no, title, subtitle, children }: { no: number; title: string; su
 
 /* ───────────────────────── Amortisations-Diagramm ───────────────────────── */
 
-function PaybackChart({ kumuliert, jahre = 10 }: { kumuliert: (n: number) => number; jahre?: number }) {
-  const values = Array.from({ length: jahre + 1 }, (_, i) => kumuliert(i));
-  const max = Math.max(...values, 0);
-  const min = Math.min(...values, 0);
-  const span = max - min || 1;
-  const zeroY = (max / span) * 100;
+/*
+ * Verlauf der ERSPARNIS (nicht der Bilanz).
+ *
+ * Vorher zeigte diese Grafik die kumulierte Bilanz, also Ersparnis MINUS
+ * Investition. In den ersten Jahren ist die zwangsläufig negativ, es standen
+ * also sechs graue Balken unter der Nulllinie — das Erste, was ein Besucher
+ * sah, war „Sie sind im Minus". Als Einstieg ist das abschreckend, obwohl die
+ * Anlage vom ersten Tag an Geld spart.
+ *
+ * Jetzt läuft die Kurve so, wie der Kunde es erlebt: Die Ersparnis wächst
+ * Jahr für Jahr, immer positiv. Der Punkt, ab dem die Investition wieder
+ * drin ist, bleibt als gestrichelte Linie sichtbar — nichts wird verschwiegen,
+ * es steht nur nicht mehr als Drohung am Anfang.
+ */
+function ErsparnisChart({
+  kumuliertOhneInvest, invest, jahre = 10,
+}: {
+  kumuliertOhneInvest: (n: number) => number;
+  invest: number;
+  jahre?: number;
+}) {
+  const values = Array.from({ length: jahre + 1 }, (_, i) => kumuliertOhneInvest(i));
+  // Etwas Luft nach oben: Sonst stößt der höchste Balken exakt an die Kante
+  // und die Schwellenlinie hätte bei knapper Amortisation keinen Platz mehr
+  // für ihre Beschriftung.
+  const max = Math.max(...values, invest, 1) * 1.08;
+  // Höhe der Investitions-Linie in Prozent (von unten gemessen).
+  const investY = Math.min(100, (invest / max) * 100);
+  const investErreicht = values[jahre] >= invest;
+  /*
+   * Das erste Jahr, in dem die Ersparnis die Investition überholt — der
+   * eigentliche Wendepunkt. Genau dieser eine Balken wird hervorgehoben.
+   * `-1`, wenn es innerhalb des Zeitraums nicht dazu kommt.
+   */
+  const wendepunkt = values.findIndex((v) => v >= invest);
 
   return (
     <div>
       <div className="relative h-28">
-        <div className="absolute inset-x-0 border-t border-dashed border-white/25" style={{ top: `${zeroY}%` }} />
+        {/*
+          Schwelle: ab hier ist die Investition wieder eingespielt.
+
+          `z-20` ist entscheidend. Die Linie steht im Markup VOR den Balken;
+          ohne eigene Ebene malen die Balken sie einfach zu — sichtbar blieb
+          nur das Stück links, wo die Balken noch niedrig sind. Es sah aus,
+          als säße die Linie an der falschen Stelle.
+
+          Die Beschriftung sitzt rechts und trägt einen eigenen Hintergrund,
+          damit sie auch über einem Balken lesbar bleibt. `-translate-y-1/2`
+          zentriert sie exakt auf der Linie statt darüber.
+        */}
+        {investErreicht && (
+          <div
+            className="pointer-events-none absolute inset-x-0 z-20 border-t border-dashed border-amber-300/70"
+            style={{ bottom: `${investY}%` }}
+          >
+            <span className="absolute right-0 -translate-y-1/2 rounded bg-night/85 px-1.5 py-0.5 text-[0.62rem] font-medium leading-none text-amber-200 ring-1 ring-amber-300/30">
+              Investition drin
+            </span>
+          </div>
+        )}
+        {/* `items-stretch` ist Pflicht: Die Balken sind in ihrer Spalte absolut
+            positioniert und beziehen ihre Prozenthöhe auf sie. Mit `items-end`
+            schrumpfen die Spalten auf Inhaltshöhe — also null — und aus
+            `height: 40%` wurden 40 % von nichts. Die Balken waren unsichtbar. */}
         <div className="relative flex h-full items-stretch gap-[3px]">
           {values.map((v, i) => {
-            const h = (Math.abs(v) / span) * 100;
-            const positiv = v >= 0;
+            const h = (v / max) * 100;
+            /*
+             * Farbgebung erzählt die Geschichte in drei Schritten:
+             * Jahr 0 = das Jahr der Investition (Akzentton), danach läuft
+             * es grün, und der Wendepunkt — das Jahr, in dem die
+             * Investition wieder drin ist — sticht in Gelb heraus.
+             */
+            const farbe =
+              i === 0 ? "bg-accent"
+              : i === wendepunkt ? "bg-amber-400"
+              : "bg-emerald-400/80";
             return (
               <div key={i} className="group relative flex-1">
                 <div
-                  className={`absolute w-full rounded-[3px] transition-all duration-500 ${positiv ? "bg-accent" : "bg-white/22"}`}
-                  style={positiv ? { bottom: `${100 - zeroY}%`, height: `${h}%` } : { top: `${zeroY}%`, height: `${h}%` }}
+                  className={`absolute bottom-0 w-full rounded-[3px] transition-all duration-500 ${farbe}`}
+                  style={{ height: `${Math.max(h, 1.5)}%` }}
                 />
-                <span className="pointer-events-none absolute -top-1 left-1/2 z-10 -translate-x-1/2 -translate-y-full whitespace-nowrap rounded-md bg-canvas px-2 py-1 text-[0.7rem] font-medium text-ink opacity-0 shadow-lg transition-opacity group-hover:opacity-100">
-                  Jahr {i}: {eur.format(v)}
+                <span className="pointer-events-none absolute -top-1 left-1/2 z-30 -translate-x-1/2 -translate-y-full whitespace-nowrap rounded-md bg-canvas px-2 py-1 text-[0.7rem] font-medium text-ink opacity-0 shadow-lg transition-opacity group-hover:opacity-100">
+                  Jahr {i}: {eur.format(v)} gespart
                 </span>
               </div>
             );
@@ -185,10 +257,23 @@ function PaybackChart({ kumuliert, jahre = 10 }: { kumuliert: (n: number) => num
 
 /* ═══════════════════════════════ Seite ═══════════════════════════════ */
 
-let quellenZaehler = 0;
-const neueId = () => `q${++quellenZaehler}`;
+/*
+ * IDs der Wärmequellen — Grundlage für `htmlFor`/`id` der Formularfelder.
+ *
+ * Der Zähler stand früher auf MODULEBENE. Auf dem Server bleibt ein Modul
+ * über Anfragen hinweg im Speicher, der Zähler lief also immer weiter: Der
+ * Server lieferte `art-q3`, der frisch geladene Client begann wieder bei
+ * `art-q1` — React meldete einen Hydration-Fehler und verwarf den Teilbaum.
+ *
+ * Die erste Quelle bekommt deshalb eine feste ID; erst die im Browser
+ * hinzugefügten Quellen zählen hoch, und zwar in einem Ref pro Komponente.
+ */
+const ERSTE_QUELLE_ID = "q1";
 
 export default function Sparrechner({ kontakt }: { kontakt: Kontakt }) {
+  const quellenZaehler = useRef(1);
+  const neueId = () => `q${++quellenZaehler.current}`;
+
   /* ── Haushalt ── */
   const [wohnform, setWohnform] = useState<Wohnform>("haus");
   const [personen, setPersonen] = useState(3);
@@ -200,8 +285,27 @@ export default function Sparrechner({ kontakt }: { kontakt: Kontakt }) {
 
   /* ── Wärme (Hybrid: beliebig viele Quellen) ── */
   const [waermequellen, setWaermequellen] = useState<Waermequelle[]>([
-    { id: neueId(), art: "gas", jahreskosten: kostenVorschlag("gas", "haus", 130, 0.35) },
+    { id: ERSTE_QUELLE_ID, art: "gas", jahreskosten: kostenVorschlag("gas", "haus", 130, 0.35) },
   ]);
+
+  /*
+   * Rohtext der Kosten-Eingabefelder, solange dort getippt wird.
+   *
+   * Ohne das ließ sich die Zahl nicht löschen: Ein leeres Feld liefert "",
+   * daraus wurde über `+"" || 0` sofort wieder eine 0, die im nächsten
+   * Render zurück ins Feld sprang. Man musste die alte Zahl also umständlich
+   * überschreiben statt sie zu leeren. Jetzt darf das Feld zwischendurch
+   * leer sein; gerechnet wird solange mit 0, und beim Verlassen erscheint
+   * wieder der gültige, begrenzte Wert.
+   */
+  const [rohKosten, setRohKosten] = useState<Record<string, string>>({});
+  const rohLoeschen = (id: string) =>
+    setRohKosten((r) => {
+      if (!(id in r)) return r;
+      const kopie = { ...r };
+      delete kopie[id];
+      return kopie;
+    });
 
   /* ── Maßnahmen, Abos, Server ── */
   const [stromMass, setStromMass] = useState<Set<string>>(new Set(["standby", "messung"]));
@@ -214,6 +318,7 @@ export default function Sparrechner({ kontakt }: { kontakt: Kontakt }) {
   const [pvWp, setPvWp] = useState(PV_WP_STANDARD);
   const [pvSpezErtrag, setPvSpezErtrag] = useState(PV_SPEZ_ERTRAG_STANDARD);
   const [pvEigenverbrauch, setPvEigenverbrauch] = useState(PV_EIGENVERBRAUCH_STANDARD);
+  const [pvLastverschiebung, setPvLastverschiebung] = useState(true);
 
   /* ── Annahmen ── */
   const [preissteigerung, setPreissteigerung] = useState(PREISSTEIGERUNG_STANDARD);
@@ -233,10 +338,10 @@ export default function Sparrechner({ kontakt }: { kontakt: Kontakt }) {
   const r = useMemo(
     () => berechne({
       verbrauch, strompreis, waermequellen, stromMass, waermeMass, abos, serverKey, flaeche,
-      pvAktiv, pvWp, pvSpezErtrag, pvEigenverbrauch, preissteigerung, investEigen,
+      pvAktiv, pvWp, pvSpezErtrag, pvEigenverbrauch, pvLastverschiebung, preissteigerung, investEigen,
     }),
     [verbrauch, strompreis, waermequellen, stromMass, waermeMass, abos, serverKey, flaeche,
-     pvAktiv, pvWp, pvSpezErtrag, pvEigenverbrauch, preissteigerung, investEigen]
+     pvAktiv, pvWp, pvSpezErtrag, pvEigenverbrauch, pvLastverschiebung, preissteigerung, investEigen]
   );
 
   const animNetto = useAnimatedNumber(Math.max(0, r.netto));
@@ -316,6 +421,9 @@ export default function Sparrechner({ kontakt }: { kontakt: Kontakt }) {
                       const f = v === "haus" ? 130 : 75;
                       setFlaeche(f);
                       setVerbrauchBerührt(false);
+                      // Alle Kostenvorschläge werden neu gesetzt — noch stehende
+                      // Roheingaben würden sie sonst überdecken.
+                      setRohKosten({});
                       setWaermequellen((qs) => qs.map((q) => ({ ...q, jahreskosten: kostenVorschlag(q.art, v, f / Math.max(1, qs.length), strompreis) })));
                     }}
                     options={[{ value: "wohnung", label: "Wohnung" }, { value: "haus", label: "Haus" }]}
@@ -328,8 +436,10 @@ export default function Sparrechner({ kontakt }: { kontakt: Kontakt }) {
                       <button
                         key={p} type="button" onClick={() => { setPersonen(p); setVerbrauchBerührt(false); }}
                         aria-pressed={personen === p}
-                        className={`h-[3.25rem] flex-1 rounded-2xl border text-sm font-medium transition-colors cursor-pointer ${
-                          personen === p ? "border-accent bg-accent text-white" : "border-line bg-canvas text-ink hover:border-line-strong"
+                        className={`h-[3.25rem] flex-1 rounded-2xl border text-sm font-medium transition-all duration-300 active:scale-[0.96] cursor-pointer ${
+                          personen === p
+                            ? "border-accent bg-accent text-white shadow-[0_0_0_3px_color-mix(in_oklab,var(--color-accent)_18%,transparent),0_8px_22px_-12px_color-mix(in_oklab,var(--color-accent)_75%,transparent)]"
+                            : "border-line bg-canvas text-ink hover:border-line-strong active:border-accent/60"
                         }`}
                       >
                         {p === 5 ? "5+" : p}
@@ -394,7 +504,11 @@ export default function Sparrechner({ kontakt }: { kontakt: Kontakt }) {
               <div className="space-y-2.5">
                 {waermequellen.map((q, i) => {
                   const preis = q.art === "wp" ? strompreis / JAZ : HEIZARTEN[q.art].preis!;
-                  const kwh = preis > 0 ? q.jahreskosten / preis : 0;
+                  // Nur der Verbrauchsanteil zählt — der Grundpreis läuft
+                  // unabhängig weiter und lässt sich nicht wegsparen.
+                  const grund = HEIZARTEN[q.art].grundpreis;
+                  const verbrauchsteil = Math.max(0, q.jahreskosten - grund);
+                  const kwh = preis > 0 ? verbrauchsteil / preis : 0;
                   return (
                     <div key={q.id} className="rounded-2xl border border-line bg-canvas p-3.5">
                       <div className="flex flex-wrap items-end gap-3">
@@ -404,6 +518,9 @@ export default function Sparrechner({ kontakt }: { kontakt: Kontakt }) {
                             id={`art-${q.id}`} value={q.art}
                             onChange={(e) => {
                               const art = e.target.value as Heizart;
+                              // Neuer Energieträger = neuer Kostenvorschlag. Ein noch
+                              // stehender Rohtext würde den sonst verdecken.
+                              rohLoeschen(q.id);
                               quelleAendern(q.id, { art, jahreskosten: kostenVorschlag(art, wohnform, Math.round(flaeche / Math.max(1, waermequellen.length)), strompreis) });
                             }}
                             className="h-11 w-full rounded-xl border border-line bg-surface px-3 text-sm text-ink outline-none focus:border-accent cursor-pointer"
@@ -420,8 +537,20 @@ export default function Sparrechner({ kontakt }: { kontakt: Kontakt }) {
                           <div className="relative">
                             <input
                               id={`kosten-${q.id}`} type="number" min={0} max={20000} step={10}
-                              value={q.jahreskosten}
-                              onChange={(e) => quelleAendern(q.id, { jahreskosten: Math.max(0, Math.min(20000, +e.target.value || 0)) })}
+                              // Während des Tippens gewinnt der Rohtext (darf leer sein),
+                              // sonst der gültige Wert aus dem Zustand.
+                              value={rohKosten[q.id] ?? String(q.jahreskosten)}
+                              onChange={(e) => {
+                                const roh = e.target.value;
+                                setRohKosten((r) => ({ ...r, [q.id]: roh }));
+                                const zahl = roh.trim() === "" ? 0 : Number(roh);
+                                if (Number.isFinite(zahl)) {
+                                  quelleAendern(q.id, { jahreskosten: Math.max(0, Math.min(20000, zahl)) });
+                                }
+                              }}
+                              // Beim Verlassen den Rohtext verwerfen — dann zeigt das Feld
+                              // den tatsächlich gerechneten, begrenzten Wert.
+                              onBlur={() => rohLoeschen(q.id)}
                               className="h-11 w-full rounded-xl border border-line bg-surface pl-3 pr-8 text-sm tabular-nums text-ink outline-none focus:border-accent"
                             />
                             <span className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-sm text-muted">€</span>
@@ -437,9 +566,10 @@ export default function Sparrechner({ kontakt }: { kontakt: Kontakt }) {
                           </button>
                         )}
                       </div>
-                      <p className="mt-2 text-xs text-muted">
+                      <p className="mt-2 text-xs leading-relaxed text-muted">
                         {komma(preis, 2)} €/kWh
                         {q.art === "wp" && ` (Strompreis ÷ JAZ ${komma(JAZ)})`}
+                        {grund > 0 && ` · abzüglich ca. ${eur.format(grund)} Grundpreis`}
                         {" · entspricht "}{nf.format(kwh)} kWh Wärme
                         {i === 0 && waermequellen.length === 1 && " · Wert steht auf Ihrer Jahresabrechnung"}
                       </p>
@@ -508,6 +638,20 @@ export default function Sparrechner({ kontakt }: { kontakt: Kontakt }) {
                     hint="Anteil, der direkt im Haus verbraucht wird. Ohne Speicher realistisch 60–80 %."
                   />
 
+                  <OptionCard
+                    on={pvLastverschiebung}
+                    onClick={() => setPvLastverschiebung(!pvLastverschiebung)}
+                    title="Große Verbraucher in die Sonnenstunden legen"
+                    hint={`Spül-/Waschmaschine und Warmwasser laufen automatisch, wenn die Sonne liefert · +${Math.round(PV_LASTVERSCHIEBUNG_BONUS * 100)} Prozentpunkte Eigenverbrauch`}
+                  />
+                  {pvLastverschiebung && (
+                    <p className="-mt-3 flex items-start gap-2 text-xs leading-relaxed text-muted">
+                      <Info className="mt-0.5 h-3.5 w-3.5 shrink-0" />
+                      Das senkt nicht den Verbrauch, sondern erhöht den Anteil, den Sie vom
+                      eigenen Strom nutzen — gerechnet wird deshalb mit {Math.round(r.pvQuote * 100)} % statt {Math.round(pvEigenverbrauch * 100)} %.
+                    </p>
+                  )}
+
                   <div className="rounded-2xl border border-line bg-canvas p-4">
                     <div className="flex flex-wrap items-center justify-between gap-x-6 gap-y-2 text-sm">
                       <span className="flex items-center gap-2 text-ink-soft"><Sun className="h-4 w-4 text-amber-500" /> Jahresertrag</span>
@@ -560,8 +704,10 @@ export default function Sparrechner({ kontakt }: { kontakt: Kontakt }) {
                   <button
                     key={s.key} type="button" onClick={() => { setServerKey(s.key); setInvestEigen(null); }}
                     aria-pressed={serverKey === s.key}
-                    className={`rounded-2xl border p-4 text-left transition-colors cursor-pointer ${
-                      serverKey === s.key ? "border-accent bg-accent-soft/45" : "border-line bg-canvas hover:border-line-strong"
+                    className={`rounded-2xl border p-4 text-left transition-all duration-300 active:scale-[0.98] cursor-pointer ${
+                      serverKey === s.key
+                        ? "border-accent bg-accent-soft/45 shadow-[0_0_0_3px_color-mix(in_oklab,var(--color-accent)_18%,transparent),0_10px_28px_-14px_color-mix(in_oklab,var(--color-accent)_65%,transparent)]"
+                        : "border-line bg-canvas hover:border-line-strong active:border-accent/60"
                     }`}
                   >
                     <span className="flex items-center gap-2">
@@ -629,7 +775,7 @@ export default function Sparrechner({ kontakt }: { kontakt: Kontakt }) {
               </summary>
               <div className="mt-5 space-y-3 text-sm leading-relaxed text-ink-soft">
                 <p><strong className="font-semibold text-ink">Stromverbrauch:</strong> Startwerte in Anlehnung an den „Stromspiegel für Deutschland", getrennt nach Wohnung/Haus, Personenzahl und elektrischer Warmwasserbereitung.</p>
-                <p><strong className="font-semibold text-ink">Wärme:</strong> Sie geben die Jahreskosten direkt ein — daraus ergibt sich mit dem Arbeitspreis die Energiemenge für die CO₂-Rechnung. Erdgas und Heizöl {eur2.format(HEIZARTEN.gas.preis!)}, Fernwärme {eur2.format(HEIZARTEN.fern.preis!)} je kWh; Wärmepumpe = Strompreis ÷ Jahresarbeitszahl {komma(JAZ)}.</p>
+                <p><strong className="font-semibold text-ink">Wärme:</strong> Sie geben die Jahreskosten direkt ein. Davon wird zuerst der <strong className="font-semibold text-ink">Grundpreis</strong> abgezogen (Erdgas rund {eur.format(HEIZARTEN.gas.grundpreis)}, Fernwärme rund {eur.format(HEIZARTEN.fern.grundpreis)} im Jahr) — die Zähler- und Bereitstellungsgebühr läuft unabhängig vom Verbrauch weiter, daran kann eine Steuerung nichts sparen. Nur der verbleibende Verbrauchsanteil wird gesenkt. Arbeitspreise: Erdgas und Heizöl {eur2.format(HEIZARTEN.gas.preis!)}, Fernwärme {eur2.format(HEIZARTEN.fern.preis!)} je kWh; Wärmepumpe = Strompreis ÷ Jahresarbeitszahl {komma(JAZ)}.</p>
                 <p><strong className="font-semibold text-ink">Einsparungen:</strong> Strom höchstens {Math.round(STROM_KAPPE * 100)} %, Wärme höchstens {Math.round(WAERME_KAPPE * 100)} % — ohne Geräte-, Kessel- oder Fenstertausch und am unteren Rand üblicher Herstellerangaben.</p>
                 <p><strong className="font-semibold text-ink">Balkonkraftwerk:</strong> Leistung × spezifischer Ertrag × Eigenverbrauchsquote × Strompreis. Nur der selbst verbrauchte Strom spart Geld; der Überschuss wird ohne Einspeisevertrag unvergütet abgegeben und daher mit 0 € angesetzt.</p>
                 <p><strong className="font-semibold text-ink">Server:</strong> Der Eigenverbrauch wird abgezogen — {r.serverWatt} W dauerhaft sind {nf.format(r.serverKwh)} kWh im Jahr.</p>
@@ -694,16 +840,33 @@ export default function Sparrechner({ kontakt }: { kontakt: Kontakt }) {
                   </div>
                 )}
 
-                {/* Verlauf */}
+                {/* Verlauf — führt mit der Ersparnis, nicht mit dem Minus. */}
                 <div className="mt-7 border-t border-white/10 pt-6">
                   <div className="flex items-baseline justify-between gap-3">
-                    <span className="flex items-center gap-2 text-sm text-white/60"><TrendingUp className="h-4 w-4" /> Kumulierte Bilanz</span>
-                    <span className={`font-display text-lg font-semibold tabular-nums ${r.bilanz10 >= 0 ? "text-emerald-300" : "text-white/70"}`}>
-                      {r.bilanz10 >= 0 ? "+" : ""}{eur.format(r.bilanz10)}
+                    <span className="flex items-center gap-2 text-sm text-white/60"><TrendingUp className="h-4 w-4" /> In 10 Jahren gespart</span>
+                    <span className="font-display text-lg font-semibold tabular-nums text-emerald-300">
+                      {eur.format(r.gespart10)}
                     </span>
                   </div>
-                  <p className="mt-1 text-xs text-white/45">nach 10 Jahren, inklusive {komma(preissteigerung * 100)} % Preissteigerung</p>
-                  <div className="mt-4"><PaybackChart kumuliert={r.kumuliert} /></div>
+                  <p className="mt-1 text-xs text-white/45">
+                    inklusive {komma(preissteigerung * 100)} % Energiepreissteigerung pro Jahr
+                  </p>
+                  <div className="mt-4">
+                    <ErsparnisChart kumuliertOhneInvest={r.kumuliertOhneInvest} invest={r.invest} />
+                  </div>
+                  {/* Die Investition bleibt sichtbar — nur nicht als Erstes. */}
+                  <dl className="mt-4 space-y-1.5 border-t border-white/10 pt-3 text-xs">
+                    <div className="flex justify-between gap-3">
+                      <dt className="text-white/50">Einmalige Investition</dt>
+                      <dd className="tabular-nums text-white/70">−{eur.format(r.invest)}</dd>
+                    </div>
+                    <div className="flex justify-between gap-3">
+                      <dt className="text-white/50">Bleibt nach 10 Jahren</dt>
+                      <dd className={`font-medium tabular-nums ${r.bilanz10 >= 0 ? "text-emerald-300" : "text-white/70"}`}>
+                        {r.bilanz10 >= 0 ? "+" : ""}{eur.format(r.bilanz10)}
+                      </dd>
+                    </div>
+                  </dl>
                 </div>
 
                 {/* CO₂ */}
@@ -886,14 +1049,11 @@ export default function Sparrechner({ kontakt }: { kontakt: Kontakt }) {
               <tbody>
                 <tr>
                   <td className="pt-1.5 text-[#4d453c]">Gesamtersparnis</td>
-                  {[1, 3, 5, 7, 10].map((j) => {
-                    const kum = r.kumuliert(j) + r.invest;
-                    return (
-                      <td key={j} className="pt-1.5 text-right tabular-nums font-semibold text-[#211c17]">
-                        {eur.format(kum)}
-                      </td>
-                    );
-                  })}
+                  {[1, 3, 5, 7, 10].map((j) => (
+                    <td key={j} className="pt-1.5 text-right tabular-nums font-semibold text-[#211c17]">
+                      {eur.format(r.kumuliertOhneInvest(j))}
+                    </td>
+                  ))}
                 </tr>
               </tbody>
             </table>

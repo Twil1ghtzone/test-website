@@ -43,13 +43,36 @@ export const JAZ = 3.5;
  * `preis: null` = wird aus dem Strompreis abgeleitet (Wärmepumpe).
  */
 export const HEIZARTEN = {
-  gas: { label: "Erdgas", preis: 0.11, co2: 0.201 },
-  oel: { label: "Heizöl", preis: 0.11, co2: 0.266 },
-  fern: { label: "Fernwärme", preis: 0.14, co2: 0.17 },
-  wp: { label: "Wärmepumpe", preis: null, co2: null },
+  gas: { label: "Erdgas", preis: 0.11, co2: 0.201, grundpreis: 180 },
+  oel: { label: "Heizöl", preis: 0.11, co2: 0.266, grundpreis: 0 },
+  fern: { label: "Fernwärme", preis: 0.14, co2: 0.17, grundpreis: 300 },
+  wp: { label: "Wärmepumpe", preis: null, co2: null, grundpreis: 0 },
 } as const;
 export type Heizart = keyof typeof HEIZARTEN;
 export const HEIZART_KEYS = Object.keys(HEIZARTEN) as Heizart[];
+
+/**
+ * Jährlicher GRUNDPREIS je Energieträger — der verbrauchsunabhängige Teil
+ * der Rechnung (Zähler, Netzentgelt, Bereitstellung).
+ *
+ * Warum das zählt: Der Nutzer trägt seine Jahreskosten VON DER ABRECHNUNG
+ * ein, und dort steckt der Grundpreis mit drin. Eine Heizungssteuerung
+ * senkt aber nur den VERBRAUCH — die Grundgebühr läuft unverändert weiter.
+ * Ohne diesen Abzug wurden die Einsparungen systematisch zu hoch gerechnet
+ * (bei Fernwärme mit 300 € Grundpreis um gut 15 %), und die daraus
+ * abgeleitete Energiemenge für die CO₂-Bilanz gleich mit.
+ *
+ * Heizöl kennt keinen Grundpreis (man kauft eine Menge), bei der Wärmepumpe
+ * steckt die Zählergebühr bereits im Stromvertrag.
+ */
+export function grundpreisFor(art: Heizart): number {
+  return HEIZARTEN[art].grundpreis;
+}
+
+/** Verbrauchsabhängiger Teil der Jahreskosten — nur darauf wirken Maßnahmen. */
+export function verbrauchsAnteil(art: Heizart, jahreskosten: number): number {
+  return Math.max(0, jahreskosten - grundpreisFor(art));
+}
 
 /** Eine Wärmequelle: Energieträger + was der Haushalt dafür im Jahr zahlt. */
 export interface Waermequelle {
@@ -79,13 +102,53 @@ export function kostenVorschlag(art: Heizart, wohnform: Wohnform, flaeche: numbe
 
 /* ─────────────────────────────── Maßnahmen ─────────────────────────────── */
 
-// Stromsparmaßnahmen — Anteil am HAUSHALTSSTROM. `invest` = Material + Einrichtung.
+/*
+ * Stromsparmaßnahmen — Anteil am HAUSHALTSSTROM. `invest` = Material + Einrichtung.
+ *
+ * Die Werte waren vorher pauschal 2–3 % und damit unter dem, was sich seriös
+ * belegen lässt. Grundlage der jetzigen Zahlen:
+ *
+ * - Leerlauf/Stand-by: Das Umweltbundesamt beziffert Leerlaufverluste auf
+ *   rund 10 % des Haushaltsstroms. Mit schaltbaren Leisten und Zeitsteuerung
+ *   lässt sich der Anteil auf wenige Prozent drücken — 6 % Ersparnis ist der
+ *   untere Rand dessen, was dabei herauskommt.
+ * - Beleuchtung: macht typisch rund 10 % des Verbrauchs aus. Präsenz- und
+ *   Tageslichtsteuerung spart davon 30–45 % → 4 %.
+ * - Verbrauch sichtbar machen: Der Rückmeldeeffekt ist gut untersucht und
+ *   liegt bei 5–10 %. Angesetzt sind 5 %.
+ * - Zirkulationspumpe: läuft ohne Steuerung 24/7. Eine ältere Pumpe mit 25 W
+ *   zieht rund 219 kWh im Jahr; mit Zeit-/Bedarfssteuerung bleibt etwa ein
+ *   Viertel übrig. Das sind ~165 kWh — bei 3.500 kWh Haushaltsstrom knapp 5 %.
+ *   (Die zusätzlich vermiedenen Wärmeverluste sind hier NICHT eingerechnet,
+ *   die gehören zur Wärme und würden sonst doppelt zählen.)
+ */
 export const STROM_MASSNAHMEN = [
-  { key: "standby", label: "Stand-by abschalten", hint: "Steckdosen trennen, wenn niemand da ist", pct: 0.03, invest: 220 },
-  { key: "licht", label: "Licht nach Präsenz", hint: "Leuchten laufen nur, wo jemand ist", pct: 0.02, invest: 400 },
-  { key: "messung", label: "Verbrauch sichtbar machen", hint: "Wer sieht, was zieht, verbraucht weniger", pct: 0.03, invest: 180 },
+  { key: "standby", label: "Stand-by abschalten", hint: "Leerlauf ist rund 10 % des Verbrauchs", pct: 0.06, invest: 220 },
+  { key: "messung", label: "Verbrauch sichtbar machen", hint: "Wer sieht, was zieht, verbraucht weniger", pct: 0.05, invest: 180 },
+  { key: "zirkulation", label: "Zirkulationspumpe steuern", hint: "Läuft sonst rund um die Uhr — falls vorhanden", pct: 0.05, invest: 260 },
+  { key: "licht", label: "Licht nach Präsenz & Tageslicht", hint: "Leuchten laufen nur, wo und solange nötig", pct: 0.04, invest: 400 },
 ];
-export const STROM_KAPPE = 0.08; // realistische Obergrenze ohne Geräteaustausch
+
+/**
+ * Obergrenze für alle Stromsparmaßnahmen zusammen.
+ *
+ * Die Einzelwerte addieren sich auf 20 %, überschneiden sich aber teilweise
+ * (wer den Verbrauch sichtbar macht, findet u. a. genau die Leerlaufverluste).
+ * Deshalb wird bei 18 % gekappt — ohne Geräteaustausch ist mehr unseriös.
+ */
+export const STROM_KAPPE = 0.18;
+
+/**
+ * Zusatz auf die PV-Eigenverbrauchsquote, wenn große Verbraucher automatisch
+ * in die Sonnenstunden gelegt werden (Spülmaschine, Waschmaschine, Warmwasser).
+ *
+ * Bewusst NICHT als Stromsparmaßnahme modelliert: Der Verbrauch sinkt dadurch
+ * nicht, er verschiebt sich nur — gespart wird, weil mehr vom eigenen Strom
+ * genutzt statt zugekauft wird. Als Prozentpunkte auf die Quote ist das
+ * physikalisch korrekt und vermeidet doppelte Anrechnung.
+ */
+export const PV_LASTVERSCHIEBUNG_BONUS = 0.12;
+export const PV_EIGENVERBRAUCH_MAX = 0.95;
 
 // Wärmemaßnahmen — Anteil am HEIZENERGIEBEDARF (und damit an den Wärmekosten).
 export const WAERME_MASSNAHMEN = [
@@ -194,6 +257,8 @@ export interface Eingaben {
   pvWp: number;
   pvSpezErtrag: number;           // kWh je kWp und Jahr
   pvEigenverbrauch: number;       // 0…1
+  /** Große Verbraucher automatisch in die Sonnenstunden legen (hebt die Quote). */
+  pvLastverschiebung?: boolean;
   preissteigerung: number;        // 0…0,1
   investEigen: number | null;     // null = Vorschlag verwenden
 }
@@ -212,18 +277,26 @@ export function berechne(e: Eingaben) {
   /* ── Wärme: Summe über alle Quellen (Hybrid) ── */
   const waermePct = Math.min(WAERME_KAPPE, WAERME_MASSNAHMEN.filter((m) => e.waermeMass.has(m.key)).reduce((s, m) => s + m.pct, 0));
   const waermeKosten = e.waermequellen.reduce((s, q) => s + Math.max(0, q.jahreskosten), 0);
-  const waermeEuro = waermeKosten * waermePct;
   // kWh und CO₂ je Quelle, weil jeder Energieträger anders viel Kohlendioxid trägt.
+  //
+  // WICHTIG: Gerechnet wird auf dem VERBRAUCHSANTEIL, nicht auf der ganzen
+  // Rechnung. Der Grundpreis (Zähler, Bereitstellung) läuft weiter, egal wie
+  // sparsam geheizt wird — ihn mitzurechnen hätte die Ersparnis und die
+  // daraus abgeleitete Energiemenge systematisch zu hoch ausgewiesen.
   const waermeDetail = e.waermequellen.map((q) => {
     const preis = waermePreisFor(q.art, e.strompreis);
-    const kwh = preis > 0 ? Math.max(0, q.jahreskosten) / preis : 0;
+    const kosten = Math.max(0, q.jahreskosten);
+    const verbrauchsteil = verbrauchsAnteil(q.art, kosten);
+    const kwh = preis > 0 ? verbrauchsteil / preis : 0;
     return {
-      id: q.id, art: q.art, jahreskosten: Math.max(0, q.jahreskosten), preis, kwh,
+      id: q.id, art: q.art, jahreskosten: kosten, grundpreis: grundpreisFor(q.art),
+      verbrauchsteil, preis, kwh,
       sparKwh: kwh * waermePct,
-      sparEuro: Math.max(0, q.jahreskosten) * waermePct,
+      sparEuro: verbrauchsteil * waermePct,
       sparCo2: kwh * waermePct * waermeCo2For(q.art),
     };
   });
+  const waermeEuro = waermeDetail.reduce((s, d) => s + d.sparEuro, 0);
   const waermeKwh = waermeDetail.reduce((s, d) => s + d.sparKwh, 0);
   const waermeCo2 = waermeDetail.reduce((s, d) => s + d.sparCo2, 0);
 
@@ -233,7 +306,13 @@ export function berechne(e: Eingaben) {
 
   /* ── Balkonkraftwerk ── */
   const pvKwhBrutto = e.pvAktiv ? (e.pvWp / 1000) * e.pvSpezErtrag : 0;
-  const pvKwhEigen = pvKwhBrutto * e.pvEigenverbrauch;
+  // Lastverschiebung hebt die Eigenverbrauchsquote, erzeugt aber keinen Strom —
+  // deshalb wirkt sie hier und nicht als eigene Stromsparmaßnahme.
+  const pvQuote = Math.min(
+    PV_EIGENVERBRAUCH_MAX,
+    e.pvEigenverbrauch + (e.pvAktiv && e.pvLastverschiebung ? PV_LASTVERSCHIEBUNG_BONUS : 0)
+  );
+  const pvKwhEigen = pvKwhBrutto * pvQuote;
   const pvKwhUeberschuss = pvKwhBrutto - pvKwhEigen;
   // Nur der selbst verbrauchte Strom spart Geld. Der Überschuss wird ohne
   // Einspeisevertrag vergütungsfrei abgegeben — deshalb hier bewusst 0 €.
@@ -283,21 +362,27 @@ export function berechne(e: Eingaben) {
 
   /* ── Amortisation mit Preissteigerung ── */
   const p = Math.max(0, e.preissteigerung);
-  const kumuliert = (jahre: number) => kumulierteBilanz(energieAnteil, aboEuro, p, jahre) - invest;
+  /** Reine Ersparnis nach n Jahren, OHNE Abzug der Investition — immer ≥ 0. */
+  const kumuliertOhneInvest = (jahre: number) => kumulierteBilanz(energieAnteil, aboEuro, p, jahre);
+  /** Bilanz nach n Jahren: Ersparnis minus einmalige Investition. */
+  const kumuliert = (jahre: number) => kumuliertOhneInvest(jahre) - invest;
   const amortisation = amortisationsdauer(energieAnteil, aboEuro, p, invest);
 
   return {
     stromPct, stromKwh, stromEuro,
     waermePct, waermeKosten, waermeKwh, waermeEuro, waermeCo2, waermeDetail,
     aboMonat, aboEuro,
-    pvKwhBrutto, pvKwhEigen, pvKwhUeberschuss, pvEuro, pvCo2,
+    pvKwhBrutto, pvKwhEigen, pvKwhUeberschuss, pvEuro, pvCo2, pvQuote,
     serverKwh, serverEuro, serverWatt: srv.watt,
     brutto, netto, energieAnteil,
     posten, material, montage, invest, investVorschlag,
     co2, co2Vergleich: co2Vergleiche(Math.max(0, co2)),
     amortisation,
     kumuliert,
+    kumuliertOhneInvest,
     bilanz10: kumuliert(10),
+    /** Was bis Jahr 10 insgesamt gespart wurde (ohne Investitionsabzug). */
+    gespart10: kumuliertOhneInvest(10),
     /** Ersparnis im Jahr n unter Berücksichtigung der Preissteigerung. */
     nettoImJahr: (n: number) => energieAnteil * Math.pow(1 + p, n - 1) + aboEuro,
   };

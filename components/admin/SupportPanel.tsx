@@ -60,7 +60,22 @@ export default function SupportPanel() {
     const iv = setInterval(load, 5000);
     return () => clearInterval(iv);
   }, [load]);
-  useEffect(() => { scrollRef.current?.scrollTo({ top: 9e9 }); }, [openId, tickets]);
+  /*
+   * Automatisch nach unten scrollen — aber nur, wenn es gerade passt.
+   *
+   * Beim Polling alle 5 s ändert sich `tickets` jedes Mal. Ohne die
+   * Abfrage unten riss es einen alle fünf Sekunden ans Ende zurück,
+   * sobald man im Verlauf nach oben gescrollt hatte, um etwas
+   * nachzulesen. Deshalb: Beim Ticketwechsel immer ans Ende, danach
+   * nur noch, wenn man ohnehin schon (fast) unten steht.
+   */
+  useEffect(() => {
+    const el = scrollRef.current;
+    if (!el) return;
+    const nahAmEnde = el.scrollHeight - el.scrollTop - el.clientHeight < 120;
+    if (nahAmEnde) el.scrollTo({ top: 9e9 });
+  }, [tickets]);
+  useEffect(() => { scrollRef.current?.scrollTo({ top: 9e9 }); }, [openId]);
 
   // Beim Wechsel des Tickets angefangene Eingaben verwerfen — sonst landete
   // eine halb getippte Antwort versehentlich beim nächsten Kunden.

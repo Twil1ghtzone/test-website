@@ -25,12 +25,10 @@ import SupportPanel from "@/components/admin/SupportPanel";
 import LegalPanel from "@/components/admin/LegalPanel";
 import ChatKeysPanel from "@/components/admin/ChatKeysPanel";
 
-type Role = "admin" | "editor";
-type Permission =
-  | "inquiries" | "users" | "settings" | "blog" | "backup" | "cookies"
-  | "reviews" | "tickets" | "chat" | "orders" | "finance" | "activity" | "database" | "invoices"
-  | "support" | "legal";
-type Permissions = Record<Permission, boolean>;
+import {
+  ALL_PERMISSIONS, PERMISSION_LABELS, hatBerechtigung,
+  type Role, type Permission, type Permissions,
+} from "@/lib/permissions";
 type User = { id: string; username: string; name: string; email: string; role: Role; permissions: Permissions; active: boolean; createdAt: string };
 type Inquiry = { id: string; name: string; email: string; phone?: string; topic?: string; building?: string; message: string; packages?: string[]; status: "neu" | "gelesen" | "erledigt"; createdAt: string };
 type Tab =
@@ -38,25 +36,9 @@ type Tab =
   | "reviews" | "tickets" | "chat" | "orders" | "finance" | "activity" | "database" | "account"
   | "invoices" | "assistant" | "support" | "legal" | "chatkeys";
 
-const PERMISSION_LABELS: Record<Permission, string> = {
-  inquiries: "Anfragen", users: "Benutzer", settings: "KI & Einstellungen",
-  blog: "Blog", backup: "Backup", cookies: "Cookies",
-  reviews: "Bewertungen", tickets: "Tickets", chat: "Team-Chat",
-  orders: "Aufträge", finance: "Finanzen", activity: "Aktivität", database: "Datenbank",
-  invoices: "Rechnungen",
-  support: "Support-Tickets",
-  legal: "Rechtstexte & Kontakt",
-};
-const ALL_PERMISSIONS: Permission[] = [
-  "inquiries", "users", "blog", "reviews", "invoices", "tickets", "chat",
-  "orders", "finance", "activity", "settings", "backup", "cookies", "database",
-  "support", "legal",
-];
-
-// Admin hat immer alle Rechte.
-function can(u: User, p: Permission): boolean {
-  return u.role === "admin" || !!u.permissions?.[p];
-}
+// Liste, Beschriftungen und die "Admin darf alles"-Regel kommen aus
+// lib/permissions.ts — dieselbe Quelle, die auch der Server nutzt.
+const can = hatBerechtigung;
 
 export default function AdminPage() {
   const [loading, setLoading] = useState(true);

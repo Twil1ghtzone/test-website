@@ -1,6 +1,10 @@
 import fs from "fs";
 import path from "path";
 import {
+  ALL_PERMISSIONS, emptyPermissions, fullPermissions,
+  type Role, type Permission, type Permissions,
+} from "../permissions.ts";
+import {
   IMPRESSUM_VORLAGE, DATENSCHUTZ_VORLAGE, AGB_VORLAGE,
   ALT_IMPRESSUM, ALT_DATENSCHUTZ,
 } from "./legalTexts.ts";
@@ -85,40 +89,17 @@ export function resetCollection(file: CollectionFile): void {
   cache.delete(file);
 }
 
-export type Role = "admin" | "editor";
-
-export type Permission =
-  | "inquiries" | "users" | "settings" | "blog" | "backup" | "cookies"
-  | "reviews" | "tickets" | "chat" | "orders" | "finance" | "activity" | "database" | "invoices"
-  | "support" | "legal";
-export const ALL_PERMISSIONS: Permission[] = [
-  "inquiries", "users", "settings", "blog", "backup", "cookies",
-  "reviews", "tickets", "chat", "orders", "finance", "activity", "database", "invoices",
-  "support", "legal",
-];
-export const PERMISSION_LABELS: Record<Permission, string> = {
-  inquiries: "Anfragen",
-  users: "Benutzer",
-  settings: "KI & Einstellungen",
-  blog: "Blog",
-  backup: "Backup",
-  cookies: "Cookies",
-  reviews: "Bewertungen",
-  tickets: "Tickets",
-  chat: "Team-Chat",
-  orders: "Aufträge",
-  finance: "Finanzen",
-  activity: "Aktivität",
-  database: "Datenbank",
-  invoices: "Rechnungen",
-  support: "Support-Tickets",
-  legal: "Rechtstexte & Kontakt",
-};
-export type Permissions = Record<Permission, boolean>;
-export const emptyPermissions = (): Permissions =>
-  ALL_PERMISSIONS.reduce((a, p) => ({ ...a, [p]: false }), {} as Permissions);
-export const fullPermissions = (): Permissions =>
-  ALL_PERMISSIONS.reduce((a, p) => ({ ...a, [p]: true }), {} as Permissions);
+/*
+ * Rollen und Berechtigungen liegen in lib/permissions.ts — serverfrei, damit
+ * das Admin-Panel (Client) dieselbe Liste nutzt statt einer zweiten Kopie.
+ * Hier nur weitergereicht, damit bestehende Importe aus dem Store
+ * unverändert weiterlaufen.
+ */
+// Achtung beim Anfassen: Ohne den lokalen `import` unten löst TypeScript
+// `Permissions` gegen den gleichnamigen DOM-Typ auf (die Browser-Permissions-
+// API mit `query()`) — der Code kompiliert dann mit einem völlig fremden Typ.
+export type { Role, Permission, Permissions } from "../permissions.ts";
+export { ALL_PERMISSIONS, PERMISSION_LABELS, emptyPermissions, fullPermissions } from "../permissions.ts";
 
 export interface User {
   id: string;

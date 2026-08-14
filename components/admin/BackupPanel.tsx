@@ -1,15 +1,17 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
-import { Database, Download, Upload, Loader2, Check, AlertTriangle, ShieldAlert, FileArchive, Image as ImageIcon, ShieldCheck, HardDrive, Copy } from "lucide-react";
+import { Database, Download, Upload, Loader2, Check, AlertTriangle, ShieldAlert, FileArchive, Image as ImageIcon, ShieldCheck, HardDrive, Copy, Trash2, Archive } from "lucide-react";
 
 type Col = { file: string; label: string; count: number; bytes: number };
 type Inspect = {
   version: number; exportedAt: string | null; collections: string[];
   counts: Record<string, number>; uploads: number; labels: Record<string, string>;
+  /** Sammlungen, die dieser Benutzer nicht einspielen darf (nur Admins). */
+  gesperrt?: string[];
 };
-type Snapshot = { name: string; bytes: number; createdAt: string };
-type Raid = { mirrorConfigured: boolean; mirrorReachable: boolean; snapshots: Snapshot[]; mirrorSnapshots: Snapshot[] };
+type Snapshot = { name: string; bytes: number; createdAt: string; gespiegelt: boolean };
+type Raid = { mirrorConfigured: boolean; mirrorReachable: boolean; snapshots: Snapshot[]; behalten: number };
 
 function fmtBytes(b: number) {
   if (b < 1024) return `${b} B`;
@@ -65,10 +67,40 @@ export default function BackupPanel() {
     if (!r.ok) { setMsg({ ok: false, text: d.error || "Gespiegelte Sicherung fehlgeschlagen." }); return; }
     setMsg({
       ok: true,
-      text: `Gespiegelte Sicherung erstellt ✓ — primär ${d.primaryOk ? "gesichert" : "fehlgeschlagen"}${
+      text: `Gespiegelte Sicherung erstellt ✓ — primär gesichert${
         d.mirrorConfigured ? `, Spiegel ${d.mirrorOk ? "gesichert" : `fehlgeschlagen (${d.mirrorError || "unbekannt"})`}` : " (kein zweiter Speicherort eingerichtet)"
-      }.`,
+      }${d.aufgeraeumt ? ` · ${d.aufgeraeumt} alte Sicherung${d.aufgeraeumt === 1 ? "" : "en"} entfernt` : ""}.`,
     });
+    load();
+  }
+
+  /*
+   * Serverseitige Sicherung herunterladen.
+   *
+   * Bewusst über einen normalen Link-Klick statt fetch+Blob: Die Datei kann
+   * hunderte MB groß sein (alle Uploads stecken base64-kodiert darin) — sie
+   * erst komplett in den Browserspeicher zu laden, wäre unnötig und würde
+   * auf schwächeren Geräten scheitern.
+   */
+  function downloadSnapshot(name: string) {
+    const a = document.createElement("a");
+    a.href = `/api/admin/backup?download=${encodeURIComponent(name)}`;
+    a.download = name;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+  }
+
+  async function deleteSnapshot(name: string) {
+    if (!confirm(`Sicherung „${name}" endgültig löschen?`)) return;
+    setMsg(null);
+    const r = await fetch("/api/admin/backup", {
+      method: "POST", headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ action: "delete", name }),
+    });
+    const d = await r.json().catch(() => ({}));
+    if (!r.ok) { setMsg({ ok: false, text: d.error || "Löschen fehlgeschlagen." }); return; }
+    setMsg({ ok: true, text: "Sicherung gelöscht ✓" });
     load();
   }
 
@@ -115,7 +147,9 @@ export default function BackupPanel() {
       if (!r.ok) { setMsg({ ok: false, text: d.error || "Konnte nicht gelesen werden." }); return; }
       setBlob(parsed);
       setInspect(d);
-      setImportOnly(d.collections);
+      // Gesperrte Sammlungen nicht vorauswählen — sonst schlägt der Import
+      // fehl, obwohl der Nutzer nichts davon angehakt zu haben glaubt.
+      setImportOnly((d.collections as string[]).filter((f) => !(d.gesperrt as string[] | undefined)?.includes(f)));
     } catch {
       setBusy(false);
       setMsg({ ok: false, text: "Datei ist keine gültige Backup-Datei." });
@@ -212,11 +246,19 @@ export default function BackupPanel() {
             <span className="min-w-0 flex-1 font-medium text-ink">Primärer Speicherort</span>
             <span className="shrink-0 text-xs text-muted">{raid?.snapshots.length ?? 0} Sicherung{raid?.snapshots.length === 1 ? "" : "en"}</span>
           </div>
-          <div className={`flex items-center gap-3 rounded-xl border px-3.5 py-2.5 text-sm ${raid?.mirrorConfigured ? "border-emerald-300 bg-emerald-50" : "border-amber-300 bg-amber-50"}`}>
-            <Copy className={`h-4 w-4 shrink-0 ${raid?.mirrorConfigured ? "text-emerald-600" : "text-amber-600"}`} />
+          <div className={`flex items-center gap-3 rounded-xl border px-3.5 py-2.5 text-sm ${
+            !raid?.mirrorConfigured ? "border-amber-300 bg-amber-50"
+            : raid.mirrorReachable ? "border-emerald-300 bg-emerald-50"
+            : "border-red-300 bg-red-50"
+          }`}>
+            <Copy className={`h-4 w-4 shrink-0 ${
+              !raid?.mirrorConfigured ? "text-amber-600" : raid.mirrorReachable ? "text-emerald-600" : "text-red-600"
+            }`} />
             <span className="min-w-0 flex-1 font-medium text-ink">Gespiegelter Speicherort</span>
             <span className="shrink-0 text-xs text-muted">
-              {raid?.mirrorConfigured ? `${raid.mirrorSnapshots.length} Sicherung${raid.mirrorSnapshots.length === 1 ? "" : "en"}` : "nicht eingerichtet"}
+              {!raid?.mirrorConfigured ? "nicht eingerichtet"
+                : raid.mirrorReachable ? `${raid.snapshots.filter((s) => s.gespiegelt).length} gespiegelt`
+                : "nicht erreichbar"}
             </span>
           </div>
         </div>
@@ -232,16 +274,77 @@ export default function BackupPanel() {
           {snapBusy ? <Loader2 className="h-5 w-5 animate-spin" /> : <ShieldCheck className="h-5 w-5" />} Jetzt gespiegelt sichern
         </button>
 
-        {raid && raid.snapshots.length > 0 && (
-          <div className="mt-4 max-h-40 space-y-1 overflow-y-auto rounded-xl border border-line bg-canvas p-3 text-xs">
-            {raid.snapshots.slice(0, 8).map((s) => (
-              <div key={s.name} className="flex items-center justify-between gap-3 text-ink-soft">
-                <span className="truncate">{new Date(s.createdAt).toLocaleString("de-DE")}</span>
-                <span className="shrink-0 tabular-nums text-muted">{fmtBytes(s.bytes)}</span>
-              </div>
-            ))}
+        {/* ── Vorhandene Sicherungen: ansehen, herunterladen, löschen ── */}
+        <div className="mt-6 border-t border-line pt-5">
+          <div className="flex flex-wrap items-baseline justify-between gap-2">
+            <h4 className="flex items-center gap-2 font-medium text-ink">
+              <Archive className="h-4 w-4 text-accent" /> Vorhandene Sicherungen
+            </h4>
+            <span className="text-xs text-muted">
+              {raid?.snapshots.length ?? 0} gespeichert
+              {raid?.behalten ? ` · älteste werden ab ${raid.behalten} automatisch entfernt` : ""}
+            </span>
           </div>
-        )}
+
+          {!raid || raid.snapshots.length === 0 ? (
+            <p className="mt-3 rounded-xl border border-dashed border-line-strong bg-canvas px-4 py-6 text-center text-sm text-muted">
+              Noch keine serverseitige Sicherung vorhanden. Passphrase oben eintragen und
+              „Jetzt gespiegelt sichern" wählen.
+            </p>
+          ) : (
+            <ul className="mt-3 space-y-1.5">
+              {raid.snapshots.map((s) => (
+                <li
+                  key={s.name}
+                  className="flex flex-wrap items-center gap-x-3 gap-y-2 rounded-xl border border-line bg-canvas px-3.5 py-2.5"
+                >
+                  <span className="min-w-0 flex-1">
+                    <span className="block truncate text-sm font-medium text-ink">
+                      {new Date(s.createdAt).toLocaleString("de-DE", {
+                        day: "2-digit", month: "2-digit", year: "numeric",
+                        hour: "2-digit", minute: "2-digit",
+                      })}
+                    </span>
+                    <span className="mt-0.5 flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-muted">
+                      <span className="tabular-nums">{fmtBytes(s.bytes)}</span>
+                      {s.gespiegelt ? (
+                        <span className="inline-flex items-center gap-1 rounded-full bg-emerald-50 px-2 py-0.5 font-medium text-emerald-700">
+                          <Copy className="h-3 w-3" /> gespiegelt
+                        </span>
+                      ) : raid.mirrorConfigured ? (
+                        <span className="inline-flex items-center gap-1 rounded-full bg-amber-50 px-2 py-0.5 font-medium text-amber-700">
+                          <AlertTriangle className="h-3 w-3" /> nur eine Kopie
+                        </span>
+                      ) : null}
+                    </span>
+                  </span>
+                  <span className="flex shrink-0 items-center gap-1.5">
+                    <button
+                      onClick={() => downloadSnapshot(s.name)}
+                      title="Herunterladen"
+                      aria-label={`Sicherung vom ${new Date(s.createdAt).toLocaleString("de-DE")} herunterladen`}
+                      className="inline-flex items-center gap-1.5 rounded-full border border-line-strong px-3 py-1.5 text-xs font-medium text-ink transition-colors hover:border-accent hover:text-accent-ink cursor-pointer"
+                    >
+                      <Download className="h-3.5 w-3.5" /> Laden
+                    </button>
+                    <button
+                      onClick={() => deleteSnapshot(s.name)}
+                      title="Löschen"
+                      aria-label={`Sicherung vom ${new Date(s.createdAt).toLocaleString("de-DE")} löschen`}
+                      className="grid h-8 w-8 place-items-center rounded-full text-muted transition-colors hover:bg-red-50 hover:text-red-600 cursor-pointer"
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </button>
+                  </span>
+                </li>
+              ))}
+            </ul>
+          )}
+          <p className="mt-2 text-xs leading-relaxed text-muted">
+            Zum Wiederherstellen die Datei herunterladen und unten unter „Backup laden" mit
+            derselben Passphrase einspielen.
+          </p>
+        </div>
       </div>
 
       {/* ── IMPORT mit Prüfung, Auswahl und Modus ── */}
@@ -260,14 +363,43 @@ export default function BackupPanel() {
               {inspect.exportedAt && <> · erstellt am {new Date(inspect.exportedAt).toLocaleString("de-DE")}</>}
               {inspect.uploads > 0 && <> · {inspect.uploads} Dateien</>}
             </p>
+            {/* Gesperrte Sammlungen gleich hier melden, statt den Import
+                erst beim Absenden scheitern zu lassen. */}
+            {inspect.gesperrt && inspect.gesperrt.length > 0 && (
+              <p className="mt-3 flex items-start gap-2 rounded-xl border border-amber-300 bg-amber-50 px-3.5 py-2.5 text-xs leading-relaxed text-amber-800">
+                <ShieldAlert className="mt-0.5 h-4 w-4 shrink-0" />
+                <span>
+                  Diese Sammlungen kann nur ein Administrator einspielen:{" "}
+                  <b>{inspect.gesperrt.map((f) => inspect.labels[f] || f).join(", ")}</b>. Sie enthalten
+                  Konten, Zugangsdaten oder rechtlich bindende Texte — der Rest lässt sich normal laden.
+                </span>
+              </p>
+            )}
             <div className="mt-3 grid gap-2 sm:grid-cols-2">
-              {inspect.collections.map((f) => (
-                <label key={f} className={`flex cursor-pointer items-center gap-3 rounded-xl border px-3.5 py-2 text-sm transition-colors ${importOnly.includes(f) ? "border-accent bg-accent-soft/40" : "border-line bg-surface hover:border-line-strong"}`}>
-                  <input type="checkbox" checked={importOnly.includes(f)} onChange={() => toggle(importOnly, setImportOnly, f)} className="h-4 w-4 accent-[var(--color-accent)]" />
-                  <span className="min-w-0 flex-1 truncate text-ink">{inspect.labels[f] || f}</span>
-                  <span className="shrink-0 text-xs text-muted">{inspect.counts?.[f] ?? "?"}</span>
-                </label>
-              ))}
+              {inspect.collections.map((f) => {
+                const gesperrt = inspect.gesperrt?.includes(f);
+                return (
+                  <label
+                    key={f}
+                    title={gesperrt ? "Nur Administratoren dürfen diese Sammlung einspielen." : undefined}
+                    className={`flex items-center gap-3 rounded-xl border px-3.5 py-2 text-sm transition-colors ${
+                      gesperrt ? "cursor-not-allowed border-line bg-surface-2/60 opacity-60"
+                      : importOnly.includes(f) ? "cursor-pointer border-accent bg-accent-soft/40"
+                      : "cursor-pointer border-line bg-surface hover:border-line-strong"
+                    }`}
+                  >
+                    <input
+                      type="checkbox"
+                      disabled={gesperrt}
+                      checked={!gesperrt && importOnly.includes(f)}
+                      onChange={() => toggle(importOnly, setImportOnly, f)}
+                      className="h-4 w-4 accent-[var(--color-accent)]"
+                    />
+                    <span className="min-w-0 flex-1 truncate text-ink">{inspect.labels[f] || f}</span>
+                    <span className="shrink-0 text-xs text-muted">{inspect.counts?.[f] ?? "?"}</span>
+                  </label>
+                );
+              })}
             </div>
 
             {/* Modus-Wahl */}

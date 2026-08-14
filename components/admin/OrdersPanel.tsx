@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { Plus, Trash2, Pencil, Loader2, Check, X } from "lucide-react";
 
+import ZahlFeld from "@/components/admin/ZahlFeld";
 type Order = { id: string; customer: string; title: string; status: "angefragt" | "geplant" | "in_arbeit" | "abgeschlossen"; value: number; notes: string; createdAt: string; updatedAt: string };
 
 const STATUSES: Order["status"][] = ["angefragt", "geplant", "in_arbeit", "abgeschlossen"];
@@ -109,7 +110,7 @@ function OrderModal({ order, onClose, onSaved }: { order: Order | null; onClose:
         <form onSubmit={save} className="mt-5 space-y-4">
           <div><label className={lbl}>Kunde</label><input value={customer} onChange={(e) => setCustomer(e.target.value)} className={field} required /></div>
           <div><label className={lbl}>Titel / Leistung</label><input value={title} onChange={(e) => setTitle(e.target.value)} className={field} required /></div>
-          <div><label className={lbl}>Auftragswert (€)</label><input type="number" min={0} step={0.01} value={value} onChange={(e) => setValue(+e.target.value)} className={field} /></div>
+          <div><label className={lbl}>Auftragswert (€)</label><ZahlFeld min={0} step={0.01} value={value} onChange={setValue} className={field} /></div>
           <div><label className={lbl}>Notizen</label><textarea rows={3} value={notes} onChange={(e) => setNotes(e.target.value)} className={`${field} resize-none`} /></div>
           {err && <p className="rounded-lg border border-red-300 bg-red-50 px-3 py-2 text-sm text-red-700">{err}</p>}
           <button type="submit" disabled={busy} className="flex w-full items-center justify-center gap-2 rounded-xl bg-accent px-6 py-3.5 font-medium text-white hover:bg-accent-ink disabled:opacity-60 cursor-pointer">

@@ -4,6 +4,7 @@ import { useCallback, useEffect, useState } from "react";
 import { Plus, Trash2, Pencil, Loader2, Check, X, Receipt, Star, Copy, Printer, Package, ChevronDown } from "lucide-react";
 import { services } from "@/lib/services";
 
+import ZahlFeld from "@/components/admin/ZahlFeld";
 type InvoiceStatus = "geplant" | "in_arbeit" | "abgeschlossen";
 type Item = { id: string; name: string; price: number; sqm: number; custom: boolean };
 type Invoice = { id: string; number: string; customer: string; title: string; amount: number; items: Item[]; status: InvoiceStatus; statusLabel: string; reviewCount: number; createdAt: string; updatedAt: string };
@@ -304,7 +305,7 @@ function InvoiceModal({ invoice, onClose, onSaved }: { invoice: Invoice | null; 
           </div>
 
           {items.length === 0 && (
-            <div><label className={lbl}>Betrag (€) — ohne Positionen</label><input type="number" min={0} step={0.01} value={amount} onChange={(e) => setAmount(+e.target.value)} className={field} /></div>
+            <div><label className={lbl}>Betrag (€) — ohne Positionen</label><ZahlFeld min={0} step={0.01} value={amount} onChange={setAmount} className={field} /></div>
           )}
 
           {err && <p className="rounded-lg border border-red-300 bg-red-50 px-3 py-2 text-sm text-red-700">{err}</p>}

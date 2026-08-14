@@ -121,3 +121,42 @@ export const faqGruppen: FaqGruppe[] = [
 
 /** Alle Fragen flach — für die strukturierten Daten (FAQPage-Schema). */
 export const alleFragen = faqGruppen.flatMap((g) => g.fragen);
+
+/* ─────────────────────────── Suche ─────────────────────────── */
+
+/**
+ * Kleinschreibung + Umlaute/Akzente entfernen — für tolerantes Suchen.
+ *
+ * `NFD` zerlegt "ä" in "a" + Kombinations-Trema; `\p{Diacritic}` entfernt
+ * anschließend die Trema-Zeichen. Damit findet "warmepumpe" auch
+ * "Wärmepumpe", ohne dass jemand Umlaute tippen muss.
+ *
+ * Wichtig: Jede Ersetzung ist 1:1 in der Zeichenzahl (oder verkürzt nur
+ * kombinierende Zeichen, die es im Original nicht gab) — außer "ß"→"ss".
+ * Deshalb darf die Trefferhervorhebung NICHT über Indizes der normalisierten
+ * Fassung auf den Originaltext zugreifen, sobald ein "ß" im Spiel ist.
+ */
+const DIAKRITIKA = /\p{Diacritic}/gu;
+
+export function normalisieren(s: string): string {
+  return s.toLowerCase().normalize("NFD").replace(DIAKRITIKA, "").replace(/ß/g, "ss");
+}
+
+/**
+ * Filtert die Gruppen auf Fragen, die zum Suchbegriff passen.
+ * Durchsucht Frage UND Antwort — nach Begriffen aus dem Fließtext
+ * ("Miete", "Förderung") sucht man genauso wie nach Überschriften.
+ * Leere Gruppen fallen weg. Ohne Suchbegriff kommt alles zurück.
+ */
+export function filterFaq(gruppen: FaqGruppe[], suche: string): FaqGruppe[] {
+  const q = normalisieren(suche.trim());
+  if (!q) return gruppen;
+  return gruppen
+    .map((g) => ({
+      ...g,
+      fragen: g.fragen.filter(
+        (f) => normalisieren(f.frage).includes(q) || normalisieren(f.antwort).includes(q)
+      ),
+    }))
+    .filter((g) => g.fragen.length > 0);
+}
