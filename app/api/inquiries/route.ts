@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { readInquiries, writeInquiries, type Inquiry } from "@/lib/server/store";
 import { requirePermission } from "@/lib/server/auth";
 import { rateLimit } from "@/lib/server/ratelimit";
+import { inquirySchema } from "@/lib/server/validation";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -10,28 +11,28 @@ export const dynamic = "force-dynamic";
 export async function POST(req: NextRequest) {
   // Spam-Bremse: max. 10 Anfragen pro IP je Stunde.
   const ip = (req.headers.get("x-forwarded-for") || "local").split(",")[0].trim();
-  if (!rateLimit(`inquiry:${ip}`, 10, 60 * 60 * 1000).ok) {
+  if (!(await rateLimit(`inquiry:${ip}`, 10, 60 * 60 * 1000)).ok) {
     return NextResponse.json({ error: "Zu viele Anfragen — bitte später erneut versuchen." }, { status: 429 });
   }
 
-  const body = await req.json().catch(() => null);
-  if (!body || !body.name || !body.email || !body.message) {
-    return NextResponse.json({ error: "Name, E-Mail und Nachricht sind erforderlich." }, { status: 400 });
+  const raw = await req.json().catch(() => null);
+  const parsed = inquirySchema.safeParse(raw);
+  if (!parsed.success) {
+    const message = parsed.error.issues[0]?.message || "Name, E-Mail und Nachricht sind erforderlich.";
+    return NextResponse.json({ error: message }, { status: 400 });
   }
-  // Einfacher E-Mail-Plausibilitätscheck.
-  if (!/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(String(body.email))) {
-    return NextResponse.json({ error: "Bitte eine gültige E-Mail-Adresse angeben." }, { status: 400 });
-  }
+  const body = parsed.data;
+
   const inquiries = readInquiries();
   const item: Inquiry = {
     id: `i-${Date.now()}`,
-    name: String(body.name).slice(0, 120),
-    email: String(body.email).slice(0, 160),
-    phone: body.phone ? String(body.phone).slice(0, 60) : undefined,
-    topic: body.topic ? String(body.topic).slice(0, 120) : undefined,
-    building: body.building ? String(body.building).slice(0, 120) : undefined,
-    message: String(body.message).slice(0, 4000),
-    packages: Array.isArray(body.packages) ? body.packages.slice(0, 12).map(String) : [],
+    name: body.name,
+    email: body.email,
+    phone: body.phone || undefined,
+    topic: body.topic || undefined,
+    building: body.building || undefined,
+    message: body.message,
+    packages: (body.packages || []).map(String),
     status: "neu",
     createdAt: new Date().toISOString(),
   };

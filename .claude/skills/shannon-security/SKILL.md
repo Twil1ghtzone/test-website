@@ -36,6 +36,15 @@ Gegen `app/api/**/route.ts` prüfen:
 7. **Fehlerausgabe** — Fehlermeldungen an den Client dürfen keine Stacktraces oder
    interne Pfade enthalten.
 
+## Auth-Bibliothek — Zukunftspfad
+Aktuell: eigene bcrypt-Hashes (Cost 12) + HMAC-signierte httpOnly-Session-Cookies
+(`lib/server/auth.ts`) — kein Auth.js/Lucia/Clerk. Das ist kein Fund, solange die Punkte
+oben (Cookie-Flags, Rate-Limit auf Login, serverseitige Autorisierung) eingehalten werden.
+Falls das Projekt je auf eine Standard-Lösung wechselt: **Auth.js (NextAuth)** oder
+**Lucia** sind die naheliegenden Kandidaten (Session-Modell ähnlich genug zum jetzigen
+Cookie-Ansatz für eine schrittweise Migration); nicht eigenmächtig einführen, das ist eine
+explizite Architekturentscheidung des Nutzers.
+
 ## Wenn eine Anforderung nicht erfüllt ist
 Nicht stillschweigend weiterbauen — die Lücke benennen (Datei + Zeile + Angriffsszenario)
 und entweder sofort fixen oder den Nutzer explizit fragen, bevor die Aufgabe als

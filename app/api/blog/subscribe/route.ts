@@ -3,6 +3,7 @@ import crypto from "crypto";
 import { readSubscribers, writeSubscribers, type Subscriber } from "@/lib/server/store";
 import { smtpConfigured, sendMail, mailLayout } from "@/lib/server/mail";
 import { rateLimit } from "@/lib/server/ratelimit";
+import { subscribeSchema } from "@/lib/server/validation";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -18,20 +19,21 @@ function baseUrl(req: NextRequest): string {
 // Öffentlich: Blog kostenlos abonnieren (wie novum — mit Double-Opt-In, wenn SMTP konfiguriert).
 export async function POST(req: NextRequest) {
   const ip = (req.headers.get("x-forwarded-for") || "local").split(",")[0].trim();
-  const rl = rateLimit(`subscribe:${ip}`, 5, 60 * 60 * 1000);
+  const rl = await rateLimit(`subscribe:${ip}`, 5, 60 * 60 * 1000);
   if (!rl.ok) {
     return NextResponse.json({ error: "Zu viele Anmeldungen — bitte später erneut versuchen." }, { status: 429 });
   }
 
-  const body = await req.json().catch(() => null);
-  const email = String(body?.email || "").trim().toLowerCase();
-  // Honeypot
-  if (typeof body?.website === "string" && body.website.trim() !== "") {
+  const raw = await req.json().catch(() => null);
+  const parsed = subscribeSchema.safeParse(raw);
+  // Honeypot: gefülltes Feld -> stillschweigend "erfolgreich" antworten, nicht als Validierungsfehler.
+  if (raw && typeof (raw as { website?: unknown }).website === "string" && (raw as { website: string }).website.trim() !== "") {
     return NextResponse.json({ ok: true, verified: true }, { status: 201 });
   }
-  if (!/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(email)) {
+  if (!parsed.success) {
     return NextResponse.json({ error: "Bitte eine gültige E-Mail-Adresse angeben." }, { status: 400 });
   }
+  const { email } = parsed.data;
 
   const subs = readSubscribers();
   const existing = subs.find((s) => s.email === email);

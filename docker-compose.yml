@@ -31,6 +31,17 @@ services:
       - studio-lokal-data:/app/data
       # Zweites, unabhängiges Volume für die gespiegelte Sicherung.
       - studio-lokal-backup-mirror:/app/backup-mirror
+    # Lebenszeichen: fragt /api/health ab (prüft auch, ob /app/data
+    # beschreibbar ist). Ohne diesen Block meldet `docker compose ps` den
+    # Container als "läuft", selbst wenn der Node-Prozess innerlich klemmt.
+    # Die Definition steht auch im Dockerfile — hier wiederholt, damit sie
+    # ohne Blick ins Image sichtbar und pro Umgebung anpassbar ist.
+    healthcheck:
+      test: ["CMD", "node", "-e", "fetch('http://127.0.0.1:3000/api/health').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"]
+      interval: 30s
+      timeout: 5s
+      start_period: 20s
+      retries: 3
 
   # ── TLS-Terminierung (echte Transportverschlüsselung) ──
   # Optional, aber empfohlen: siehe Caddyfile für die genaue Funktionsweise.
@@ -52,7 +63,10 @@ services:
       - caddy-data:/data
       - caddy-config:/config
     depends_on:
-      - web
+      # Erst starten, wenn die Website wirklich antwortet — sonst leitet
+      # Caddy die ersten Anfragen ins Leere und Besucher sehen 502.
+      web:
+        condition: service_healthy
 
   # ── Automatisierung: Activepieces (kostenlos, MIT-Lizenz, selbst gehostet) ──
   # Läuft NUR mit einem der beiden Profile-Flags, ist also standardmäßig AUS:

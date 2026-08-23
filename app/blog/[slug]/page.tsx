@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
+import Image from "next/image";
 import { notFound } from "next/navigation";
 import { ArrowIcon } from "@/components/icons";
 import { MotionLink, pressable } from "@/components/ui/motion";
@@ -52,9 +53,27 @@ export default async function BlogPostPage({ params }: { params: Promise<{ slug:
         </header>
 
         {post.coverImage && (
-          <div className="mt-8 overflow-hidden rounded-3xl border border-line">
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src={post.coverImage} alt={post.title} className="aspect-[16/9] w-full object-cover" />
+          /*
+           * Das Titelbild ist auf einer Blogseite fast immer das größte
+           * Element und damit der Largest Contentful Paint. Über `next/image`
+           * statt `<img>`: automatische WebP/AVIF-Auslieferung, passende
+           * Größe je Bildschirm statt immer das Original, und `priority`,
+           * weil es oberhalb des ersten Bildschirmrands steht (Lazy Loading
+           * wäre hier kontraproduktiv — es würde den LCP verzögern).
+           *
+           * `sizes` ist Pflicht bei `fill`: Ohne die Angabe lädt der Browser
+           * vorsichtshalber die größte Variante. Der Artikel ist auf
+           * `max-w-3xl` (768 px) begrenzt, darunter volle Breite.
+           */
+          <div className="relative mt-8 aspect-[16/9] w-full overflow-hidden rounded-3xl border border-line">
+            <Image
+              src={post.coverImage}
+              alt={post.title}
+              fill
+              priority
+              sizes="(max-width: 768px) 100vw, 768px"
+              className="object-cover"
+            />
           </div>
         )}
 

@@ -36,4 +36,14 @@ VOLUME ["/app/data"]
 
 USER nextjs
 EXPOSE 3000
+
+# Lebenszeichen gegen /api/health (prüft u. a., ob /app/data beschreibbar ist).
+# Bewusst mit Node statt curl/wget: Das Alpine-Image bringt keines von beiden
+# mit, und beides nachzuinstallieren würde das Image nur unnötig vergrößern
+# und die Angriffsfläche erweitern. Node 20 hat `fetch` eingebaut.
+# start-period deckt den Kaltstart ab, damit der Container beim Hochfahren
+# nicht fälschlich als "unhealthy" markiert wird.
+HEALTHCHECK --interval=30s --timeout=5s --start-period=20s --retries=3 \
+  CMD node -e "fetch('http://127.0.0.1:3000/api/health').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"
+
 CMD ["node", "server.js"]

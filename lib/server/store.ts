@@ -8,9 +8,33 @@ import {
   IMPRESSUM_VORLAGE, DATENSCHUTZ_VORLAGE, AGB_VORLAGE,
   ALT_IMPRESSUM, ALT_DATENSCHUTZ,
 } from "./legalTexts.ts";
+import { env } from "./env.ts";
 
 // JSON-Datei-Store (wie novum). Liegt in DATA_DIR (Docker-Volume) oder ./data.
-const DATA_DIR = process.env.DATA_DIR || path.join(process.cwd(), "data");
+// Der Wert kommt geprüft aus lib/server/env.ts — hier kein process.env mehr.
+const DATA_DIR = env.dataDir;
+
+/*
+ * EINZIGE Stelle, die einen Pfad in den Datenordner bildet.
+ *
+ * Warum gebündelt und mit `turbopackIgnore`: Turbopack sieht einen zur
+ * Bauzeit unbekannten Pfad (DATA_DIR kommt aus der Umgebung) und verfolgt
+ * daraufhin vorsichtshalber das GANZE Projekt in die Standalone-Ausgabe —
+ * beim Build erschien deshalb die Warnung "Dynamic filesystem access causes
+ * tracing of the whole project", und es landeten u. a. `data/` (mit
+ * Passwort-Hashes!) und der Referenzordner im Ergebnis.
+ *
+ * `next.config.mjs` schließt diese Pfade zusätzlich per
+ * `outputFileTracingExcludes` aus — die Kennzeichnung hier bekämpft die
+ * Ursache statt nur das Symptom, und zwar an genau einer Stelle statt an
+ * fünf verstreuten `path.join(DATA_DIR, …)`-Aufrufen.
+ *
+ * Sicher, weil `file` ausschließlich aus der festen Liste COLLECTIONS bzw.
+ * internen Konstanten stammt — nie aus einer Nutzereingabe.
+ */
+function dataPath(file: string): string {
+  return path.join(/* turbopackIgnore: true */ DATA_DIR, file);
+}
 
 function ensureDir() {
   if (!fs.existsSync(DATA_DIR)) fs.mkdirSync(DATA_DIR, { recursive: true });
@@ -27,7 +51,7 @@ const cache = new Map<string, { mtimeMs: number; data: unknown }>();
 export function readJson<T>(file: string, fallback: T): T {
   try {
     ensureDir();
-    const p = path.join(DATA_DIR, file);
+    const p = dataPath(file);
     if (!fs.existsSync(p)) {
       cache.delete(file);
       return fallback;
@@ -45,7 +69,7 @@ export function readJson<T>(file: string, fallback: T): T {
 
 export function writeJson(file: string, data: unknown): void {
   ensureDir();
-  const p = path.join(DATA_DIR, file);
+  const p = dataPath(file);
   const tmp = `${p}.${process.pid}.${Date.now()}.tmp`;
   fs.writeFileSync(tmp, JSON.stringify(data, null, 2), "utf-8");
   fs.renameSync(tmp, p); // atomarer Tausch
@@ -74,7 +98,7 @@ export type CollectionFile = keyof typeof COLLECTIONS;
 export function collectionStats(): { file: CollectionFile; label: string; count: number; bytes: number }[] {
   ensureDir();
   return (Object.keys(COLLECTIONS) as CollectionFile[]).map((file) => {
-    const p = path.join(DATA_DIR, file);
+    const p = dataPath(file);
     const exists = fs.existsSync(p);
     const raw = readJson<unknown>(file, null);
     const count = Array.isArray(raw) ? raw.length : raw && typeof raw === "object" ? 1 : 0;
@@ -84,7 +108,7 @@ export function collectionStats(): { file: CollectionFile; label: string; count:
 
 // Sammlung zurücksetzen: Datei löschen + Cache leeren (Seed/Defaults greifen wieder).
 export function resetCollection(file: CollectionFile): void {
-  const p = path.join(DATA_DIR, file);
+  const p = dataPath(file);
   if (fs.existsSync(p)) fs.unlinkSync(p);
   cache.delete(file);
 }

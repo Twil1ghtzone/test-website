@@ -25,7 +25,7 @@ export async function POST(req: NextRequest) {
   if (!me) return NextResponse.json({ error: "Nicht autorisiert" }, { status: 401 });
   // Bremse gegen Code-Erraten beim Einrichten/Deaktivieren.
   const ip = (req.headers.get("x-forwarded-for") || "local").split(",")[0].trim();
-  if (!rateLimit(`2fa:${me.id}:${ip}`, 20, 10 * 60 * 1000).ok) {
+  if (!(await rateLimit(`2fa:${me.id}:${ip}`, 20, 10 * 60 * 1000)).ok) {
     return NextResponse.json({ error: "Zu viele Versuche — bitte kurz warten." }, { status: 429 });
   }
 

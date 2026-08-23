@@ -10,11 +10,12 @@ import {
   verweigerteSammlungen, zusammenfuehren, istGueltigerSnapshotName,
   ueberzaehligeSnapshots, snapshotName, SNAPSHOTS_BEHALTEN, SNAPSHOT_MUSTER,
 } from "@/lib/server/backup";
+import { env } from "@/lib/server/env";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
-const DATA_DIR = process.env.DATA_DIR || path.join(process.cwd(), "data");
+const DATA_DIR = env.dataDir;
 const UPLOAD_DIR = path.join(DATA_DIR, "uploads");
 const SNAPSHOT_DIRNAME = "backups";
 
@@ -36,7 +37,7 @@ const MAX_IMPORT_BYTES = 200 * 1024 * 1024;
  * ZWEI unabhängige Kopien schreiben, damit der Ausfall EINES Datenträgers
  * nicht die einzige Sicherung mitreißt.
  */
-const MIRROR_DIR = process.env.BACKUP_MIRROR_DIR || "";
+const MIRROR_DIR = env.backupMirrorDir;
 
 const primaerVerzeichnis = () => path.join(DATA_DIR, SNAPSHOT_DIRNAME);
 const spiegelVerzeichnis = () => (MIRROR_DIR ? path.join(MIRROR_DIR, SNAPSHOT_DIRNAME) : "");
@@ -175,8 +176,13 @@ export async function POST(req: NextRequest) {
     let entfernt = 0;
     for (const dir of [primaerVerzeichnis(), spiegelVerzeichnis()]) {
       if (!dir) continue;
-      const ziel = path.resolve(dir, name);
-      if (!ziel.startsWith(path.resolve(dir) + path.sep)) continue;
+      // Path-Traversal-Sperre: Das aufgelöste Ziel MUSS unterhalb des
+      // Verzeichnisses liegen — ein `name` mit "../" fliegt hier raus.
+      // Die Prüfung bleibt unverändert; `turbopackIgnore` unterdrückt nur
+      // die Build-Warnung über den zur Bauzeit unbekannten Pfad (der Ordner
+      // kommt aus der Umgebung, siehe lib/server/env.ts).
+      const ziel = path.resolve(/* turbopackIgnore: true */ dir, name);
+      if (!ziel.startsWith(path.resolve(/* turbopackIgnore: true */ dir) + path.sep)) continue;
       try { if (fs.existsSync(ziel)) { fs.unlinkSync(ziel); entfernt++; } } catch { /* siehe unten */ }
     }
     if (entfernt === 0) return NextResponse.json({ error: "Sicherung nicht gefunden." }, { status: 404 });

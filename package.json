@@ -9,13 +9,15 @@
     "lint": "next lint",
     "test:rechner": "node --experimental-strip-types --no-warnings lib/sparrechner.test.mjs",
     "test:ai": "node --experimental-strip-types --no-warnings lib/server/ai.test.mjs",
-    "test": "npm run test:rechner && npm run test:faq && npm run test:rechte && npm run test:backup && npm run test:ai && npm run test:support && npm run test:aichat && npm run test:chatkeys",
+    "test": "npm run test:rechner && npm run test:faq && npm run test:rechte && npm run test:backup && npm run test:ai && npm run test:support && npm run test:aichat && npm run test:chatkeys && npm run test:validation && npm run test:ratelimit",
     "test:support": "node --experimental-strip-types --no-warnings lib/server/support.test.mjs",
     "test:aichat": "node --experimental-strip-types --no-warnings lib/server/aiChat.test.mjs",
     "test:chatkeys": "node --experimental-strip-types --no-warnings lib/server/chatKeys.test.mjs",
     "test:faq": "node --experimental-strip-types --no-warnings lib/faq.test.mjs",
     "test:rechte": "node --experimental-strip-types --no-warnings lib/server/benutzerRechte.test.mjs",
-    "test:backup": "node --experimental-strip-types --no-warnings lib/server/backup.test.mjs"
+    "test:backup": "node --experimental-strip-types --no-warnings lib/server/backup.test.mjs",
+    "test:validation": "node --experimental-strip-types --no-warnings lib/server/validation.test.mjs",
+    "test:ratelimit": "node --experimental-strip-types --no-warnings lib/server/ratelimit.test.mjs"
   },
   "dependencies": {
     "@radix-ui/react-checkbox": "^1.3.4",
@@ -23,18 +25,18 @@
     "@radix-ui/react-hover-card": "^1.1.19",
     "@radix-ui/react-label": "^2.1.9",
     "@radix-ui/react-slot": "^1.2.5",
-    "bcryptjs": "^2.4.3",
+    "bcryptjs": "^3.0.3",
     "class-variance-authority": "^0.7.1",
     "framer-motion": "^12.40.0",
     "lucide-react": "^1.18.0",
     "next": "^16.2.12",
     "nodemailer": "^9.0.3",
     "react": "19.0.0",
-    "react-dom": "19.0.0"
+    "react-dom": "19.0.0",
+    "zod": "^4.4.3"
   },
   "devDependencies": {
     "@tailwindcss/postcss": "^4.0.0",
-    "@types/bcryptjs": "^2.4.6",
     "@types/node": "^22.10.7",
     "@types/nodemailer": "^8.0.1",
     "@types/react": "^19.0.7",

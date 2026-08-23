@@ -5,6 +5,7 @@ import { seedAdminIfEmpty, verifyPassword, createSessionValue, SESSION_COOKIE, p
 import { logAudit } from "@/lib/server/audit";
 import { writeUsers } from "@/lib/server/store";
 import { verifyTOTP, verifyRecoveryCode } from "@/lib/server/totp";
+import { loginSchema } from "@/lib/server/validation";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -52,17 +53,14 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ ok: false, error: `Zu viele Versuche. Bitte ${rate.retry}s warten.` }, { status: 429 });
   }
 
-  let body: { username?: string; password?: string; code?: string };
-  try {
-    body = await req.json();
-  } catch {
-    return NextResponse.json({ ok: false, error: "Ungültige Anfrage." }, { status: 400 });
-  }
-  const username = (body.username || "").trim().toLowerCase();
-  const password = body.password || "";
-  if (!username || !password) {
+  const raw = await req.json().catch(() => null);
+  const parsed = loginSchema.safeParse(raw);
+  if (!parsed.success) {
     return NextResponse.json({ ok: false, error: "Benutzername und Passwort erforderlich." }, { status: 400 });
   }
+  const body = parsed.data;
+  const username = body.username.toLowerCase();
+  const password = body.password;
 
   await seedAdminIfEmpty();
   const user = readUsers().find(
@@ -77,7 +75,7 @@ export async function POST(req: NextRequest) {
 
   // ── 2FA: Passwort stimmt, aber ohne gültigen Code KEINE Session ──
   if (user.totpEnabled && user.totpSecret) {
-    const code = String((body as { code?: string }).code || "").trim();
+    const code = body.code || "";
     if (!code) {
       // Kein Cookie gesetzt — der Client zeigt jetzt die Code-Eingabe.
       return NextResponse.json({ ok: false, needTotp: true, error: "Bitte den 6-stelligen Code aus Ihrer Authenticator-App eingeben." }, { status: 401 });

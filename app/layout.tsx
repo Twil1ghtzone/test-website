@@ -9,6 +9,7 @@ import ScrollBackdrop from "@/components/ScrollBackdrop";
 import Footer from "@/components/Footer";
 import SupportButton from "@/components/SupportButton";
 import SiteChrome from "@/components/SiteChrome";
+import SkipLink from "@/components/SkipLink";
 import "./globals.css";
 
 const inter = Inter({
@@ -128,11 +129,28 @@ export default function RootLayout({
       <body>
         <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(geschaeft) }} />
         <SiteChrome>
+          <SkipLink />
           <ScrollBackdrop />
           <ScrollProgress />
           <Nav />
         </SiteChrome>
-        {children}
+        {/*
+          Sprungziel des SkipLink. Bewusst hier im Layout statt in jeder der
+          rund 15 Seiten: Die Seiten bringen ihr eigenes <main> mit teils
+          eigenen IDs mit (app/page.tsx nutzt z. B. id="top"), eine einzelne
+          gemeinsame Marke wäre dort nur mühsam nachzupflegen.
+
+          `tabIndex={-1}` ist Pflicht: Ein <div> ist von Haus aus nicht
+          fokussierbar, der Sprung würde sonst zwar scrollen, den Tastaturfokus
+          aber in der Navigation stehen lassen — das nächste Tab landete wieder
+          im Menü statt im Inhalt.
+
+          `scroll-mt-24` hält die feste Kopfleiste vom Sprungziel fern, sonst
+          verschwindet die erste Zeile darunter.
+        */}
+        <div id="inhalt" tabIndex={-1} className="scroll-mt-24 outline-none">
+          {children}
+        </div>
         <SiteChrome>
           <Footer />
           <SupportButton email={c.email} phone={c.phone} />

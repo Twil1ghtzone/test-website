@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
+import Image from "next/image";
 import dynamic from "next/dynamic";
 import { usePathname } from "next/navigation";
 import { AnimatePresence, motion } from "framer-motion";
@@ -96,6 +97,53 @@ export default function Nav() {
   // Mobile-Sheet bei Routenwechsel schließen
   useEffect(() => { setOpen(false); setMobileSvc(false); }, [pathname]);
 
+  /*
+   * Klick auf eine In-Page-Sektion ("Warum lokal" etc.).
+   *
+   * Der Bug: Next.js' App-Router scrollt bei einem `<Link href="/#warum">`
+   * NUR zuverlässig zum Anker, wenn sich der PFAD ändert (Navigation von
+   * einer anderen Seite). Ändert sich nur der Hash — man ist bereits auf
+   * "/" und klickt eine andere Sektion an —, behandelt der Router das
+   * manchmal gar nicht als Navigation und scrollt überhaupt nicht, manchmal
+   * schon: genau das unberechenbare "mal ja, mal nein", das gemeldet wurde.
+   *
+   * Fix: Ist man schon auf "/", wird selbst gescrollt (`scrollIntoView`,
+   * zuverlässig) und die URL nur per `history.pushState` nachgeführt — ohne
+   * Next"s Link-Navigation dafür zu bemühen. Kommt man von einer ANDEREN
+   * Seite, lässt man die normale Link-Navigation laufen; der Effekt weiter
+   * unten holt den Rest nach, sobald "/" fertig gemountet ist.
+   */
+  function handleSectionClick(id: string) {
+    return (e: React.MouseEvent<HTMLAnchorElement>) => {
+      if (pathname !== "/") return; // andere Seite → normale Link-Navigation zulassen
+      const el = document.getElementById(id);
+      if (!el) return; // Sektion (noch) nicht im DOM → normale Link-Navigation als Rückfall
+      e.preventDefault();
+      el.scrollIntoView({ behavior: "smooth", block: "start" });
+      window.history.pushState(null, "", `/#${id}`);
+    };
+  }
+
+  // Ankunft von einer ANDEREN Seite mit Ziel-Hash: erst wenn "/" fertig
+  // gemountet ist, existiert das Zielelement überhaupt. Ein einzelner
+  // Versuch direkt nach dem Mount kam bei animiert eingeblendeten Sektionen
+  // manchmal zu früh — deshalb ein paar Versuche mit kurzer Pause.
+  useEffect(() => {
+    if (pathname !== "/") return;
+    const hash = window.location.hash.replace("#", "");
+    if (!hash) return;
+    let versuche = 0;
+    const tick = () => {
+      const el = document.getElementById(hash);
+      if (el) {
+        el.scrollIntoView({ behavior: "smooth", block: "start" });
+      } else if (versuche++ < 10) {
+        setTimeout(tick, 100);
+      }
+    };
+    tick();
+  }, [pathname]);
+
   // Body-Scroll sperren, solange das mobile Menü offen ist
   useEffect(() => {
     document.body.style.overflow = open ? "hidden" : "";
@@ -156,6 +204,7 @@ export default function Nav() {
               <Link
                 key={l.id}
                 href={`/#${l.id}`}
+                onClick={handleSectionClick(l.id)}
                 onMouseEnter={() => setHover(l.id)}
                 className={`${pill} ${active === l.id ? "text-accent-ink" : "text-ink-soft hover:text-ink"}`}
               >
@@ -288,8 +337,14 @@ export default function Nav() {
                                   >
                                     <div className="relative h-32 w-full overflow-hidden">
                                       {active.image ? (
-                                        // eslint-disable-next-line @next/next/no-img-element
-                                        <img src={active.image} alt="" className="h-full w-full object-cover transition-transform duration-700 ease-[cubic-bezier(0.25,1,0.5,1)] group-hover/preview:scale-105" />
+                                        /*
+                                         * Statisches Bild aus /public (siehe lib/services.ts),
+                                         * daher über next/image: WebP/AVIF und passende Größe
+                                         * statt des Originals. Die Vorschau ist konstant
+                                         * 13.5rem = 216 px breit, deshalb ein fester `sizes`-Wert
+                                         * statt einer Viewport-Formel.
+                                         */
+                                        <Image src={active.image} alt="" fill sizes="216px" className="object-cover transition-transform duration-700 ease-[cubic-bezier(0.25,1,0.5,1)] group-hover/preview:scale-105" />
                                       ) : (
                                         <div className="grid h-full w-full place-items-center bg-accent-soft">
                                           {(() => { const I = iconMap[active.icon]; return <I className="h-9 w-9 text-accent" />; })()}
@@ -423,7 +478,12 @@ export default function Nav() {
                 Über uns
               </Link>
               {sectionLinks.map((l) => (
-                <Link key={l.id} href={`/#${l.id}`} onClick={() => setOpen(false)} className="rounded-2xl px-3 py-2.5 text-ink-soft transition-colors hover:bg-surface hover:text-ink active:scale-[0.98] cursor-pointer">
+                <Link
+                  key={l.id}
+                  href={`/#${l.id}`}
+                  onClick={(e) => { handleSectionClick(l.id)(e); setOpen(false); }}
+                  className="rounded-2xl px-3 py-2.5 text-ink-soft transition-colors hover:bg-surface hover:text-ink active:scale-[0.98] cursor-pointer"
+                >
                   {l.label}
                 </Link>
               ))}
