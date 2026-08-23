@@ -1,4 +1,5 @@
 import crypto from "crypto";
+import { env } from "./env.ts";
 
 /* ════════════════════════════════════════════════════════════════════════
    ZENTRALES SERVER-GEHEIMNIS
@@ -23,8 +24,8 @@ const runtimeSecret = crypto.randomBytes(32).toString("hex");
 let warned = false;
 
 export function serverSecret(): string {
-  if (process.env.SESSION_SECRET) return process.env.SESSION_SECRET;
-  if (process.env.NODE_ENV === "production") {
+  if (env.sessionSecret) return env.sessionSecret;
+  if (env.isProduction) {
     if (!warned) {
       console.warn(
         "[Sicherheit] SESSION_SECRET ist nicht gesetzt — es wird ein zufälliges Prozess-Secret verwendet. " +

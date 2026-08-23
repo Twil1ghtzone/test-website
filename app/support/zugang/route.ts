@@ -22,7 +22,7 @@ export async function GET(req: NextRequest) {
   const ip = (req.headers.get("x-forwarded-for") || "").split(",")[0].trim() || "unknown";
   const basis = new URL(req.url).origin;
 
-  if (!rateLimit(`support-magic:${ip}`, 20, 60 * 60 * 1000).ok) {
+  if (!(await rateLimit(`support-magic:${ip}`, 20, 60 * 60 * 1000)).ok) {
     return NextResponse.redirect(`${basis}/support?zugang=limit`, 303);
   }
 

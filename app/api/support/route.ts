@@ -14,6 +14,7 @@ import {
 } from "@/lib/server/support";
 import { pruefeUpload, anzeigeName, TICKET_TYPEN, TYP_MIME } from "@/lib/server/upload";
 import { rateLimit } from "@/lib/server/ratelimit";
+import { supportCreateSchema, supportReplySchema } from "@/lib/server/validation";
 import { logAudit } from "@/lib/server/audit";
 import { sendMail, mailLayout, smtpConfigured } from "@/lib/server/mail";
 
@@ -76,7 +77,7 @@ export async function GET(req: NextRequest) {
   const token = url.searchParams.get("token");
 
   if (number && token) {
-    if (!rateLimit(`support-read:${clientIp(req)}`, 40, 60 * 60 * 1000).ok) {
+    if (!(await rateLimit(`support-read:${clientIp(req)}`, 40, 60 * 60 * 1000)).ok) {
       return NextResponse.json({ error: "Zu viele Abfragen — bitte später erneut versuchen." }, { status: 429 });
     }
     const nr = normalizeNumber(number);
@@ -115,7 +116,7 @@ export async function POST(req: NextRequest) {
   if (!herkunftOk(req)) return NextResponse.json({ error: "Ungültige Herkunft." }, { status: 403 });
 
   const ip = clientIp(req);
-  if (!rateLimit(`support-create:${ip}`, 5, 60 * 60 * 1000).ok) {
+  if (!(await rateLimit(`support-create:${ip}`, 5, 60 * 60 * 1000)).ok) {
     return NextResponse.json({ error: "Zu viele neue Tickets — bitte später erneut versuchen." }, { status: 429 });
   }
 
@@ -125,16 +126,14 @@ export async function POST(req: NextRequest) {
   // Honeypot: Bots füllen das versteckte Feld aus, Menschen nicht.
   if (felder.website) return NextResponse.json({ ok: true, number: "TK-0000-0000-0000" }, { status: 201 });
 
-  const name = felder.name.slice(0, 80);
-  const email = felder.email.slice(0, 160);
-  const subject = felder.subject.slice(0, 160);
-  const message = felder.message.slice(0, 4000);
+  // Ein Schema für BEIDE Übertragungswege (JSON und multipart) — `leseEingabe`
+  // hat sie oben bereits in dieselbe flache Form gebracht.
+  const geprueft = supportCreateSchema.safeParse(felder);
+  if (!geprueft.success) {
+    return NextResponse.json({ error: geprueft.error.issues[0].message }, { status: 400 });
+  }
+  const { name, email, subject, message } = geprueft.data;
   const prio: SupportPrio = SUPPORT_PRIOS.includes(felder.prio as SupportPrio) ? (felder.prio as SupportPrio) : "mittel";
-
-  if (name.length < 2) return NextResponse.json({ error: "Bitte einen Namen angeben." }, { status: 400 });
-  if (!/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(email)) return NextResponse.json({ error: "Bitte eine gültige E-Mail angeben." }, { status: 400 });
-  if (!subject) return NextResponse.json({ error: "Bitte einen Betreff angeben." }, { status: 400 });
-  if (message.length < 10) return NextResponse.json({ error: "Bitte beschreiben Sie Ihr Anliegen (min. 10 Zeichen)." }, { status: 400 });
 
   const anhaenge = speichereAnhaenge(dateien);
   if ("error" in anhaenge) return NextResponse.json({ error: anhaenge.error }, { status: anhaenge.status });
@@ -182,15 +181,19 @@ export async function PATCH(req: NextRequest) {
   if (!herkunftOk(req)) return NextResponse.json({ error: "Ungültige Herkunft." }, { status: 403 });
 
   const ip = clientIp(req);
-  if (!rateLimit(`support-reply:${ip}`, 30, 60 * 60 * 1000).ok) {
+  if (!(await rateLimit(`support-reply:${ip}`, 30, 60 * 60 * 1000)).ok) {
     return NextResponse.json({ error: "Zu viele Nachrichten — bitte später erneut versuchen." }, { status: 429 });
   }
 
   const { felder, dateien, fehler } = await leseEingabe(req);
   if (fehler) return NextResponse.json({ error: fehler.text }, { status: fehler.status });
 
-  const nr = normalizeNumber(felder.number);
-  const text = felder.text.slice(0, 4000);
+  const geprueft = supportReplySchema.safeParse(felder);
+  if (!geprueft.success) {
+    return NextResponse.json({ error: geprueft.error.issues[0].message }, { status: 400 });
+  }
+  const nr = normalizeNumber(geprueft.data.number);
+  const text = geprueft.data.text;
   if (!nr) return NextResponse.json({ error: "Ticketnummer fehlt." }, { status: 400 });
   if (text.length < 1 && dateien.length === 0) {
     return NextResponse.json({ error: "Bitte Text eingeben oder eine Datei anhängen." }, { status: 400 });

@@ -3,6 +3,8 @@ name: Build & push Docker image
 on:
   push:
     branches: [main]
+  pull_request:
+    branches: [main]
   workflow_dispatch:
 
 permissions:
@@ -10,8 +12,44 @@ permissions:
   packages: write
 
 jobs:
-  build-and-push:
+  # ── Qualitätstor ──
+  # Läuft VOR dem Image-Build. Ohne diesen Job wurde bei jedem Push auf main
+  # gebaut und nach ghcr.io gepusht, ohne dass je ein Test oder der
+  # TypeScript-Compiler gelaufen wäre — fehlerhafter Code wäre über
+  # `docker compose pull` sofort auf jedem Server gelandet.
+  qualitaet:
+    name: Typen & Tests
     runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Node einrichten
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      # `npm ci` statt `npm install`: installiert exakt die Versionen aus
+      # package-lock.json und schlägt fehl, wenn Lockfile und package.json
+      # auseinanderlaufen — genau das, was eine CI prüfen soll.
+      - name: Abhängigkeiten installieren
+        run: npm ci
+
+      - name: TypeScript prüfen
+        run: npx tsc --noEmit
+
+      - name: Tests
+        run: npm test
+
+  build-and-push:
+    name: Image bauen & pushen
+    runs-on: ubuntu-latest
+    # Kein Image ohne grüne Tests.
+    needs: qualitaet
+    # Pull Requests werden geprüft, aber nicht veröffentlicht — sonst würde
+    # jeder PR das `latest`-Tag der Produktion überschreiben.
+    if: github.event_name != 'pull_request'
     steps:
       - name: Checkout
         uses: actions/checkout@v4

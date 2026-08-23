@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useEffect, useState } from "react";
-import { motion, useAnimation } from "framer-motion";
+import { motion, useAnimation, type Variants, type TargetAndTransition } from "framer-motion";
 
 interface GridConfig {
   numCards: number;
@@ -26,8 +26,10 @@ const AnimatedLoadingSkeleton = ({ numCards = 6 }: { numCards?: number }) => {
     yStep: 230,
   });
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const generateSearchPath = (config: GridConfig): any => {
+  // `TargetAndTransition` ist exakt das, was `controls.start()` erwartet:
+  // Zielwerte plus eigene Transition. Vorher stand hier `any` — ein Tippfehler
+  // in einem der Feldnamen wäre stillschweigend durchgegangen.
+  const generateSearchPath = (config: GridConfig): TargetAndTransition => {
     const { numCards, cols, xBase, yBase, xStep, yStep } = config;
     const rows = Math.ceil(numCards / cols);
     const allPositions: { x: number; y: number }[] = [];
@@ -67,16 +69,17 @@ const AnimatedLoadingSkeleton = ({ numCards = 6 }: { numCards?: number }) => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [windowWidth, controls]);
 
-  /* eslint-disable @typescript-eslint/no-explicit-any */
-  const frameVariants: any = {
+  const frameVariants: Variants = {
     hidden: { opacity: 0, scale: 0.98 },
     visible: { opacity: 1, scale: 1, transition: { duration: 0.4 } },
   };
-  const cardVariants: any = {
+  // Variante als Funktion: bekommt den `custom`-Wert der Karte (ihren Index)
+  // und staffelt daraus die Verzögerung.
+  const cardVariants: Variants = {
     hidden: { y: 16, opacity: 0 },
     visible: (i: number) => ({ y: 0, opacity: 1, transition: { delay: i * 0.08, duration: 0.4 } }),
   };
-  const glowVariants: any = {
+  const glowVariants: Variants = {
     animate: {
       boxShadow: [
         "0 0 20px rgba(176, 84, 58, 0.18)",

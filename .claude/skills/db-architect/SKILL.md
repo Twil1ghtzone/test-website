@@ -21,7 +21,11 @@ future Prisma/PlanetScale-style ORM the project migrates to.
 - Cross-reference by pre-building a `Map<key, value>` before iterating (same principle as
   eager-loading in a real ORM).
 
-## If/when this migrates to Prisma or a real database
-- Every new relation needs an explicit index on the foreign key before it ships.
+## If/when this migrates to a real database
+- Prefer Drizzle ORM over Prisma if/when this happens — it maps closer to the SQL this
+  project would actually run (Postgres) and keeps the serverless/edge option open; Prisma
+  is the fallback if the team wants a heavier query builder with more batteries included.
+- Every new relation needs an explicit index (B-tree for equality/range lookups, GIN for
+  JSONB/array columns) on the foreign key before it ships.
 - Schema changes go through a dry-run migration first; never hand-edit a production schema.
 - Flag any query pattern that would issue one query per row in a result set — batch it.

@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { readReviews, writeReviews, readSettings, INVOICE_STATUS_LABELS, type Review } from "@/lib/server/store";
 import { sealReview, verifyReview, hashIp, findInvoice, reviewKind, normalizeInvoiceNumber } from "@/lib/server/reviews";
 import { rateLimit } from "@/lib/server/ratelimit";
+import { reviewBodySchema } from "@/lib/server/validation";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -31,15 +32,17 @@ export async function GET() {
 export async function POST(req: NextRequest) {
   // Grundbremse pro IP (zusätzlich zum fachlichen maxPerDay-Limit weiter unten):
   // schützt auch den verify-Schritt vor massenhaftem Durchprobieren von Rechnungsnummern.
-  if (!rateLimit(`reviews:${clientIp(req)}`, 30, 60 * 60 * 1000).ok) {
+  if (!(await rateLimit(`reviews:${clientIp(req)}`, 30, 60 * 60 * 1000)).ok) {
     return NextResponse.json({ error: "Zu viele Anfragen — bitte später erneut versuchen." }, { status: 429 });
   }
 
   const { reviews: cfg } = readSettings();
   if (!cfg.enabled) return NextResponse.json({ error: "Bewertungen sind derzeit deaktiviert." }, { status: 403 });
 
-  const body = await req.json().catch(() => null);
-  if (!body) return NextResponse.json({ error: "Ungültige Anfrage." }, { status: 400 });
+  const raw = await req.json().catch(() => null);
+  const parsed = reviewBodySchema.safeParse(raw);
+  if (!parsed.success) return NextResponse.json({ error: "Ungültige Anfrage." }, { status: 400 });
+  const body = parsed.data;
 
   // Schritt 1: nur Rechnungsnummer prüfen (für das zweistufige Formular).
   if (body.action === "verify") {

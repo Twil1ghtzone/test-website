@@ -1,3 +1,5 @@
+import { env } from "./server/env.ts";
+
 /*
  * Öffentliche Basis-Adresse der Website.
  *
@@ -5,16 +7,15 @@
  * dort MÜSSEN absolute URLs stehen, relative Pfade funktionieren beim Teilen
  * in WhatsApp, LinkedIn oder Slack nicht.
  *
- * Wird über SITE_URL gesetzt (in docker-compose.yml eintragen, sobald die
- * echte Domain feststeht). Ohne Angabe bleibt localhost — dann funktioniert
- * alles lokal, die Vorschau beim Teilen aber erst nach dem Setzen der Variable.
+ * Die eigentliche Auswertung von SITE_URL (inklusive Ergänzen eines fehlenden
+ * Schemas und Entfernen des abschließenden Schrägstrichs) liegt seit der
+ * Zentralisierung in lib/server/env.ts — dort wird auch gewarnt, wenn in
+ * Produktion noch localhost eingetragen ist. Diese Funktion bleibt als
+ * benannter Zugang bestehen, damit die drei Aufrufer (layout, sitemap,
+ * robots) unverändert weiterlaufen.
+ *
+ * Nur serverseitig verwendbar: env.ts liest `process.env` und nutzt `path`.
  */
-const FALLBACK = "http://localhost:3000";
-
 export function siteUrl(): string {
-  const roh = (process.env.SITE_URL || FALLBACK).trim();
-  // Ohne Schema ergänzen (häufiger Konfigurationsfehler: "example.de"),
-  // abschließenden Schrägstrich entfernen — sonst entstehen doppelte "//".
-  const mitSchema = /^https?:\/\//i.test(roh) ? roh : `https://${roh}`;
-  return mitSchema.replace(/\/+$/, "");
+  return env.siteUrl;
 }
